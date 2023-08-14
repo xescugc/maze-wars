@@ -1,5 +1,13 @@
 package main
 
+import (
+	_ "embed"
+	"image"
+	_ "image/png"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
 type Object struct {
 	X, Y, W, H float64
 }
@@ -16,4 +24,16 @@ func (o Object) IsColliding(c Object) bool {
 	enemyBottom := c.Y + c.H
 
 	return selfRight > enemyLeft && selfLeft < enemyRight && selfBottom > enemyTop && selfTop < enemyBottom
+}
+
+type Entity struct {
+	Object
+	Image image.Image
+}
+
+type MovingEntity struct {
+	Entity
+
+	Facing      ebiten.Key
+	MovingCount int
 }

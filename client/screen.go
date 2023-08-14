@@ -10,8 +10,9 @@ type ScreenStore struct {
 }
 
 type ScreenState struct {
-	W int
-	H int
+	W    int
+	H    int
+	Zoom int
 }
 
 func NewScreenStore(d *flux.Dispatcher, w, h int) *ScreenStore {
@@ -24,19 +25,30 @@ func NewScreenStore(d *flux.Dispatcher, w, h int) *ScreenStore {
 	return ss
 }
 
+func (ss *ScreenStore) GetWidth() int {
+	s := ss.GetState().(ScreenState)
+	return s.W + s.Zoom
+}
+func (ss *ScreenStore) GetHeight() int {
+	s := ss.GetState().(ScreenState)
+	return s.H + s.Zoom
+}
+
 func (ss *ScreenStore) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)
 	if !ok {
 		return state
 	}
 
-	cstate, ok := state.(ScreenState)
+	sstate, ok := state.(ScreenState)
 	if !ok {
 		return state
 	}
 
 	switch act.Type {
+	case action.CameraZoom:
+		sstate.Zoom += act.CameraZoom.Direction
 	default:
 	}
-	return cstate
+	return sstate
 }

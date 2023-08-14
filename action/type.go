@@ -2,8 +2,18 @@ package action
 
 type Type int
 
-//go:generate enumer -type=Type -transform=lower -output=type_string.go -json
+//go:generate enumer -type=Type -transform=snake -output=type_string.go -json
 
 const (
-	CameraMove Type = iota
+	CursorMove Type = iota
+	CameraZoom
+	SummonUnit
+	MoveUnit
+	RemoveUnit
+	StealLive
+	PlaceTower
+	SelectTower
+	SelectedTower
+	SelectedTowerInvalid
+	DeselectTower
 )
