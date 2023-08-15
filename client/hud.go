@@ -112,9 +112,9 @@ func (hs *HUDStore) Update() error {
 			actionDispatcher.DeselectTower(hst.SelectedTower.Type)
 		} else {
 			ts := hs.game.Towers.GetState().(TowersState)
+			cs := hs.game.Camera.GetState().(CameraState)
 			var invalid bool
 			for _, t := range ts.Towers {
-				cs := hs.game.Camera.GetState().(CameraState)
 				// The t.Entity has the X and Y relative to the map
 				// and the hst.SelectedTower has them relative to the
 				// screen so we need to port the t.Entity to the same
@@ -123,13 +123,18 @@ func (hs *HUDStore) Update() error {
 				neo.X -= cs.X
 				neo.Y -= cs.Y
 				if hst.SelectedTower.IsColliding(neo) {
-					actionDispatcher.SelectedTowerInvalid(true)
 					invalid = true
 					break
 				}
 			}
-			if !invalid && hst.SelectedTower.Invalid {
-				actionDispatcher.SelectedTowerInvalid(false)
+			neo := hst.SelectedTower.Object
+			neo.X += cs.X
+			neo.Y += cs.Y
+			if !hs.game.Map.IsInValidBuildingZone(neo, hst.SelectedTower.LineID) {
+				invalid = true
+			}
+			if invalid != hst.SelectedTower.Invalid {
+				actionDispatcher.SelectedTowerInvalid(invalid)
 			}
 		}
 	}

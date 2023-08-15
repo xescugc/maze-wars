@@ -85,13 +85,13 @@ func (m *Map) IsAtTheEnd(obj Object, lid int) bool {
 	return obj.IsColliding(endArea)
 }
 
-func (m *Map) IsValidBuildingZone(obj Object, lid int) bool {
+func (m *Map) IsInValidBuildingZone(obj Object, lid int) bool {
 	buildingArea := Object{
 		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
-		Y: 82 * 16,
+		Y: (7 * 16) + 16, // This +16 is for the border
 		W: 16 * 16,
 		H: 74 * 16,
 	}
 
-	return obj.IsColliding(buildingArea)
+	return buildingArea.IsInside(obj)
 }
