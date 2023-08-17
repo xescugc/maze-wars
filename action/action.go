@@ -3,15 +3,14 @@ package action
 type Action struct {
 	Type Type `json:"type"`
 
-	CursorMove           CursorMovePayload           `json:"cursor_move,omitempty"`
-	SummonUnit           SummonUnitPayload           `json:"summon_unit,omitempty"`
-	MoveUnit             MoveUnitPayload             `json:"move_unit,omitempty"`
-	RemoveUnit           RemoveUnitPayload           `json:"remove_unit,omitempty"`
-	StealLive            StealLivePayload            `json:"steal_live,omitempty"`
-	CameraZoom           CameraZoomPayload           `json:"camera_zoom,omitempty"`
-	SelectTower          SelectTowerPayload          `json:"select_tower,omitempty"`
-	PlaceTower           PlaceTowerPayload           `json:"place_tower,omitempty"`
-	SelectedTowerInvalid SelectedTowerInvalidPayload `json:"selected_tower_invalid",omitempty"`
+	CursorMove           *CursorMovePayload           `json:"cursor_move,omitempty"`
+	SummonUnit           *SummonUnitPayload           `json:"summon_unit,omitempty"`
+	RemoveUnit           *RemoveUnitPayload           `json:"remove_unit,omitempty"`
+	StealLive            *StealLivePayload            `json:"steal_live,omitempty"`
+	CameraZoom           *CameraZoomPayload           `json:"camera_zoom,omitempty"`
+	SelectTower          *SelectTowerPayload          `json:"select_tower,omitempty"`
+	PlaceTower           *PlaceTowerPayload           `json:"place_tower,omitempty"`
+	SelectedTowerInvalid *SelectedTowerInvalidPayload `json:"selected_tower_invalid",omitempty"`
 }
 
 type CursorMovePayload struct {
@@ -22,7 +21,7 @@ type CursorMovePayload struct {
 func NewCursorMove(x, y int) *Action {
 	return &Action{
 		Type: CursorMove,
-		CursorMove: CursorMovePayload{
+		CursorMove: &CursorMovePayload{
 			X: x,
 			Y: y,
 		},
@@ -39,7 +38,7 @@ type SummonUnitPayload struct {
 func NewSummonUnit(t string, pid, plid, clid int) *Action {
 	return &Action{
 		Type: SummonUnit,
-		SummonUnit: SummonUnitPayload{
+		SummonUnit: &SummonUnitPayload{
 			Type:          t,
 			PlayerID:      pid,
 			PlayerLineID:  plid,
@@ -48,13 +47,9 @@ func NewSummonUnit(t string, pid, plid, clid int) *Action {
 	}
 }
 
-type MoveUnitPayload struct {
-}
-
 func NewMoveUnit() *Action {
 	return &Action{
-		Type:     MoveUnit,
-		MoveUnit: MoveUnitPayload{},
+		Type: MoveUnit,
 	}
 }
 
@@ -65,7 +60,7 @@ type RemoveUnitPayload struct {
 func NewRemoveUnit(uid int) *Action {
 	return &Action{
 		Type: RemoveUnit,
-		RemoveUnit: RemoveUnitPayload{
+		RemoveUnit: &RemoveUnitPayload{
 			UnitID: uid,
 		},
 	}
@@ -79,7 +74,7 @@ type StealLivePayload struct {
 func NewStealLive(fpid, tpid int) *Action {
 	return &Action{
 		Type: StealLive,
-		StealLive: StealLivePayload{
+		StealLive: &StealLivePayload{
 			FromPlayerID: fpid,
 			ToPlayerID:   tpid,
 		},
@@ -93,7 +88,7 @@ type CameraZoomPayload struct {
 func NewCameraZoom(d int) *Action {
 	return &Action{
 		Type: CameraZoom,
-		CameraZoom: CameraZoomPayload{
+		CameraZoom: &CameraZoomPayload{
 			Direction: d,
 		},
 	}
@@ -109,7 +104,7 @@ type PlaceTowerPayload struct {
 func NewPlaceTower(t string, x, y, lid int) *Action {
 	return &Action{
 		Type: PlaceTower,
-		PlaceTower: PlaceTowerPayload{
+		PlaceTower: &PlaceTowerPayload{
 			Type:   t,
 			LineID: lid,
 			X:      x,
@@ -127,7 +122,7 @@ type SelectTowerPayload struct {
 func NewSelectTower(t string, x, y int) *Action {
 	return &Action{
 		Type: SelectTower,
-		SelectTower: SelectTowerPayload{
+		SelectTower: &SelectTowerPayload{
 			Type: t,
 			X:    x,
 			Y:    y,
@@ -142,7 +137,7 @@ type SelectedTowerInvalidPayload struct {
 func NewSelectedTowerInvalid(i bool) *Action {
 	return &Action{
 		Type: SelectedTowerInvalid,
-		SelectedTowerInvalid: SelectedTowerInvalidPayload{
+		SelectedTowerInvalid: &SelectedTowerInvalidPayload{
 			Invalid: i,
 		},
 	}

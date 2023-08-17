@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
+	"math"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -37,6 +39,8 @@ type HUDState struct {
 	SoldierButton Object
 
 	SelectedTower *SelectedTower
+
+	LastCursorPosition Object
 }
 
 type SelectedTower struct {
@@ -82,9 +86,12 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 }
 
 func (hs *HUDStore) Update() error {
-	x, y := ebiten.CursorPosition()
-	actionDispatcher.CursorMove(x, y)
 	hst := hs.GetState().(HUDState)
+	x, y := ebiten.CursorPosition()
+	// Only send a CursorMove when the curso has actually moved
+	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
+		actionDispatcher.CursorMove(x, y)
+	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		obj := Object{
 			X: float64(x),
@@ -219,9 +226,27 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 			},
 		}
 	case action.CursorMove:
+		// We update the last seen cursor position to not resend unnecessary events
+		hstate.LastCursorPosition.X = float64(act.CursorMove.X)
+		hstate.LastCursorPosition.Y = float64(act.CursorMove.Y)
+
 		if hstate.SelectedTower != nil {
-			hstate.SelectedTower.X = float64(act.CursorMove.X) - (hstate.SoldierButton.W / 2)
-			hstate.SelectedTower.Y = float64(act.CursorMove.Y) - (hstate.SoldierButton.H / 2)
+			// We find the closes multiple in case the cursor moves too fast, between FPS reloads,
+			// and lands in a position not 'multiple' which means the position of the SelectedTower
+			// is not updated and the result is the cursor far away from the Drawing of the SelectedTower
+			// as it has stayed on the previous position
+			var multiple int = 8
+			if act.CursorMove.X%multiple == 0 {
+				hstate.SelectedTower.X = float64(act.CursorMove.X) - (hstate.SoldierButton.W / 2)
+			} else if math.Abs(float64(act.CursorMove.X)-hstate.SelectedTower.X) > float64(multiple) {
+				hstate.SelectedTower.X = float64(closestMultiple(act.CursorMove.X, multiple)) - (hstate.SoldierButton.W / 2)
+			}
+			if act.CursorMove.Y%multiple == 0 {
+				hstate.SelectedTower.Y = float64(act.CursorMove.Y) - (hstate.SoldierButton.H / 2)
+			} else if math.Abs(float64(act.CursorMove.Y)-hstate.SelectedTower.Y) > float64(multiple) {
+				hstate.SelectedTower.Y = float64(closestMultiple(act.CursorMove.Y, multiple)) - (hstate.SoldierButton.H / 2)
+			}
+			spew.Dump(hstate.SelectedTower.Object)
 		}
 	case action.PlaceTower, action.DeselectTower:
 		hstate.SelectedTower = nil
@@ -233,4 +258,11 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	return hstate
+}
+
+// closestMultiple finds the coses multiple of 'b' for the number 'a'
+func closestMultiple(a, b int) int {
+	a = a + b/2
+	a = a - (a % b)
+	return a
 }

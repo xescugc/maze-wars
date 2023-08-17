@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-
+	"github.com/davecgh/go-spew/spew"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 )
@@ -26,8 +25,13 @@ func (ss *LoggerStore) Reduce(cstate, a interface{}) interface{} {
 		return cstate
 	}
 
+	// As the MoveUnit is called on every TPS we can
+	// ignore it
+	if act.Type == action.MoveUnit {
+		return cstate
+	}
 	// Prints all the action types
-	fmt.Println(act.Type)
+	spew.Dump(act)
 
 	return cstate
 }

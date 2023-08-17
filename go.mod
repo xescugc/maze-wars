@@ -3,6 +3,7 @@ module github.com/xescugc/ltw
 go 1.17
 
 require (
+	github.com/davecgh/go-spew v1.1.0
 	github.com/hajimehoshi/ebiten/v2 v2.2.5
 	github.com/xescugc/go-flux v0.0.0-20220312003507-8d5ac35e55d7
 )
