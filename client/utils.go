@@ -42,6 +42,53 @@ func (o Object) IsInside(c Object) bool {
 	return selfRight >= enemyRight && selfLeft <= enemyLeft && selfBottom >= enemyBottom && selfTop <= enemyTop
 }
 
+type Step struct {
+	Object
+
+	Facing ebiten.Key
+}
+
+// NeighborSteps returns all the possible steps around the o
+func (o Object) NeighborSteps() []Step {
+	return []Step{
+		Step{
+			Object: Object{
+				Y: o.Y - 1,
+				X: o.X,
+				W: 1, H: 1,
+			},
+			Facing: ebiten.KeyW,
+		},
+
+		Step{
+			Object: Object{
+				Y: o.Y + 1,
+				X: o.X,
+				W: 1, H: 1,
+			},
+			Facing: ebiten.KeyS,
+		},
+
+		Step{
+			Object: Object{
+				X: o.X - 1,
+				Y: o.Y,
+				W: 1, H: 1,
+			},
+			Facing: ebiten.KeyA,
+		},
+
+		Step{
+			Object: Object{
+				X: o.X + 1,
+				Y: o.Y,
+				W: 1, H: 1,
+			},
+			Facing: ebiten.KeyD,
+		},
+	}
+}
+
 type Entity struct {
 	Object
 	Image image.Image

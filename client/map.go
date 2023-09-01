@@ -72,26 +72,43 @@ func (m *Map) GetRandomSpawnCoordinatesForLineID(lid int) (float64, float64) {
 	return float64(xx), float64(yy)
 }
 
-// IsAtTheEnd checks if the Object obj on the lineID lid has reached the end of the
-// line on it's position
-func (m *Map) IsAtTheEnd(obj Object, lid int) bool {
-	endArea := Object{
+func (m *Map) EndZone(lid int) Object {
+	return Object{
 		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
 		Y: 82 * 16,
 		W: 16 * 16,
 		H: 3 * 16,
 	}
-
-	return obj.IsColliding(endArea)
 }
 
-func (m *Map) IsInValidBuildingZone(obj Object, lid int) bool {
-	buildingArea := Object{
+func (m *Map) BuildingZone(lid int) Object {
+	return Object{
 		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
 		Y: (7 * 16) + 16, // This +16 is for the border
 		W: 16 * 16,
 		H: 74 * 16,
 	}
+}
 
-	return buildingArea.IsInside(obj)
+func (m *Map) UnitZone(lid int) Object {
+	return Object{
+		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
+		Y: 16, // This +16 is for the border
+		W: 16 * 16,
+		H: 81 * 16,
+	}
+}
+
+// IsAtTheEnd checks if the Object obj on the lineID lid has reached the end of the
+// line on it's position
+func (m *Map) IsAtTheEnd(obj Object, lid int) bool {
+	return obj.IsColliding(m.EndZone(lid))
+}
+
+func (m *Map) IsInValidBuildingZone(obj Object, lid int) bool {
+	return m.BuildingZone(lid).IsInside(obj)
+}
+
+func (m *Map) IsInValidUnitZone(obj Object, lid int) bool {
+	return m.UnitZone(lid).IsInside(obj)
 }

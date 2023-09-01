@@ -8,7 +8,6 @@ import (
 	_ "image/png"
 	"math"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -101,7 +100,8 @@ func (hs *HUDStore) Update() error {
 		// Check what the user has just clicked
 		if hst.CyclopeButton.IsColliding(obj) {
 			cp := hs.game.Players.GetCurrentPlayer()
-			actionDispatcher.SummonUnit("cyclope", cp.ID, cp.LineID, hs.game.Map.GetNextLineID(cp.LineID))
+			//actionDispatcher.SummonUnit("cyclope", cp.ID, cp.LineID, hs.game.Map.GetNextLineID(cp.LineID))
+			actionDispatcher.SummonUnit("cyclope", cp.ID, cp.LineID, cp.LineID)
 			return nil
 		}
 		if hst.SoldierButton.IsColliding(obj) {
@@ -113,6 +113,10 @@ func (hs *HUDStore) Update() error {
 			cs := hs.game.Camera.GetState().(CameraState)
 			actionDispatcher.PlaceTower(hst.SelectedTower.Type, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y), hst.SelectedTower.LineID)
 		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
+		actionDispatcher.SelectTower("soldier", x, y)
+		return nil
 	}
 	if hst.SelectedTower != nil {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
@@ -176,7 +180,8 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	}
 
 	cp := hs.game.Players.GetCurrentPlayer()
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Lives: %d", cp.Lives))
+	cs := hs.game.Camera.GetState().(CameraState)
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("Lives: %d, (X: %d, Y: %d)", cp.Lives, int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)))
 }
 
 func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
@@ -246,7 +251,6 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 			} else if math.Abs(float64(act.CursorMove.Y)-hstate.SelectedTower.Y) > float64(multiple) {
 				hstate.SelectedTower.Y = float64(closestMultiple(act.CursorMove.Y, multiple)) - (hstate.SoldierButton.H / 2)
 			}
-			spew.Dump(hstate.SelectedTower.Object)
 		}
 	case action.PlaceTower, action.DeselectTower:
 		hstate.SelectedTower = nil

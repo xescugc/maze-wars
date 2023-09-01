@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"image"
+	"image/color"
 	_ "image/png"
 	"log"
 
@@ -44,6 +45,8 @@ type Unit struct {
 	PlayerID      int
 	PlayerLineID  int
 	CurrentLineID int
+
+	Path []Step
 }
 
 var (
@@ -77,10 +80,12 @@ func (us *UnitsStore) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.SummonUnit:
+		// We wait for the towers store as we need to interact with it
+		us.GetDispatcher().WaitFor(us.game.Towers.GetDispatcherToken())
 		var w, h float64 = 16, 16
 		var x, y float64 = us.game.Map.GetRandomSpawnCoordinatesForLineID(act.SummonUnit.CurrentLineID)
 		ustate.TotalUnits += 1
-		ustate.Units[ustate.TotalUnits] = &Unit{
+		u := &Unit{
 			MovingEntity: MovingEntity{
 				Entity: Entity{
 					Object: Object{
@@ -96,10 +101,44 @@ func (us *UnitsStore) Reduce(state, a interface{}) interface{} {
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
 		}
+		ts := us.game.Towers.GetState().(TowersState)
+		tws := make([]Object, 0, 0)
+		for _, t := range ts.Towers {
+			if t.LineID == u.CurrentLineID {
+				tws = append(tws, t.Entity.Object)
+			}
+		}
+		u.Path = us.shortestPathToFinish(us.game.Map, u.CurrentLineID, u.MovingEntity, tws)
+		ustate.Units[ustate.TotalUnits] = u
 	case action.MoveUnit:
+		// We wait for the towers store as we need to interact with it
 		for _, u := range ustate.Units {
-			u.MovingCount += 1
-			u.Y += 1
+			if len(u.Path) > 0 {
+				nextStep := u.Path[0]
+				u.Path = u.Path[1:]
+				u.MovingCount += 1
+				u.Y = nextStep.Y
+				u.X = nextStep.X
+				u.Facing = nextStep.Facing
+			}
+		}
+	case action.PlaceTower:
+		// We wait for the towers store as we need to interact with it
+		us.GetDispatcher().WaitFor(us.game.Towers.GetDispatcherToken())
+		ts := us.game.Towers.GetState().(TowersState)
+		for _, u := range ustate.Units {
+			// Only need to recalculate path for each unit when the placed tower
+			// is on the same LineID as the unit
+			if u.CurrentLineID == act.PlaceTower.LineID {
+				tws := make([]Object, 0, 0)
+				for _, t := range ts.Towers {
+					if t.LineID == u.CurrentLineID {
+						tws = append(tws, t.Entity.Object)
+					}
+				}
+
+				u.Path = us.shortestPathToFinish(us.game.Map, u.CurrentLineID, u.MovingEntity, tws)
+			}
 		}
 	case action.RemoveUnit:
 		delete(ustate.Units, act.RemoveUnit.UnitID)
@@ -137,6 +176,9 @@ func (us *UnitsStore) Draw(screen *ebiten.Image) {
 
 func (u *Unit) Draw(screen *ebiten.Image, c *CameraStore) {
 	cs := c.GetState().(CameraState)
+	for _, s := range u.Path {
+		screen.Set(int(s.X-cs.X), int(s.Y-cs.Y), color.Black)
+	}
 	if !u.IsColliding(cs.Object) {
 		return
 	}
