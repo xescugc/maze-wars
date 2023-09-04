@@ -81,3 +81,9 @@ func (ac *ActionDispatcher) DeselectTower(t string) {
 	dsta := action.NewDeselectTower(t)
 	ac.dispatcher.Dispatch(dsta)
 }
+
+// IncomeTick a new tick for the income
+func (ac *ActionDispatcher) IncomeTick() {
+	it := action.NewIncomeTick()
+	ac.dispatcher.Dispatch(it)
+}

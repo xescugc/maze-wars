@@ -143,8 +143,14 @@ func NewSelectedTowerInvalid(i bool) *Action {
 	}
 }
 
-func NewDeselectTower(t string) *Action {
+func NewDeselectTower(_ string) *Action {
 	return &Action{
 		Type: DeselectTower,
+	}
+}
+
+func NewIncomeTick() *Action {
+	return &Action{
+		Type: IncomeTick,
 	}
 }

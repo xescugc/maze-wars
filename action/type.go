@@ -16,4 +16,5 @@ const (
 	SelectedTower
 	SelectedTowerInvalid
 	DeselectTower
+	IncomeTick
 )
