@@ -180,8 +180,10 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	}
 
 	cp := hs.game.Players.GetCurrentPlayer()
+	ps := hs.game.Players.GetState().(PlayersState)
 	cs := hs.game.Camera.GetState().(CameraState)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Lives: %d, (X: %d, Y: %d)", cp.Lives, int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)))
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Lives: %d, Gold: %d, Income: %d (%ds)", cp.Lives, cp.Gold, cp.Income, ps.IncomeTimer), 0, 0)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), 0, 15)
 }
 
 func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
