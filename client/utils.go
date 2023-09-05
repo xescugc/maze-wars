@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"image"
 	_ "image/png"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -40,6 +41,14 @@ func (o Object) IsInside(c Object) bool {
 	enemyBottom := c.Y + c.H
 
 	return selfRight >= enemyRight && selfLeft <= enemyLeft && selfBottom >= enemyBottom && selfTop <= enemyTop
+}
+
+// Distance will calculate the distance between the 2 objects
+// based on X and Y position and ignoring the W and H
+func (o Object) Distance(c Object) float64 {
+	return math.Sqrt(
+		math.Pow(o.X-c.X, 2) + math.Pow(o.Y-c.Y, 2),
+	)
 }
 
 type Step struct {

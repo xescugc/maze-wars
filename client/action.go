@@ -87,3 +87,15 @@ func (ac *ActionDispatcher) IncomeTick() {
 	it := action.NewIncomeTick()
 	ac.dispatcher.Dispatch(it)
 }
+
+// TowerAttack issues a attack to the Unit with uid
+func (ac *ActionDispatcher) TowerAttack(uid int) {
+	ta := action.NewTowerAttack(uid)
+	ac.dispatcher.Dispatch(ta)
+}
+
+// UnitKilled adds gold to the user
+func (ac *ActionDispatcher) UnitKilled(pid int, ut string) {
+	uk := action.NewUnitKilled(pid, ut)
+	ac.dispatcher.Dispatch(uk)
+}

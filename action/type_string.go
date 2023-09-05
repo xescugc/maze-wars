@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_tick"
+const _TypeName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killed"
 
-var _TypeIndex = [...]uint8{0, 11, 22, 33, 42, 53, 63, 74, 86, 100, 122, 136, 147}
+var _TypeIndex = [...]uint8{0, 11, 22, 33, 42, 53, 63, 74, 86, 100, 122, 136, 147, 159, 170}
 
-const _TypeLowerName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_tick"
+const _TypeLowerName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killed"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -37,9 +37,11 @@ func _TypeNoOp() {
 	_ = x[SelectedTowerInvalid-(9)]
 	_ = x[DeselectTower-(10)]
 	_ = x[IncomeTick-(11)]
+	_ = x[TowerAttack-(12)]
+	_ = x[UnitKilled-(13)]
 }
 
-var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, MoveUnit, RemoveUnit, StealLive, PlaceTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick}
+var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, MoveUnit, RemoveUnit, StealLive, PlaceTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, TowerAttack, UnitKilled}
 
 var _TypeNameToValueMap = map[string]Type{
 	_TypeName[0:11]:         CursorMove,
@@ -66,6 +68,10 @@ var _TypeNameToValueMap = map[string]Type{
 	_TypeLowerName[122:136]: DeselectTower,
 	_TypeName[136:147]:      IncomeTick,
 	_TypeLowerName[136:147]: IncomeTick,
+	_TypeName[147:159]:      TowerAttack,
+	_TypeLowerName[147:159]: TowerAttack,
+	_TypeName[159:170]:      UnitKilled,
+	_TypeLowerName[159:170]: UnitKilled,
 }
 
 var _TypeNames = []string{
@@ -81,6 +87,8 @@ var _TypeNames = []string{
 	_TypeName[100:122],
 	_TypeName[122:136],
 	_TypeName[136:147],
+	_TypeName[147:159],
+	_TypeName[159:170],
 }
 
 // TypeString retrieves an enum value from the enum constants string name.
