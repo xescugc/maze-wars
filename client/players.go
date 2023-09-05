@@ -126,6 +126,8 @@ func (ps *PlayersStore) Reduce(state, a interface{}) interface{} {
 				p.Gold += p.Income
 			}
 		}
+	case action.UnitKilled:
+		pstate.Players[act.UnitKilled.PlayerID].Gold += unitIncome[act.UnitKilled.UnitType]
 	default:
 	}
 	return pstate

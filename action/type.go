@@ -17,4 +17,6 @@ const (
 	SelectedTowerInvalid
 	DeselectTower
 	IncomeTick
+	TowerAttack
+	UnitKilled
 )

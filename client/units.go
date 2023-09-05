@@ -46,6 +46,8 @@ type Unit struct {
 	PlayerLineID  int
 	CurrentLineID int
 
+	Health float64
+
 	Path []Step
 }
 
@@ -100,6 +102,7 @@ func (us *UnitsStore) Reduce(state, a interface{}) interface{} {
 			PlayerID:      act.SummonUnit.PlayerID,
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
+			Health:        10,
 		}
 		ts := us.game.Towers.GetState().(TowersState)
 		tws := make([]Object, 0, 0)
@@ -142,6 +145,13 @@ func (us *UnitsStore) Reduce(state, a interface{}) interface{} {
 		}
 	case action.RemoveUnit:
 		delete(ustate.Units, act.RemoveUnit.UnitID)
+	case action.TowerAttack:
+		u := ustate.Units[act.TowerAttack.UnitID]
+		// For now the damage is just 1
+		u.Health -= float64(towerDamage)
+		if u.Health <= 0 {
+			u.Health = 0
+		}
 	default:
 	}
 	return ustate
@@ -151,6 +161,11 @@ func (us *UnitsStore) Update() error {
 	actionDispatcher.MoveUnit()
 
 	for id, u := range us.GetState().(UnitsState).Units {
+		if u.Health == 0 {
+			actionDispatcher.UnitKilled(u.CurrentLineID, u.Type)
+			actionDispatcher.RemoveUnit(id)
+			continue
+		}
 		if us.game.Map.IsAtTheEnd(u.Object, u.CurrentLineID) {
 			p := us.game.Players.GetByLineID(u.CurrentLineID)
 			actionDispatcher.StealLive(p.ID, u.PlayerID)

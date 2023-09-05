@@ -12,7 +12,11 @@ import (
 	"github.com/xescugc/ltw/action"
 )
 
-var towerImages = make(map[string]image.Image)
+var (
+	towerImages         = make(map[string]image.Image)
+	towerRange  float64 = 16 * 2
+	towerDamage         = 1
+)
 
 func init() {
 	si, _, err := image.Decode(bytes.NewReader(TilesetHouse_png))
@@ -82,6 +86,15 @@ func (ts *TowersStore) Reduce(state, a interface{}) interface{} {
 }
 
 func (ts *TowersStore) Update() error {
+	uts := ts.game.Units.GetState().(UnitsState).Units
+	tws := ts.GetState().(TowersState).Towers
+	for uid, u := range uts {
+		for _, t := range tws {
+			if t.Distance(u.Object) <= towerRange {
+				actionDispatcher.TowerAttack(uid)
+			}
+		}
+	}
 	return nil
 }
 

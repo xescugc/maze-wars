@@ -11,6 +11,8 @@ type Action struct {
 	SelectTower          *SelectTowerPayload          `json:"select_tower,omitempty"`
 	PlaceTower           *PlaceTowerPayload           `json:"place_tower,omitempty"`
 	SelectedTowerInvalid *SelectedTowerInvalidPayload `json:"selected_tower_invalid",omitempty"`
+	TowerAttack          *TowerAttackPayload          `json:"tower_attack",omitempty`
+	UnitKilled           *UnitKilledPayload           `json:"unit_killed",omitempty`
 }
 
 type CursorMovePayload struct {
@@ -152,5 +154,33 @@ func NewDeselectTower(_ string) *Action {
 func NewIncomeTick() *Action {
 	return &Action{
 		Type: IncomeTick,
+	}
+}
+
+type TowerAttackPayload struct {
+	UnitID int
+}
+
+func NewTowerAttack(uid int) *Action {
+	return &Action{
+		Type: TowerAttack,
+		TowerAttack: &TowerAttackPayload{
+			UnitID: uid,
+		},
+	}
+}
+
+type UnitKilledPayload struct {
+	PlayerID int
+	UnitType string
+}
+
+func NewUnitKilled(pid int, ut string) *Action {
+	return &Action{
+		Type: UnitKilled,
+		UnitKilled: &UnitKilledPayload{
+			PlayerID: pid,
+			UnitType: ut,
+		},
 	}
 }
