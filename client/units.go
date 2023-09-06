@@ -102,7 +102,7 @@ func (us *UnitsStore) Reduce(state, a interface{}) interface{} {
 			PlayerID:      act.SummonUnit.PlayerID,
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
-			Health:        10,
+			Health:        100,
 		}
 		ts := us.game.Towers.GetState().(TowersState)
 		tws := make([]Object, 0, 0)
@@ -111,7 +111,7 @@ func (us *UnitsStore) Reduce(state, a interface{}) interface{} {
 				tws = append(tws, t.Entity.Object)
 			}
 		}
-		u.Path = us.shortestPathToFinish(us.game.Map, u.CurrentLineID, u.MovingEntity, tws)
+		u.Path = us.astar(us.game.Map, u.CurrentLineID, u.MovingEntity, tws)
 		ustate.Units[ustate.TotalUnits] = u
 	case action.MoveUnit:
 		// We wait for the towers store as we need to interact with it
@@ -140,7 +140,7 @@ func (us *UnitsStore) Reduce(state, a interface{}) interface{} {
 					}
 				}
 
-				u.Path = us.shortestPathToFinish(us.game.Map, u.CurrentLineID, u.MovingEntity, tws)
+				u.Path = us.astar(us.game.Map, u.CurrentLineID, u.MovingEntity, tws)
 			}
 		}
 	case action.RemoveUnit:
