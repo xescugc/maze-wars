@@ -102,7 +102,7 @@ func (us *UnitsStore) Reduce(state, a interface{}) interface{} {
 			PlayerID:      act.SummonUnit.PlayerID,
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
-			Health:        100,
+			Health:        10,
 		}
 		ts := us.game.Towers.GetState().(TowersState)
 		tws := make([]Object, 0, 0)

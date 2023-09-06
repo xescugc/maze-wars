@@ -88,10 +88,24 @@ func (ts *TowersStore) Reduce(state, a interface{}) interface{} {
 func (ts *TowersStore) Update() error {
 	uts := ts.game.Units.GetState().(UnitsState).Units
 	tws := ts.GetState().(TowersState).Towers
-	for uid, u := range uts {
+	if len(uts) != 0 {
 		for _, t := range tws {
-			if t.Distance(u.Object) <= towerRange {
-				actionDispatcher.TowerAttack(uid)
+			var (
+				minDist     float64 = 0
+				minDistUnit int
+			)
+			for uid, u := range uts {
+				d := t.Distance(u.Object)
+				if minDist == 0 {
+					minDist = d
+				}
+				if d <= towerRange && d < minDist {
+					minDist = d
+					minDistUnit = uid
+				}
+			}
+			if minDistUnit != 0 {
+				actionDispatcher.TowerAttack(minDistUnit)
 			}
 		}
 	}
