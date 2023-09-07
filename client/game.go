@@ -9,7 +9,6 @@ import (
 // It holds all the other Stores and the Map
 type Game struct {
 	Camera  *CameraStore
-	Screen  *ScreenStore
 	HUD     *HUDStore
 	Players *PlayersStore
 	Units   *UnitsStore
@@ -34,5 +33,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return g.Screen.GetWidth(), g.Screen.GetHeight()
+	cs := g.Camera.GetState().(CameraState)
+	if cs.W != float64(outsideWidth) || cs.H != float64(outsideHeight) {
+		actionDispatcher.WindowResizing(outsideWidth, outsideHeight)
+	}
+	return outsideWidth, outsideHeight
 }

@@ -19,4 +19,5 @@ const (
 	IncomeTick
 	TowerAttack
 	UnitKilled
+	WindowResizing
 )
