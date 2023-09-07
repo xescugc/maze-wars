@@ -99,3 +99,9 @@ func (ac *ActionDispatcher) UnitKilled(pid int, ut string) {
 	uk := action.NewUnitKilled(pid, ut)
 	ac.dispatcher.Dispatch(uk)
 }
+
+// WindowResizing new sizes of the window
+func (ac *ActionDispatcher) WindowResizing(w, h int) {
+	wr := action.NewWindowResizing(w, h)
+	ac.dispatcher.Dispatch(wr)
+}

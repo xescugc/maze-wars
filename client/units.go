@@ -199,6 +199,7 @@ func (u *Unit) Draw(screen *ebiten.Image, c *CameraStore) {
 	}
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y)
+	op.GeoM.Scale(cs.Zoom, cs.Zoom)
 	sx := facingToTile[u.Facing] * int(u.W)
 	i := (u.MovingCount / 5) % 4
 	sy := i * int(u.H)

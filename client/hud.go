@@ -66,16 +66,17 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 		cyclopeFacesetImage: ebiten.NewImageFromImage(fi),
 		tilesetHouseImage:   ebiten.NewImageFromImage(thi).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2)),
 	}
+	cs := g.Camera.GetState().(CameraState)
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
 		CyclopeButton: Object{
-			X: float64(g.Screen.GetWidth() - hs.cyclopeFacesetImage.Bounds().Dx()),
-			Y: float64(g.Screen.GetHeight() - hs.cyclopeFacesetImage.Bounds().Dy()),
+			X: float64(cs.W - float64(hs.cyclopeFacesetImage.Bounds().Dx())),
+			Y: float64(cs.H - float64(hs.cyclopeFacesetImage.Bounds().Dy())),
 			W: float64(hs.cyclopeFacesetImage.Bounds().Dx()),
 			H: float64(hs.cyclopeFacesetImage.Bounds().Dy()),
 		},
 		SoldierButton: Object{
 			X: 0,
-			Y: float64(g.Screen.GetHeight() - 16*2),
+			Y: float64(cs.H - 16*2),
 			W: float64(16 * 2),
 			H: float64(16 * 2),
 		},
@@ -155,6 +156,7 @@ func (hs *HUDStore) Update() error {
 
 func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	hst := hs.GetState().(HUDState)
+	cs := hs.game.Camera.GetState().(CameraState)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(hst.CyclopeButton.X, hst.CyclopeButton.Y)
@@ -170,7 +172,8 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 	if hst.SelectedTower != nil {
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(hst.SelectedTower.X, hst.SelectedTower.Y)
+		op.GeoM.Translate(hst.SelectedTower.X/cs.Zoom, hst.SelectedTower.Y/cs.Zoom)
+		op.GeoM.Scale(cs.Zoom, cs.Zoom)
 
 		if hst.SelectedTower != nil && hst.SelectedTower.Invalid {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
@@ -181,7 +184,6 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 	cp := hs.game.Players.GetCurrentPlayer()
 	ps := hs.game.Players.GetState().(PlayersState)
-	cs := hs.game.Camera.GetState().(CameraState)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Lives: %d, Gold: %d, Income: %d (%ds)", cp.Lives, cp.Gold, cp.Income, ps.IncomeTimer), 0, 0)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), 0, 15)
 }
@@ -198,17 +200,18 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	switch act.Type {
-	case action.CameraZoom:
-		hs.GetDispatcher().WaitFor(hs.game.Screen.GetDispatcherToken())
+	case action.WindowResizing:
+		hs.GetDispatcher().WaitFor(hs.game.Camera.GetDispatcherToken())
+		cs := hs.game.Camera.GetState().(CameraState)
 		hstate.CyclopeButton = Object{
-			X: float64(hs.game.Screen.GetWidth() - hs.cyclopeFacesetImage.Bounds().Dx()),
-			Y: float64(hs.game.Screen.GetHeight() - hs.cyclopeFacesetImage.Bounds().Dy()),
+			X: float64(cs.W - float64(hs.cyclopeFacesetImage.Bounds().Dx())),
+			Y: float64(cs.H - float64(hs.cyclopeFacesetImage.Bounds().Dy())),
 			W: float64(hs.cyclopeFacesetImage.Bounds().Dx()),
 			H: float64(hs.cyclopeFacesetImage.Bounds().Dy()),
 		}
 		hstate.SoldierButton = Object{
 			X: 0,
-			Y: float64(hs.game.Screen.GetHeight() - 16*2),
+			Y: float64(cs.H - 16*2),
 			W: float64(16 * 2),
 			H: float64(16 * 2),
 		}

@@ -13,6 +13,7 @@ type Action struct {
 	SelectedTowerInvalid *SelectedTowerInvalidPayload `json:"selected_tower_invalid",omitempty"`
 	TowerAttack          *TowerAttackPayload          `json:"tower_attack",omitempty`
 	UnitKilled           *UnitKilledPayload           `json:"unit_killed",omitempty`
+	WindowResizing       *WindowResizingPayload       `json:"window_resizing",omitempty"`
 }
 
 type CursorMovePayload struct {
@@ -181,6 +182,21 @@ func NewUnitKilled(pid int, ut string) *Action {
 		UnitKilled: &UnitKilledPayload{
 			PlayerID: pid,
 			UnitType: ut,
+		},
+	}
+}
+
+type WindowResizingPayload struct {
+	Width  int
+	Height int
+}
+
+func NewWindowResizing(w, h int) *Action {
+	return &Action{
+		Type: WindowResizing,
+		WindowResizing: &WindowResizingPayload{
+			Width:  w,
+			Height: h,
 		},
 	}
 }

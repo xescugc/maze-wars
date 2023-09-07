@@ -25,6 +25,12 @@ type CameraState struct {
 	Zoom float64
 }
 
+const (
+	zoomScale = 0.5
+	minZoom   = 0
+	maxZoom   = 2
+)
+
 // NewCameraStore creates a new CameraState linked to the Dispatcher d
 // with the Game g and with width w and height h which is the size of
 // the viewport
@@ -46,9 +52,14 @@ func NewCameraStore(d *flux.Dispatcher, g *Game, w, h int) *CameraStore {
 }
 
 func (cs *CameraStore) Update() error {
-	if _, wy := ebiten.Wheel(); wy != 0 {
-		actionDispatcher.CameraZoom(int(wy) * 3)
-	}
+	// TODO: https://github.com/xescugc/ltw/issues/4
+	//s := cs.GetState().(CameraState)
+	//if _, wy := ebiten.Wheel(); wy != 0 {
+	//fmt.Println(s.Zoom)
+	//if s.Zoom+(wy*zoomScale) <= maxZoom && s.Zoom+(wy*zoomScale) > minZoom {
+	//actionDispatcher.CameraZoom(int(wy))
+	//}
+	//}
 
 	return nil
 }
@@ -60,7 +71,9 @@ func (cs *CameraStore) Update() error {
 func (cs *CameraStore) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	s := cs.GetState().(CameraState)
-	screen.DrawImage(cs.game.Map.Image.(*ebiten.Image).SubImage(image.Rect(int(s.X), int(s.Y), int(s.X+s.W+s.Zoom), int(s.Y+s.H+s.Zoom))).(*ebiten.Image), op)
+	op.GeoM.Scale(s.Zoom, s.Zoom)
+	inverseZoom := maxZoom - s.Zoom + zoomScale
+	screen.DrawImage(cs.game.Map.Image.(*ebiten.Image).SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
 }
 
 func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
@@ -76,21 +89,17 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.CursorMove:
-		cs.GetDispatcher().WaitFor(cs.game.Screen.GetDispatcherToken())
-
-		ss := cs.game.Screen
-
 		// If the X or Y exceed the current Height or Width then
 		// it means the cursor is moving out of boundaries so we
 		// increase the camera X/Y at a ratio of the cameraSpeed
 		// so we move it around on the map
-		if act.CursorMove.Y >= ss.GetHeight() {
+		if float64(act.CursorMove.Y) >= cstate.H {
 			cstate.Y += cs.cameraSpeed
 		} else if act.CursorMove.Y <= 0 {
 			cstate.Y -= cs.cameraSpeed
 		}
 
-		if act.CursorMove.X >= ss.GetWidth() {
+		if float64(act.CursorMove.X) >= cstate.W {
 			cstate.X += cs.cameraSpeed
 		} else if act.CursorMove.X <= 0 {
 			cstate.X -= cs.cameraSpeed
@@ -110,9 +119,10 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 			cstate.Y = float64(cs.game.Map.GetY())
 		}
 	case action.CameraZoom:
-		cstate.Zoom += float64(act.CameraZoom.Direction)
-		cstate.W += float64(act.CameraZoom.Direction)
-		cstate.H += float64(act.CameraZoom.Direction)
+		cstate.Zoom += float64(act.CameraZoom.Direction) * zoomScale
+	case action.WindowResizing:
+		cstate.W = float64(act.WindowResizing.Width)
+		cstate.H = float64(act.WindowResizing.Height)
 	}
 
 	return cstate

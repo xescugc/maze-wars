@@ -125,5 +125,6 @@ func (t *Tower) Draw(screen *ebiten.Image, c *CameraStore) {
 	}
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(t.X-cs.X, t.Y-cs.Y)
+	op.GeoM.Scale(cs.Zoom, cs.Zoom)
 	screen.DrawImage(t.Image.(*ebiten.Image), op)
 }

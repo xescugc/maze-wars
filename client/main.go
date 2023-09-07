@@ -33,6 +33,7 @@ func main() {
 
 	ebiten.SetWindowTitle("LTW")
 	ebiten.SetWindowSize(screenW*2, screenH*2)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	dispatcher := flux.NewDispatcher()
 
 	actionDispatcher = NewActionDispatcher(dispatcher)
@@ -47,7 +48,6 @@ func main() {
 	}
 
 	g := &Game{
-		Screen:  NewScreenStore(dispatcher, screenW, screenH),
 		Players: NewPlayersStore(dispatcher),
 		Map:     m,
 	}
