@@ -88,6 +88,7 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 func (hs *HUDStore) Update() error {
 	hst := hs.GetState().(HUDState)
 	x, y := ebiten.CursorPosition()
+	cp := hs.game.Players.GetCurrentPlayer()
 	// Only send a CursorMove when the curso has actually moved
 	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
 		actionDispatcher.CursorMove(x, y)
@@ -99,13 +100,12 @@ func (hs *HUDStore) Update() error {
 			W: 1, H: 1,
 		}
 		// Check what the user has just clicked
-		if hst.CyclopeButton.IsColliding(obj) {
-			cp := hs.game.Players.GetCurrentPlayer()
+		if cp.Gold >= unitGold && hst.CyclopeButton.IsColliding(obj) {
 			//actionDispatcher.SummonUnit("cyclope", cp.ID, cp.LineID, hs.game.Map.GetNextLineID(cp.LineID))
 			actionDispatcher.SummonUnit("cyclope", cp.ID, cp.LineID, cp.LineID)
 			return nil
 		}
-		if hst.SoldierButton.IsColliding(obj) {
+		if cp.Gold >= towerGold && hst.SoldierButton.IsColliding(obj) {
 			actionDispatcher.SelectTower("soldier", x, y)
 			return nil
 		}
@@ -115,7 +115,7 @@ func (hs *HUDStore) Update() error {
 			actionDispatcher.PlaceTower(hst.SelectedTower.Type, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y), hst.SelectedTower.LineID)
 		}
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
+	if cp.Gold >= towerGold && inpututil.IsKeyJustPressed(ebiten.KeyT) {
 		actionDispatcher.SelectTower("soldier", x, y)
 		return nil
 	}
@@ -157,14 +157,20 @@ func (hs *HUDStore) Update() error {
 func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	hst := hs.GetState().(HUDState)
 	cs := hs.game.Camera.GetState().(CameraState)
+	cp := hs.game.Players.GetCurrentPlayer()
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(hst.CyclopeButton.X, hst.CyclopeButton.Y)
+	if cp.Gold < unitGold {
+		op.ColorM.Scale(2, 0.5, 0.5, 0.9)
+	}
 	screen.DrawImage(hs.cyclopeFacesetImage.(*ebiten.Image), op)
 
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(hst.SoldierButton.X, hst.SoldierButton.Y)
-	if hst.SelectedTower != nil && hst.SelectedTower.Type == "soldier" {
+	if cp.Gold < towerGold {
+		op.ColorM.Scale(2, 0.5, 0.5, 0.9)
+	} else if hst.SelectedTower != nil && hst.SelectedTower.Type == "soldier" {
 		// Once the tower is selected we gray it out
 		op.ColorM.Scale(0.5, 0.5, 0.5, 0.5)
 	}
@@ -182,7 +188,6 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		screen.DrawImage(hst.SelectedTower.Image.(*ebiten.Image), op)
 	}
 
-	cp := hs.game.Players.GetCurrentPlayer()
 	ps := hs.game.Players.GetState().(PlayersState)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Lives: %d, Gold: %d, Income: %d (%ds)", cp.Lives, cp.Gold, cp.Income, ps.IncomeTimer), 0, 0)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), 0, 15)

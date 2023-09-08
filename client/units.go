@@ -16,7 +16,10 @@ import (
 //go:embed assets/cyclope/Cyclopes.png
 var Cyclopes_png []byte
 
-var unitImages = make(map[string]image.Image)
+var (
+	unitImages = make(map[string]image.Image)
+	unitGold   = 10
+)
 
 func init() {
 	ci, _, err := image.Decode(bytes.NewReader(Cyclopes_png))
