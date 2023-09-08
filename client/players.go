@@ -118,6 +118,7 @@ func (ps *PlayersStore) Reduce(state, a interface{}) interface{} {
 		tp.Lives += 1
 	case action.SummonUnit:
 		pstate.Players[act.SummonUnit.PlayerID].Income += unitIncome[act.SummonUnit.Type]
+		pstate.Players[act.SummonUnit.PlayerID].Gold -= unitGold
 	case action.IncomeTick:
 		pstate.IncomeTimer -= 1
 		if pstate.IncomeTimer == 0 {
@@ -126,6 +127,8 @@ func (ps *PlayersStore) Reduce(state, a interface{}) interface{} {
 				p.Gold += p.Income
 			}
 		}
+	case action.PlaceTower:
+		pstate.Players[act.PlaceTower.LineID].Gold -= towerGold
 	case action.UnitKilled:
 		pstate.Players[act.UnitKilled.PlayerID].Gold += unitIncome[act.UnitKilled.UnitType]
 	default:

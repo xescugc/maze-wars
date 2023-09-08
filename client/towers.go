@@ -16,6 +16,7 @@ var (
 	towerImages         = make(map[string]image.Image)
 	towerRange  float64 = 16 * 2
 	towerDamage         = 1
+	towerGold           = 10
 )
 
 func init() {
