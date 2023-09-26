@@ -1,9 +1,6 @@
-package main
+package utils
 
 import (
-	_ "embed"
-	"image"
-	_ "image/png"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -98,13 +95,8 @@ func (o Object) NeighborSteps() []Step {
 	}
 }
 
-type Entity struct {
+type MovingObject struct {
 	Object
-	Image image.Image
-}
-
-type MovingEntity struct {
-	Entity
 
 	Facing      ebiten.Key
 	MovingCount int

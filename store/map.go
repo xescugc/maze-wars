@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"bytes"
@@ -9,10 +9,9 @@ import (
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/xescugc/ltw/assets"
+	"github.com/xescugc/ltw/utils"
 )
-
-//go:embed assets/maps/1v1.png
-var M_1v1_png []byte
 
 // Map is a struct that holds all the information of the current map
 type Map struct {
@@ -21,7 +20,7 @@ type Map struct {
 
 // NewMap initializes the map
 func NewMap() (*Map, error) {
-	mi, _, err := image.Decode(bytes.NewReader(M_1v1_png))
+	mi, _, err := image.Decode(bytes.NewReader(assets.M_1v1_png))
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +71,8 @@ func (m *Map) GetRandomSpawnCoordinatesForLineID(lid int) (float64, float64) {
 	return float64(xx), float64(yy)
 }
 
-func (m *Map) EndZone(lid int) Object {
-	return Object{
+func (m *Map) EndZone(lid int) utils.Object {
+	return utils.Object{
 		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
 		Y: 82 * 16,
 		W: 16 * 16,
@@ -81,8 +80,8 @@ func (m *Map) EndZone(lid int) Object {
 	}
 }
 
-func (m *Map) BuildingZone(lid int) Object {
-	return Object{
+func (m *Map) BuildingZone(lid int) utils.Object {
+	return utils.Object{
 		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
 		Y: (7 * 16) + 16, // This +16 is for the border
 		W: 16 * 16,
@@ -90,8 +89,8 @@ func (m *Map) BuildingZone(lid int) Object {
 	}
 }
 
-func (m *Map) UnitZone(lid int) Object {
-	return Object{
+func (m *Map) UnitZone(lid int) utils.Object {
+	return utils.Object{
 		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
 		Y: 16, // This +16 is for the border
 		W: 16 * 16,
@@ -101,14 +100,14 @@ func (m *Map) UnitZone(lid int) Object {
 
 // IsAtTheEnd checks if the Object obj on the lineID lid has reached the end of the
 // line on it's position
-func (m *Map) IsAtTheEnd(obj Object, lid int) bool {
+func (m *Map) IsAtTheEnd(obj utils.Object, lid int) bool {
 	return obj.IsColliding(m.EndZone(lid))
 }
 
-func (m *Map) IsInValidBuildingZone(obj Object, lid int) bool {
+func (m *Map) IsInValidBuildingZone(obj utils.Object, lid int) bool {
 	return m.BuildingZone(lid).IsInside(obj)
 }
 
-func (m *Map) IsInValidUnitZone(obj Object, lid int) bool {
+func (m *Map) IsInValidUnitZone(obj utils.Object, lid int) bool {
 	return m.UnitZone(lid).IsInside(obj)
 }

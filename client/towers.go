@@ -8,8 +8,8 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/ltw/assets"
+	"github.com/xescugc/ltw/store"
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 )
 
 func init() {
-	si, _, err := image.Decode(bytes.NewReader(TilesetHouse_png))
+	si, _, err := image.Decode(bytes.NewReader(assets.TilesetHouse_png))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,72 +28,26 @@ func init() {
 	towerImages["soldier"] = ebiten.NewImageFromImage(si).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2))
 }
 
-type TowersStore struct {
-	*flux.ReduceStore
-
+type Towers struct {
 	game *Game
 }
 
-type TowersState struct {
-	Towers      map[int]*Tower
-	TotalTowers int
-}
-
-type Tower struct {
-	Entity
-
-	Type   string
-	LineID int
-}
-
-func NewTowersStore(d *flux.Dispatcher, g *Game) *TowersStore {
-	ts := &TowersStore{
+func NewTowers(g *Game) *Towers {
+	ts := &Towers{
 		game: g,
 	}
-	ts.ReduceStore = flux.NewReduceStore(d, ts.Reduce, TowersState{Towers: make(map[int]*Tower)})
 
 	return ts
 }
 
-func (ts *TowersStore) Reduce(state, a interface{}) interface{} {
-	act, ok := a.(*action.Action)
-	if !ok {
-		return state
-	}
-
-	ustate, ok := state.(TowersState)
-	if !ok {
-		return state
-	}
-
-	switch act.Type {
-	case action.PlaceTower:
-		var w, h float64 = 16 * 2, 16 * 2
-		ustate.TotalTowers += 1
-		ustate.Towers[ustate.TotalTowers] = &Tower{
-			Entity: Entity{
-				Object: Object{
-					X: float64(act.PlaceTower.X), Y: float64(act.PlaceTower.Y),
-					W: w, H: h,
-				},
-				Image: towerImages[act.PlaceTower.Type],
-			},
-			Type:   act.PlaceTower.Type,
-			LineID: act.PlaceTower.LineID,
-		}
-	default:
-	}
-	return ustate
-}
-
-func (ts *TowersStore) Update() error {
-	uts := ts.game.Units.GetState().(UnitsState).Units
-	tws := ts.GetState().(TowersState).Towers
+func (ts *Towers) Update() error {
+	uts := ts.game.Store.Units.GetState().(store.UnitsState).Units
+	tws := ts.game.Store.Towers.GetState().(store.TowersState).Towers
 	if len(uts) != 0 {
 		for _, t := range tws {
 			var (
 				minDist     float64 = 0
-				minDistUnit int
+				minDistUnit string
 			)
 			for uid, u := range uts {
 				d := t.Distance(u.Object)
@@ -105,7 +59,7 @@ func (ts *TowersStore) Update() error {
 					minDistUnit = uid
 				}
 			}
-			if minDistUnit != 0 {
+			if minDistUnit != "" {
 				actionDispatcher.TowerAttack(minDistUnit)
 			}
 		}
@@ -113,13 +67,13 @@ func (ts *TowersStore) Update() error {
 	return nil
 }
 
-func (ts *TowersStore) Draw(screen *ebiten.Image) {
-	for _, t := range ts.GetState().(TowersState).Towers {
-		t.Draw(screen, ts.game.Camera)
+func (ts *Towers) Draw(screen *ebiten.Image) {
+	for _, t := range ts.game.Store.Towers.GetState().(store.TowersState).Towers {
+		ts.DrawTower(screen, ts.game.Camera, t)
 	}
 }
 
-func (t *Tower) Draw(screen *ebiten.Image, c *CameraStore) {
+func (ts *Towers) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
 	cs := c.GetState().(CameraState)
 	if !t.IsColliding(cs.Object) {
 		return
@@ -127,5 +81,5 @@ func (t *Tower) Draw(screen *ebiten.Image, c *CameraStore) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(t.X-cs.X, t.Y-cs.Y)
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
-	screen.DrawImage(t.Image.(*ebiten.Image), op)
+	screen.DrawImage(t.Image().(*ebiten.Image), op)
 }

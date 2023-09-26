@@ -4,6 +4,8 @@ go 1.17
 
 require (
 	github.com/davecgh/go-spew v1.1.0
+	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/gorilla/websocket v1.5.0
 	github.com/hajimehoshi/ebiten/v2 v2.5.9
 	github.com/xescugc/go-flux v0.0.0-20220312003507-8d5ac35e55d7
 )
