@@ -7,19 +7,17 @@ import (
 	"image"
 	_ "image/png"
 	"math"
+	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/ltw/assets"
+	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/ltw/utils"
 )
-
-//go:embed assets/cyclope/Faceset.png
-var CyclopeFaceset_png []byte
-
-//go:embed assets/TilesetHouse.png
-var TilesetHouse_png []byte
 
 // HUDStore is in charge of keeping track of all the elements
 // on the player HUD that are static and always seen
@@ -34,28 +32,28 @@ type HUDStore struct {
 
 // HUDState stores the HUD state
 type HUDState struct {
-	CyclopeButton Object
-	SoldierButton Object
+	CyclopeButton utils.Object
+	SoldierButton utils.Object
 
 	SelectedTower *SelectedTower
 
-	LastCursorPosition Object
+	LastCursorPosition utils.Object
 }
 
 type SelectedTower struct {
-	Tower
+	store.Tower
 
 	Invalid bool
 }
 
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
 func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
-	fi, _, err := image.Decode(bytes.NewReader(CyclopeFaceset_png))
+	fi, _, err := image.Decode(bytes.NewReader(assets.CyclopeFaceset_png))
 	if err != nil {
 		return nil, err
 	}
 
-	thi, _, err := image.Decode(bytes.NewReader(TilesetHouse_png))
+	thi, _, err := image.Decode(bytes.NewReader(assets.TilesetHouse_png))
 	if err != nil {
 		return nil, err
 	}
@@ -68,13 +66,13 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 	}
 	cs := g.Camera.GetState().(CameraState)
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
-		CyclopeButton: Object{
+		CyclopeButton: utils.Object{
 			X: float64(cs.W - float64(hs.cyclopeFacesetImage.Bounds().Dx())),
 			Y: float64(cs.H - float64(hs.cyclopeFacesetImage.Bounds().Dy())),
 			W: float64(hs.cyclopeFacesetImage.Bounds().Dx()),
 			H: float64(hs.cyclopeFacesetImage.Bounds().Dy()),
 		},
-		SoldierButton: Object{
+		SoldierButton: utils.Object{
 			X: 0,
 			Y: float64(cs.H - 16*2),
 			W: float64(16 * 2),
@@ -94,15 +92,14 @@ func (hs *HUDStore) Update() error {
 		actionDispatcher.CursorMove(x, y)
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		obj := Object{
+		obj := utils.Object{
 			X: float64(x),
 			Y: float64(y),
 			W: 1, H: 1,
 		}
 		// Check what the user has just clicked
 		if cp.Gold >= unitGold && hst.CyclopeButton.IsColliding(obj) {
-			//actionDispatcher.SummonUnit("cyclope", cp.ID, cp.LineID, hs.game.Map.GetNextLineID(cp.LineID))
-			actionDispatcher.SummonUnit("cyclope", cp.ID, cp.LineID, cp.LineID)
+			actionDispatcher.SummonUnit("cyclope", cp.ID, cp.LineID, hs.game.Map.GetNextLineID(cp.LineID))
 			return nil
 		}
 		if cp.Gold >= towerGold && hst.SoldierButton.IsColliding(obj) {
@@ -112,7 +109,7 @@ func (hs *HUDStore) Update() error {
 
 		if hst.SelectedTower != nil && !hst.SelectedTower.Invalid {
 			cs := hs.game.Camera.GetState().(CameraState)
-			actionDispatcher.PlaceTower(hst.SelectedTower.Type, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y), hst.SelectedTower.LineID)
+			actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y))
 		}
 	}
 	if cp.Gold >= towerGold && inpututil.IsKeyJustPressed(ebiten.KeyT) {
@@ -123,15 +120,15 @@ func (hs *HUDStore) Update() error {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.DeselectTower(hst.SelectedTower.Type)
 		} else {
-			ts := hs.game.Towers.GetState().(TowersState)
+			ts := hs.game.Store.Towers.GetState().(store.TowersState)
 			cs := hs.game.Camera.GetState().(CameraState)
 			var invalid bool
 			for _, t := range ts.Towers {
-				// The t.Entity has the X and Y relative to the map
+				// The t.Object has the X and Y relative to the map
 				// and the hst.SelectedTower has them relative to the
-				// screen so we need to port the t.Entity to the same
+				// screen so we need to port the t.Object to the same
 				// relative values
-				neo := t.Entity.Object
+				neo := t.Object
 				neo.X -= cs.X
 				neo.Y -= cs.Y
 				if hst.SelectedTower.IsColliding(neo) {
@@ -185,12 +182,24 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
 
-		screen.DrawImage(hst.SelectedTower.Image.(*ebiten.Image), op)
+		screen.DrawImage(hst.SelectedTower.Image().(*ebiten.Image), op)
 	}
 
-	ps := hs.game.Players.GetState().(PlayersState)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Lives: %d, Gold: %d, Income: %d (%ds)", cp.Lives, cp.Gold, cp.Income, ps.IncomeTimer), 0, 0)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), 0, 15)
+	ps := hs.game.Store.Players.GetState().(store.PlayersState)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Income Timer: %ds", ps.IncomeTimer), 0, 0)
+	var pcount = 1
+	var sortedPlayers = make([]*store.Player, 0, 0)
+	for _, p := range ps.Players {
+		sortedPlayers = append(sortedPlayers, p)
+	}
+	sort.Slice(sortedPlayers, func(i, j int) bool { return sortedPlayers[i].LineID < sortedPlayers[j].LineID })
+	for _, p := range sortedPlayers {
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Name: %s, Lives: %d, Gold: %d, Income: %d", p.Name, p.Lives, p.Gold, p.Income), 0, 15*pcount)
+		pcount++
+	}
+	if verbose {
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), 0, 15*(pcount))
+	}
 }
 
 func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
@@ -208,33 +217,30 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 	case action.WindowResizing:
 		hs.GetDispatcher().WaitFor(hs.game.Camera.GetDispatcherToken())
 		cs := hs.game.Camera.GetState().(CameraState)
-		hstate.CyclopeButton = Object{
+		hstate.CyclopeButton = utils.Object{
 			X: float64(cs.W - float64(hs.cyclopeFacesetImage.Bounds().Dx())),
 			Y: float64(cs.H - float64(hs.cyclopeFacesetImage.Bounds().Dy())),
 			W: float64(hs.cyclopeFacesetImage.Bounds().Dx()),
 			H: float64(hs.cyclopeFacesetImage.Bounds().Dy()),
 		}
-		hstate.SoldierButton = Object{
+		hstate.SoldierButton = utils.Object{
 			X: 0,
 			Y: float64(cs.H - 16*2),
 			W: float64(16 * 2),
 			H: float64(16 * 2),
 		}
 	case action.SelectTower:
-		hs.GetDispatcher().WaitFor(hs.game.Players.GetDispatcherToken())
+		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())
 		cp := hs.game.Players.GetCurrentPlayer()
 		// TODO: Insead of hardcoding the image and W, H we should
 		// use the Type on the action to select the right image
 		hstate.SelectedTower = &SelectedTower{
-			Tower: Tower{
-				Entity: Entity{
-					Object: Object{
-						X: float64(act.SelectTower.X) - (hstate.SoldierButton.W / 2),
-						Y: float64(act.SelectTower.Y) - (hstate.SoldierButton.H / 2),
-						W: hstate.SoldierButton.W,
-						H: hstate.SoldierButton.H,
-					},
-					Image: hs.tilesetHouseImage,
+			Tower: store.Tower{
+				Object: utils.Object{
+					X: float64(act.SelectTower.X) - (hstate.SoldierButton.W / 2),
+					Y: float64(act.SelectTower.Y) - (hstate.SoldierButton.H / 2),
+					W: hstate.SoldierButton.W,
+					H: hstate.SoldierButton.H,
 				},
 				Type:   act.SelectTower.Type,
 				LineID: cp.LineID,

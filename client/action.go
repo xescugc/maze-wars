@@ -19,6 +19,12 @@ func NewActionDispatcher(d *flux.Dispatcher) *ActionDispatcher {
 	}
 }
 
+// Dispatch is a helper to access to the internal dispatch directly with an action.
+// This should only be used from the WS Handler to forward server actions directly
+func (ac *ActionDispatcher) Dispatch(a *action.Action) {
+	ac.dispatcher.Dispatch(a)
+}
+
 // CursorMove dispatches an action of moving the Cursor
 // to the new x,y coordinates
 func (ac *ActionDispatcher) CursorMove(x, y int) {
@@ -28,9 +34,10 @@ func (ac *ActionDispatcher) CursorMove(x, y int) {
 
 // SummonUnit summons the 'unit' from the player id 'pid' to the line
 // 'plid' and with the current line id 'clid'
-func (ac *ActionDispatcher) SummonUnit(unit string, pid, plid, clid int) {
+func (ac *ActionDispatcher) SummonUnit(unit, pid string, plid, clid int) {
 	sua := action.NewSummonUnit(unit, pid, plid, clid)
-	ac.dispatcher.Dispatch(sua)
+	wsSend(sua)
+	//ac.dispatcher.Dispatch(sua)
 }
 
 // MoveUnit moves all the units
@@ -40,15 +47,16 @@ func (ac *ActionDispatcher) MoveUnit() {
 }
 
 // RemoveUnit removes the unit with the id 'uid'
-func (ac *ActionDispatcher) RemoveUnit(uid int) {
+func (ac *ActionDispatcher) RemoveUnit(uid string) {
 	rua := action.NewRemoveUnit(uid)
 	ac.dispatcher.Dispatch(rua)
 }
 
 // StealLive removes one live from the player with id 'fpid' and
 // adds it to the player with id 'tpid'
-func (ac *ActionDispatcher) StealLive(fpid, tpid int) {
+func (ac *ActionDispatcher) StealLive(fpid, tpid string) {
 	sla := action.NewStealLive(fpid, tpid)
+	wsSend(sla)
 	ac.dispatcher.Dispatch(sla)
 }
 
@@ -58,9 +66,10 @@ func (ac *ActionDispatcher) CameraZoom(d int) {
 	ac.dispatcher.Dispatch(cza)
 }
 
-// PlaceTower places the tower 't' on the position X and Y on the line id 'lid'
-func (ac *ActionDispatcher) PlaceTower(t string, x, y, lid int) {
-	bta := action.NewPlaceTower(t, x, y, lid)
+// PlaceTower places the tower 't' on the position X and Y of the player pid
+func (ac *ActionDispatcher) PlaceTower(t, pid string, x, y int) {
+	bta := action.NewPlaceTower(t, pid, x, y)
+	wsSend(bta)
 	ac.dispatcher.Dispatch(bta)
 }
 
@@ -89,14 +98,15 @@ func (ac *ActionDispatcher) IncomeTick() {
 }
 
 // TowerAttack issues a attack to the Unit with uid
-func (ac *ActionDispatcher) TowerAttack(uid int) {
+func (ac *ActionDispatcher) TowerAttack(uid string) {
 	ta := action.NewTowerAttack(uid)
 	ac.dispatcher.Dispatch(ta)
 }
 
 // UnitKilled adds gold to the user
-func (ac *ActionDispatcher) UnitKilled(pid int, ut string) {
+func (ac *ActionDispatcher) UnitKilled(pid, ut string) {
 	uk := action.NewUnitKilled(pid, ut)
+	wsSend(uk)
 	ac.dispatcher.Dispatch(uk)
 }
 
@@ -104,4 +114,11 @@ func (ac *ActionDispatcher) UnitKilled(pid int, ut string) {
 func (ac *ActionDispatcher) WindowResizing(w, h int) {
 	wr := action.NewWindowResizing(w, h)
 	ac.dispatcher.Dispatch(wr)
+}
+
+// JoinRoom new sizes of the window
+func (ac *ActionDispatcher) JoinRoom(room, name string) {
+	jr := action.NewJoinRoom(room, name)
+	wsSend(jr)
+	ac.dispatcher.Dispatch(jr)
 }

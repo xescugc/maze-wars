@@ -1,15 +1,17 @@
-package main
+package store
 
 import (
 	"container/heap"
 	"fmt"
+
+	"github.com/xescugc/ltw/utils"
 )
 
 // stepMap is a collection of steps for quick reference
 type stepMap map[string]*queueItem
 
 // get gets the Pather object wrapped in a node, instantiating if required.
-func (sm stepMap) get(s Step) *queueItem {
+func (sm stepMap) get(s utils.Step) *queueItem {
 	k := calculateObjectKey(s.Object)
 	qi, ok := sm[k]
 	if !ok {
@@ -25,12 +27,12 @@ func (sm stepMap) get(s Step) *queueItem {
 // all the Towers (tws) and only moving on the map valid area.
 // It returns the paths to follow in order, path[0] is the next move and path[-1] is the last one
 // there are no DIAGONAL MOVES just UP, DOWN, LEFT and RIGHT
-func (us *UnitsStore) astar(m *Map, lid int, u MovingEntity, tws []Object) []Step {
+func (us *Units) astar(m *Map, lid int, u utils.MovingObject, tws []utils.Object) []utils.Step {
 	nm := stepMap{}
 	nq := &queue{}
 	heap.Init(nq)
-	from := Step{
-		Object: Object{
+	from := utils.Step{
+		Object: utils.Object{
 			Y: u.Y,
 			X: u.X,
 			// W and H need to be 1 or it can pass in between the towers
@@ -52,7 +54,7 @@ func (us *UnitsStore) astar(m *Map, lid int, u MovingEntity, tws []Object) []Ste
 
 		if m.IsAtTheEnd(current.step.Object, lid) {
 			// Found a path to the goal.
-			p := []Step{}
+			p := []utils.Step{}
 			curr := current
 			for curr != nil {
 				p = append(p, curr.step)
@@ -99,20 +101,20 @@ func (us *UnitsStore) astar(m *Map, lid int, u MovingEntity, tws []Object) []Ste
 	}
 }
 
-func straightPathToEnd(m *Map, lid int, s Step) Object {
-	end := Object{
+func straightPathToEnd(m *Map, lid int, s utils.Step) utils.Object {
+	end := utils.Object{
 		X: s.X,
 		Y: m.EndZone(lid).Y,
 	}
 	return end
 }
 
-func calculateObjectKey(o Object) string {
+func calculateObjectKey(o utils.Object) string {
 	return fmt.Sprintf("%s%s", o.X, o.Y)
 }
 
 type queueItem struct {
-	step   Step
+	step   utils.Step
 	cost   float64
 	rank   float64
 	parent *queueItem
@@ -153,7 +155,7 @@ func (q *queue) Pop() interface{} {
 	return item
 }
 
-func isCollidingWithTower(o Object, tws []Object) bool {
+func isCollidingWithTower(o utils.Object, tws []utils.Object) bool {
 	for _, t := range tws {
 		if o.IsColliding(t) {
 			return true

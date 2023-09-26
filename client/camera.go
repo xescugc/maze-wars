@@ -6,6 +6,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/ltw/utils"
 )
 
 // CameraStore is in charge of what it's seen
@@ -21,7 +22,7 @@ type CameraStore struct {
 
 // CameraState is the store data on the Camera
 type CameraState struct {
-	Object
+	utils.Object
 	Zoom float64
 }
 
@@ -41,7 +42,7 @@ func NewCameraStore(d *flux.Dispatcher, g *Game, w, h int) *CameraStore {
 	}
 
 	cs.ReduceStore = flux.NewReduceStore(d, cs.Reduce, CameraState{
-		Object: Object{
+		Object: utils.Object{
 			X: 0, Y: 0,
 			W: float64(w),
 			H: float64(h),

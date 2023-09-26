@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizing"
+const _TypeName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingjoin_roomadd_playerupdate_state"
 
-var _TypeIndex = [...]uint8{0, 11, 22, 33, 42, 53, 63, 74, 86, 100, 122, 136, 147, 159, 170, 185}
+var _TypeIndex = [...]uint8{0, 11, 22, 33, 42, 53, 63, 74, 86, 100, 122, 136, 147, 159, 170, 185, 194, 204, 216}
 
-const _TypeLowerName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizing"
+const _TypeLowerName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingjoin_roomadd_playerupdate_state"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -40,9 +40,12 @@ func _TypeNoOp() {
 	_ = x[TowerAttack-(12)]
 	_ = x[UnitKilled-(13)]
 	_ = x[WindowResizing-(14)]
+	_ = x[JoinRoom-(15)]
+	_ = x[AddPlayer-(16)]
+	_ = x[UpdateState-(17)]
 }
 
-var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, MoveUnit, RemoveUnit, StealLive, PlaceTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, TowerAttack, UnitKilled, WindowResizing}
+var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, MoveUnit, RemoveUnit, StealLive, PlaceTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, TowerAttack, UnitKilled, WindowResizing, JoinRoom, AddPlayer, UpdateState}
 
 var _TypeNameToValueMap = map[string]Type{
 	_TypeName[0:11]:         CursorMove,
@@ -75,6 +78,12 @@ var _TypeNameToValueMap = map[string]Type{
 	_TypeLowerName[159:170]: UnitKilled,
 	_TypeName[170:185]:      WindowResizing,
 	_TypeLowerName[170:185]: WindowResizing,
+	_TypeName[185:194]:      JoinRoom,
+	_TypeLowerName[185:194]: JoinRoom,
+	_TypeName[194:204]:      AddPlayer,
+	_TypeLowerName[194:204]: AddPlayer,
+	_TypeName[204:216]:      UpdateState,
+	_TypeLowerName[204:216]: UpdateState,
 }
 
 var _TypeNames = []string{
@@ -93,6 +102,9 @@ var _TypeNames = []string{
 	_TypeName[147:159],
 	_TypeName[159:170],
 	_TypeName[170:185],
+	_TypeName[185:194],
+	_TypeName[194:204],
+	_TypeName[204:216],
 }
 
 // TypeString retrieves an enum value from the enum constants string name.

@@ -1,7 +1,13 @@
 package action
 
+import (
+	"github.com/gorilla/websocket"
+	"github.com/xescugc/ltw/utils"
+)
+
 type Action struct {
-	Type Type `json:"type"`
+	Type Type   `json:"type"`
+	Room string `json:"room"`
 
 	CursorMove           *CursorMovePayload           `json:"cursor_move,omitempty"`
 	SummonUnit           *SummonUnitPayload           `json:"summon_unit,omitempty"`
@@ -10,10 +16,14 @@ type Action struct {
 	CameraZoom           *CameraZoomPayload           `json:"camera_zoom,omitempty"`
 	SelectTower          *SelectTowerPayload          `json:"select_tower,omitempty"`
 	PlaceTower           *PlaceTowerPayload           `json:"place_tower,omitempty"`
-	SelectedTowerInvalid *SelectedTowerInvalidPayload `json:"selected_tower_invalid",omitempty"`
-	TowerAttack          *TowerAttackPayload          `json:"tower_attack",omitempty`
-	UnitKilled           *UnitKilledPayload           `json:"unit_killed",omitempty`
-	WindowResizing       *WindowResizingPayload       `json:"window_resizing",omitempty"`
+	SelectedTowerInvalid *SelectedTowerInvalidPayload `json:"selected_tower_invalid,omitempty"`
+	TowerAttack          *TowerAttackPayload          `json:"tower_attack,omitempty"`
+	UnitKilled           *UnitKilledPayload           `json:"unit_killed,omitempty"`
+	WindowResizing       *WindowResizingPayload       `json:"window_resizing,omitempty"`
+
+	AddPlayer   *AddPlayerPayload   `json:"add_player, omitempty"`
+	JoinRoom    *JoinRoomPayload    `json:"join_room, omitempty"`
+	UpdateState *UpdateStatePayload `json:"update_state, omitempty"`
 }
 
 type CursorMovePayload struct {
@@ -33,12 +43,12 @@ func NewCursorMove(x, y int) *Action {
 
 type SummonUnitPayload struct {
 	Type          string
-	PlayerID      int
+	PlayerID      string
 	PlayerLineID  int
 	CurrentLineID int
 }
 
-func NewSummonUnit(t string, pid, plid, clid int) *Action {
+func NewSummonUnit(t, pid string, plid, clid int) *Action {
 	return &Action{
 		Type: SummonUnit,
 		SummonUnit: &SummonUnitPayload{
@@ -57,10 +67,10 @@ func NewMoveUnit() *Action {
 }
 
 type RemoveUnitPayload struct {
-	UnitID int
+	UnitID string
 }
 
-func NewRemoveUnit(uid int) *Action {
+func NewRemoveUnit(uid string) *Action {
 	return &Action{
 		Type: RemoveUnit,
 		RemoveUnit: &RemoveUnitPayload{
@@ -70,11 +80,11 @@ func NewRemoveUnit(uid int) *Action {
 }
 
 type StealLivePayload struct {
-	FromPlayerID int
-	ToPlayerID   int
+	FromPlayerID string
+	ToPlayerID   string
 }
 
-func NewStealLive(fpid, tpid int) *Action {
+func NewStealLive(fpid, tpid string) *Action {
 	return &Action{
 		Type: StealLive,
 		StealLive: &StealLivePayload{
@@ -98,20 +108,20 @@ func NewCameraZoom(d int) *Action {
 }
 
 type PlaceTowerPayload struct {
-	Type   string
-	LineID int
-	X      int
-	Y      int
+	Type     string
+	PlayerID string
+	X        int
+	Y        int
 }
 
-func NewPlaceTower(t string, x, y, lid int) *Action {
+func NewPlaceTower(t, pid string, x, y int) *Action {
 	return &Action{
 		Type: PlaceTower,
 		PlaceTower: &PlaceTowerPayload{
-			Type:   t,
-			LineID: lid,
-			X:      x,
-			Y:      y,
+			Type:     t,
+			PlayerID: pid,
+			X:        x,
+			Y:        y,
 		},
 	}
 }
@@ -159,10 +169,10 @@ func NewIncomeTick() *Action {
 }
 
 type TowerAttackPayload struct {
-	UnitID int
+	UnitID string
 }
 
-func NewTowerAttack(uid int) *Action {
+func NewTowerAttack(uid string) *Action {
 	return &Action{
 		Type: TowerAttack,
 		TowerAttack: &TowerAttackPayload{
@@ -172,11 +182,11 @@ func NewTowerAttack(uid int) *Action {
 }
 
 type UnitKilledPayload struct {
-	PlayerID int
+	PlayerID string
 	UnitType string
 }
 
-func NewUnitKilled(pid int, ut string) *Action {
+func NewUnitKilled(pid, ut string) *Action {
 	return &Action{
 		Type: UnitKilled,
 		UnitKilled: &UnitKilledPayload{
@@ -197,6 +207,103 @@ func NewWindowResizing(w, h int) *Action {
 		WindowResizing: &WindowResizingPayload{
 			Width:  w,
 			Height: h,
+		},
+	}
+}
+
+type JoinRoomPayload struct {
+	Room string
+	Name string
+}
+
+func NewJoinRoom(room, name string) *Action {
+	return &Action{
+		Type: JoinRoom,
+		JoinRoom: &JoinRoomPayload{
+			Room: room,
+			Name: name,
+		},
+	}
+}
+
+type AddPlayerPayload struct {
+	ID        string
+	Name      string
+	LineID    int
+	Websocket *websocket.Conn
+	Room      string
+}
+
+func NewAddPlayer(r, id, name string, lid int, ws *websocket.Conn) *Action {
+	return &Action{
+		Type: AddPlayer,
+		AddPlayer: &AddPlayerPayload{
+			ID:        id,
+			Name:      name,
+			LineID:    lid,
+			Websocket: ws,
+			Room:      r,
+		},
+	}
+}
+
+type UpdateStatePayload struct {
+	Players *UpdateStatePlayersPayload
+	Towers  *UpdateStateTowersPayload
+	Units   *UpdateStateUnitsPayload
+}
+
+type UpdateStatePlayersPayload struct {
+	Players     map[string]*UpdateStatePlayerPayload
+	IncomeTimer int
+}
+
+type UpdateStatePlayerPayload struct {
+	ID      string
+	Name    string
+	Lives   int
+	LineID  int
+	Income  int
+	Gold    int
+	Current bool
+}
+
+type UpdateStateTowersPayload struct {
+	Towers map[string]*UpdateStateTowerPayload
+}
+
+type UpdateStateTowerPayload struct {
+	utils.Object
+
+	Type   string
+	LineID int
+}
+
+type UpdateStateUnitsPayload struct {
+	Units map[string]*UpdateStateUnitPayload
+}
+
+type UpdateStateUnitPayload struct {
+	utils.MovingObject
+
+	Type          string
+	PlayerID      string
+	PlayerLineID  int
+	CurrentLineID int
+
+	Health float64
+
+	Path []utils.Step
+}
+
+// TODO: or make the action.Action separated or make the store.Player separated
+func NewUpdateState(players *UpdateStatePlayersPayload, towers *UpdateStateTowersPayload, units *UpdateStateUnitsPayload) *Action {
+	return &Action{
+		Type: UpdateState,
+		UpdateState: &UpdateStatePayload{
+			Players: players,
+			Towers:  towers,
+			Units:   units,
 		},
 	}
 }

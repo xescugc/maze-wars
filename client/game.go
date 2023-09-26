@@ -2,19 +2,24 @@ package main
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/xescugc/ltw/store"
 )
 
 // Game is the main struct that is the initializer
 // of the main loop.
 // It holds all the other Stores and the Map
 type Game struct {
+	Store *store.Store
+
 	Camera  *CameraStore
 	HUD     *HUDStore
-	Players *PlayersStore
-	Units   *UnitsStore
-	Towers  *TowersStore
+	Players *Players
+	Units   *Units
+	Towers  *Towers
 
-	Map *Map
+	Map *store.Map
+
+	SessionID string
 }
 
 func (g *Game) Update() error {

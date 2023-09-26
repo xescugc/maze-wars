@@ -20,4 +20,9 @@ const (
 	TowerAttack
 	UnitKilled
 	WindowResizing
+
+	// Specific to WS
+	JoinRoom
+	AddPlayer
+	UpdateState
 )
