@@ -1,30 +1,16 @@
 package store
 
 import (
-	"bytes"
 	"image"
-	"log"
 
 	"github.com/gofrs/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/assets"
+	"github.com/xescugc/ltw/tower"
+	"github.com/xescugc/ltw/unit"
 	"github.com/xescugc/ltw/utils"
 )
-
-var (
-	unitImages = make(map[string]image.Image)
-)
-
-func init() {
-	ci, _, err := image.Decode(bytes.NewReader(assets.Cyclopes_png))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	unitImages["cyclope"] = ebiten.NewImageFromImage(ci)
-}
 
 type Units struct {
 	*flux.ReduceStore
@@ -50,7 +36,7 @@ type Unit struct {
 }
 
 func (u *Unit) Image() image.Image {
-	return unitImages[u.Type]
+	return unit.Units[u.Type].Image
 }
 
 func NewUnits(d *flux.Dispatcher, s *Store) *Units {
@@ -141,7 +127,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 	case action.TowerAttack:
 		u := ustate.Units[act.TowerAttack.UnitID]
 		// For now the damage is just 1
-		u.Health -= float64(towerDamage)
+		u.Health -= tower.Towers[act.TowerAttack.TowerType].Damage
 		if u.Health <= 0 {
 			u.Health = 0
 		}

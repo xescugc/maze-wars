@@ -5,9 +5,6 @@ import (
 	"image"
 	"math/rand"
 
-	_ "embed"
-	_ "image/png"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/ltw/assets"
 	"github.com/xescugc/ltw/utils"

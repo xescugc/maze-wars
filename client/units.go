@@ -1,31 +1,12 @@
 package main
 
 import (
-	"bytes"
-	_ "embed"
 	"image"
 	"image/color"
-	_ "image/png"
-	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/ltw/assets"
 	"github.com/xescugc/ltw/store"
 )
-
-var (
-	unitImages = make(map[string]image.Image)
-	unitGold   = 10
-)
-
-func init() {
-	ci, _, err := image.Decode(bytes.NewReader(assets.Cyclopes_png))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	unitImages["cyclope"] = ebiten.NewImageFromImage(ci)
-}
 
 type Units struct {
 	game *Game

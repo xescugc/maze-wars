@@ -3,15 +3,12 @@ package store
 import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/ltw/tower"
+	"github.com/xescugc/ltw/unit"
 )
 
-var (
-	unitIncome = map[string]int{
-		"cyclope": 1,
-	}
+const (
 	incomeTimer = 15
-	unitGold    = 10
-	towerGold   = 10
 )
 
 type Players struct {
@@ -87,8 +84,8 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		tp := pstate.Players[act.StealLive.ToPlayerID]
 		tp.Lives += 1
 	case action.SummonUnit:
-		pstate.Players[act.SummonUnit.PlayerID].Income += unitIncome[act.SummonUnit.Type]
-		pstate.Players[act.SummonUnit.PlayerID].Gold -= unitGold
+		pstate.Players[act.SummonUnit.PlayerID].Income += unit.Units[act.SummonUnit.Type].Income
+		pstate.Players[act.SummonUnit.PlayerID].Gold -= unit.Units[act.SummonUnit.Type].Gold
 	case action.IncomeTick:
 		pstate.IncomeTimer -= 1
 		if pstate.IncomeTimer == 0 {
@@ -98,9 +95,9 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.PlaceTower:
-		pstate.Players[act.PlaceTower.PlayerID].Gold -= towerGold
+		pstate.Players[act.PlaceTower.PlayerID].Gold -= tower.Towers[act.PlaceTower.Type].Gold
 	case action.UnitKilled:
-		pstate.Players[act.UnitKilled.PlayerID].Gold += unitIncome[act.UnitKilled.UnitType]
+		pstate.Players[act.UnitKilled.PlayerID].Gold += unit.Units[act.UnitKilled.UnitType].Income
 	case action.UpdateState:
 		for _, p := range act.UpdateState.Players.Players {
 			np := Player(*p)
