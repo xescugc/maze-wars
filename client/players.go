@@ -5,12 +5,6 @@ import (
 	"github.com/xescugc/ltw/store"
 )
 
-var (
-	unitIncome = map[string]int{
-		"cyclope": 1,
-	}
-)
-
 type Players struct {
 	store *store.Store
 }

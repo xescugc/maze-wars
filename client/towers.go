@@ -1,32 +1,10 @@
 package main
 
 import (
-	"bytes"
-	_ "embed"
-	"image"
-	_ "image/png"
-	"log"
-
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/ltw/assets"
 	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/ltw/tower"
 )
-
-var (
-	towerImages         = make(map[string]image.Image)
-	towerRange  float64 = 16 * 2
-	towerDamage         = 1
-	towerGold           = 10
-)
-
-func init() {
-	si, _, err := image.Decode(bytes.NewReader(assets.TilesetHouse_png))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	towerImages["soldier"] = ebiten.NewImageFromImage(si).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2))
-}
 
 type Towers struct {
 	game *Game
@@ -54,13 +32,13 @@ func (ts *Towers) Update() error {
 				if minDist == 0 {
 					minDist = d
 				}
-				if d <= towerRange && d < minDist {
+				if d <= tower.Towers[t.Type].Range && d < minDist {
 					minDist = d
 					minDistUnit = uid
 				}
 			}
 			if minDistUnit != "" {
-				actionDispatcher.TowerAttack(minDistUnit)
+				actionDispatcher.TowerAttack(minDistUnit, t.Type)
 			}
 		}
 	}

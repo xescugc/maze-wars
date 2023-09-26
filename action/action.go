@@ -169,14 +169,16 @@ func NewIncomeTick() *Action {
 }
 
 type TowerAttackPayload struct {
-	UnitID string
+	TowerType string
+	UnitID    string
 }
 
-func NewTowerAttack(uid string) *Action {
+func NewTowerAttack(uid, tt string) *Action {
 	return &Action{
 		Type: TowerAttack,
 		TowerAttack: &TowerAttackPayload{
-			UnitID: uid,
+			UnitID:    uid,
+			TowerType: tt,
 		},
 	}
 }

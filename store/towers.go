@@ -1,31 +1,14 @@
 package store
 
 import (
-	"bytes"
 	"image"
-	"log"
 
 	"github.com/gofrs/uuid"
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/assets"
+	"github.com/xescugc/ltw/tower"
 	"github.com/xescugc/ltw/utils"
 )
-
-var (
-	towerImages = make(map[string]image.Image)
-	towerDamage = 1
-)
-
-func init() {
-	si, _, err := image.Decode(bytes.NewReader(assets.TilesetHouse_png))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	towerImages["soldier"] = ebiten.NewImageFromImage(si).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2))
-}
 
 type Towers struct {
 	*flux.ReduceStore
@@ -45,7 +28,7 @@ type Tower struct {
 }
 
 func (t *Tower) Image() image.Image {
-	return towerImages[t.Type]
+	return tower.Towers[t.Type].Image
 }
 
 func NewTowers(d *flux.Dispatcher, s *Store) *Towers {
