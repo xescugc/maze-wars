@@ -77,6 +77,8 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			Income: 25,
 			Gold:   40,
 		}
+	case action.RemovePlayer:
+		delete(pstate.Players, act.RemovePlayer.ID)
 	case action.StealLive:
 		fp := pstate.Players[act.StealLive.FromPlayerID]
 		fp.Lives -= 1
@@ -99,9 +101,17 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 	case action.UnitKilled:
 		pstate.Players[act.UnitKilled.PlayerID].Gold += unit.Units[act.UnitKilled.UnitType].Income
 	case action.UpdateState:
-		for _, p := range act.UpdateState.Players.Players {
+		pids := make(map[string]struct{})
+		for id := range pstate.Players {
+			pids[id] = struct{}{}
+		}
+		for id, p := range act.UpdateState.Players.Players {
+			delete(pids, id)
 			np := Player(*p)
-			pstate.Players[p.ID] = &np
+			pstate.Players[id] = &np
+		}
+		for id := range pids {
+			delete(pstate.Players, id)
 		}
 		pstate.IncomeTimer = act.UpdateState.Players.IncomeTimer
 	}

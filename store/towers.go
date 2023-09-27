@@ -23,8 +23,9 @@ type TowersState struct {
 type Tower struct {
 	utils.Object
 
-	Type   string
-	LineID int
+	Type     string
+	LineID   int
+	PlayerID string
 }
 
 func (t *Tower) Image() image.Image {
@@ -65,13 +66,28 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 				X: float64(act.PlaceTower.X), Y: float64(act.PlaceTower.Y),
 				W: w, H: h,
 			},
-			Type:   act.PlaceTower.Type,
-			LineID: p.LineID,
+			Type:     act.PlaceTower.Type,
+			LineID:   p.LineID,
+			PlayerID: p.ID,
 		}
 	case action.UpdateState:
+		tids := make(map[string]struct{})
+		for id := range tstate.Towers {
+			tids[id] = struct{}{}
+		}
 		for id, t := range act.UpdateState.Towers.Towers {
+			delete(tids, id)
 			nt := Tower(*t)
 			tstate.Towers[id] = &nt
+		}
+		for id := range tids {
+			delete(tstate.Towers, id)
+		}
+	case action.RemovePlayer:
+		for id, t := range tstate.Towers {
+			if t.PlayerID == act.RemovePlayer.ID {
+				delete(tstate.Towers, id)
+			}
 		}
 	default:
 	}

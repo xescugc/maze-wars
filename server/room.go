@@ -19,8 +19,10 @@ type RoomsState struct {
 type Room struct {
 	Name string
 
-	muCons  sync.RWMutex
-	Players map[string]*websocket.Conn
+	muPlayers sync.RWMutex
+	Players   map[string]*websocket.Conn
+
+	Connections map[string]string
 
 	Game *Game
 }
@@ -54,14 +56,27 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		rd := flux.NewDispatcher()
 		if _, ok := rstate.Rooms[act.JoinRoom.Room]; !ok {
 			rstate.Rooms[act.JoinRoom.Room] = &Room{
-				Name:    act.JoinRoom.Room,
-				Players: make(map[string]*websocket.Conn),
-				Game:    NewGame(rd),
+				Name:        act.JoinRoom.Room,
+				Players:     make(map[string]*websocket.Conn),
+				Connections: make(map[string]string),
+				Game:        NewGame(rd),
 			}
 		}
 	case action.AddPlayer:
 		rstate.Rooms[act.AddPlayer.Room].Players[act.AddPlayer.ID] = act.AddPlayer.Websocket
-		fallthrough
+		rstate.Rooms[act.AddPlayer.Room].Connections[act.AddPlayer.Websocket.RemoteAddr().String()] = act.AddPlayer.ID
+
+		rstate.Rooms[act.Room].Game.Dispatch(act)
+	case action.RemovePlayer:
+		ws := rstate.Rooms[act.RemovePlayer.Room].Players[act.RemovePlayer.ID]
+		delete(rstate.Rooms[act.RemovePlayer.Room].Players, act.RemovePlayer.ID)
+		delete(rstate.Rooms[act.RemovePlayer.Room].Connections, ws.RemoteAddr().String())
+
+		rstate.Rooms[act.Room].Game.Dispatch(act)
+
+		if len(rstate.Rooms[act.Room].Players) == 0 {
+			delete(rstate.Rooms, act.Room)
+		}
 	default:
 		if r, ok := rstate.Rooms[act.Room]; ok {
 			r.Game.Dispatch(act)

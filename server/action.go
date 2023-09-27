@@ -34,6 +34,12 @@ func (ac *ActionDispatcher) AddPlayer(sid, id, name string, lid int, ws *websock
 	ac.dispatcher.Dispatch(npa)
 }
 
+func (ac *ActionDispatcher) RemovePlayer(rn, sid string) {
+	rpa := action.NewRemovePlayer(rn, sid)
+	rpa.Room = rn
+	ac.dispatcher.Dispatch(rpa)
+}
+
 func (ac *ActionDispatcher) IncomeTick(rooms *RoomsStore) {
 	ita := action.NewIncomeTick()
 	ac.dispatcher.Dispatch(ita)
@@ -55,7 +61,7 @@ func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 				if id == idp {
 					uspp.Current = true
 				}
-				players[id] = &uspp
+				players[idp] = &uspp
 			}
 
 			// Towers
