@@ -24,5 +24,6 @@ const (
 	// Specific to WS
 	JoinRoom
 	AddPlayer
+	RemovePlayer
 	UpdateState
 )

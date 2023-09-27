@@ -132,9 +132,23 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			u.Health = 0
 		}
 	case action.UpdateState:
+		uids := make(map[string]struct{})
+		for id := range ustate.Units {
+			uids[id] = struct{}{}
+		}
 		for id, u := range act.UpdateState.Units.Units {
+			delete(uids, id)
 			nu := Unit(*u)
 			ustate.Units[id] = &nu
+		}
+		for id := range uids {
+			delete(ustate.Units, id)
+		}
+	case action.RemovePlayer:
+		for id, u := range ustate.Units {
+			if u.PlayerID == act.RemovePlayer.ID {
+				delete(ustate.Units, id)
+			}
 		}
 	default:
 	}

@@ -55,9 +55,14 @@ func wsHandler(rooms *RoomsStore) func(http.ResponseWriter, *http.Request) {
 			// we kick the user
 			err := ws.ReadJSON(&msg)
 			if err != nil {
-				fmt.Printf("Error when reading the WS message: %w\n", err)
-				// TODO: Remove the player from Room and Players
-				ws.Close()
+				fmt.Printf("Error when reading the WS message: %s\n", err)
+
+				for rn, r := range rooms.GetState().(RoomsState).Rooms {
+					if uid, ok := r.Connections[ws.RemoteAddr().String()]; ok {
+						actionDispatcher.RemovePlayer(rn, uid)
+						break
+					}
+				}
 				break
 			}
 

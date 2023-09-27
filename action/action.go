@@ -21,9 +21,10 @@ type Action struct {
 	UnitKilled           *UnitKilledPayload           `json:"unit_killed,omitempty"`
 	WindowResizing       *WindowResizingPayload       `json:"window_resizing,omitempty"`
 
-	AddPlayer   *AddPlayerPayload   `json:"add_player, omitempty"`
-	JoinRoom    *JoinRoomPayload    `json:"join_room, omitempty"`
-	UpdateState *UpdateStatePayload `json:"update_state, omitempty"`
+	AddPlayer    *AddPlayerPayload    `json:"add_player, omitempty"`
+	RemovePlayer *RemovePlayerPayload `json:"remove_player, omitempty"`
+	JoinRoom     *JoinRoomPayload     `json:"join_room, omitempty"`
+	UpdateState  *UpdateStatePayload  `json:"update_state, omitempty"`
 }
 
 type CursorMovePayload struct {
@@ -249,6 +250,21 @@ func NewAddPlayer(r, id, name string, lid int, ws *websocket.Conn) *Action {
 	}
 }
 
+type RemovePlayerPayload struct {
+	ID   string
+	Room string
+}
+
+func NewRemovePlayer(r, id string) *Action {
+	return &Action{
+		Type: RemovePlayer,
+		RemovePlayer: &RemovePlayerPayload{
+			ID:   id,
+			Room: r,
+		},
+	}
+}
+
 type UpdateStatePayload struct {
 	Players *UpdateStatePlayersPayload
 	Towers  *UpdateStateTowersPayload
@@ -277,8 +293,9 @@ type UpdateStateTowersPayload struct {
 type UpdateStateTowerPayload struct {
 	utils.Object
 
-	Type   string
-	LineID int
+	Type     string
+	LineID   int
+	PlayerID string
 }
 
 type UpdateStateUnitsPayload struct {
