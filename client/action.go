@@ -49,6 +49,7 @@ func (ac *ActionDispatcher) MoveUnit() {
 // RemoveUnit removes the unit with the id 'uid'
 func (ac *ActionDispatcher) RemoveUnit(uid string) {
 	rua := action.NewRemoveUnit(uid)
+	wsSend(rua)
 	ac.dispatcher.Dispatch(rua)
 }
 

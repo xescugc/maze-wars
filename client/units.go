@@ -31,24 +31,30 @@ func NewUnits(g *Game) *Units {
 
 func (us *Units) Update() error {
 	actionDispatcher.MoveUnit()
+	cp := us.game.Players.GetCurrentPlayer()
 
 	for id, u := range us.game.Store.Units.GetState().(store.UnitsState).Units {
-		if u.Health == 0 {
-			p := us.game.Store.Players.GetByLineID(u.CurrentLineID)
-			actionDispatcher.UnitKilled(p.ID, u.Type)
-			actionDispatcher.RemoveUnit(id)
-			continue
-		}
-		if us.game.Map.IsAtTheEnd(u.Object, u.CurrentLineID) {
-			p := us.game.Store.Players.GetByLineID(u.CurrentLineID)
-			actionDispatcher.StealLive(p.ID, u.PlayerID)
-			nlid := us.game.Map.GetNextLineID(u.CurrentLineID)
-			if nlid == u.PlayerLineID {
+		// Only do the events as the owern of the unit if not the actionDispatcher
+		// will also dispatch it to the server and the event will be done len(players)
+		// amount of times
+		if cp.ID == u.PlayerID {
+			if u.Health == 0 {
+				p := us.game.Store.Players.GetByLineID(u.CurrentLineID)
+				actionDispatcher.UnitKilled(p.ID, u.Type)
 				actionDispatcher.RemoveUnit(id)
-			} else {
-				// TODO: Send to next line
-				// this will need to be done once
-				// we add more than 2 players
+				continue
+			}
+			if us.game.Map.IsAtTheEnd(u.Object, u.CurrentLineID) {
+				p := us.game.Store.Players.GetByLineID(u.CurrentLineID)
+				actionDispatcher.StealLive(p.ID, u.PlayerID)
+				nlid := us.game.Map.GetNextLineID(u.CurrentLineID)
+				if nlid == u.PlayerLineID {
+					actionDispatcher.RemoveUnit(id)
+				} else {
+					// TODO: Send to next line
+					// this will need to be done once
+					// we add more than 2 players
+				}
 			}
 		}
 	}

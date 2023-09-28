@@ -284,6 +284,7 @@ type UpdateStatePlayerPayload struct {
 	Income  int
 	Gold    int
 	Current bool
+	Winner  bool
 }
 
 type UpdateStateTowersPayload struct {

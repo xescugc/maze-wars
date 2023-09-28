@@ -91,6 +91,12 @@ func (hs *HUDStore) Update() error {
 	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
 		actionDispatcher.CursorMove(x, y)
 	}
+	// If the Current player is dead or has no more lives there are no
+	// mo actions that can be done
+	// TODO Be able to move the camera when won or lose
+	if cp.Lives == 0 || cp.Winner {
+		return nil
+	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		obj := utils.Object{
 			X: float64(x),
@@ -156,6 +162,14 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	hst := hs.GetState().(HUDState)
 	cs := hs.game.Camera.GetState().(CameraState)
 	cp := hs.game.Players.GetCurrentPlayer()
+
+	if cp.Lives == 0 {
+		ebitenutil.DebugPrintAt(screen, "YOU LOST", int(cs.W/2), int(cs.H/2))
+	}
+
+	if cp.Winner {
+		ebitenutil.DebugPrintAt(screen, "YOU WON!", int(cs.W/2), int(cs.H/2))
+	}
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(hst.CyclopeButton.X, hst.CyclopeButton.Y)
