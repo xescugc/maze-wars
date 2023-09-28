@@ -30,6 +30,7 @@ type Player struct {
 	Income  int
 	Gold    int
 	Current bool
+	Winner  bool
 }
 
 func NewPlayers(d *flux.Dispatcher) *Players {
@@ -82,9 +83,26 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 	case action.StealLive:
 		fp := pstate.Players[act.StealLive.FromPlayerID]
 		fp.Lives -= 1
+		if fp.Lives < 0 {
+			fp.Lives = 0
+		}
 
 		tp := pstate.Players[act.StealLive.ToPlayerID]
 		tp.Lives += 1
+
+		var stillPlayersLeft bool
+		for _, p := range pstate.Players {
+			if stillPlayersLeft {
+				continue
+			}
+			if p.Lives != 0 && p.ID != tp.ID {
+				stillPlayersLeft = true
+			}
+		}
+
+		if !stillPlayersLeft {
+			tp.Winner = true
+		}
 	case action.SummonUnit:
 		pstate.Players[act.SummonUnit.PlayerID].Income += unit.Units[act.SummonUnit.Type].Income
 		pstate.Players[act.SummonUnit.PlayerID].Gold -= unit.Units[act.SummonUnit.Type].Gold
