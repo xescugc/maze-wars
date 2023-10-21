@@ -15,19 +15,18 @@ type Store struct {
 }
 
 func NewStore(d *flux.Dispatcher) *Store {
-	g := &Store{
+	s := &Store{
 		Players: NewPlayers(d),
 
 		dispatcher: d,
 	}
-	// TODO: Handle error?
-	g.Map, _ = NewMap()
-	g.Towers = NewTowers(d, g)
-	g.Units = NewUnits(d, g)
+	s.Map = NewMap(d, s)
+	s.Towers = NewTowers(d, s)
+	s.Units = NewUnits(d, s)
 
-	return g
+	return s
 }
 
-func (g *Store) Dispatch(a *action.Action) {
-	g.dispatcher.Dispatch(a)
+func (s *Store) Dispatch(a *action.Action) {
+	s.dispatcher.Dispatch(a)
 }

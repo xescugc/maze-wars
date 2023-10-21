@@ -20,6 +20,9 @@ type Action struct {
 	TowerAttack          *TowerAttackPayload          `json:"tower_attack,omitempty"`
 	UnitKilled           *UnitKilledPayload           `json:"unit_killed,omitempty"`
 	WindowResizing       *WindowResizingPayload       `json:"window_resizing,omitempty"`
+	PlayerReady          *PlayerReadyPayload          `json:"player_ready, omitempty"`
+	NavigateTo           *NavigateToPayload           `json:"navigate_to, omitempty"`
+	StartGame            *StartGamePayload            `json:"start_game, omitempty"`
 
 	AddPlayer    *AddPlayerPayload    `json:"add_player, omitempty"`
 	RemovePlayer *RemovePlayerPayload `json:"remove_player, omitempty"`
@@ -265,6 +268,41 @@ func NewRemovePlayer(r, id string) *Action {
 	}
 }
 
+type PlayerReadyPayload struct {
+	ID string
+}
+
+func NewPlayerReady(id string) *Action {
+	return &Action{
+		Type: PlayerReady,
+		PlayerReady: &PlayerReadyPayload{
+			ID: id,
+		},
+	}
+}
+
+type NavigateToPayload struct {
+	Route string
+}
+
+func NewNavigateTo(route string) *Action {
+	return &Action{
+		Type: NavigateTo,
+		NavigateTo: &NavigateToPayload{
+			Route: route,
+		},
+	}
+}
+
+type StartGamePayload struct{}
+
+func NewStartGame() *Action {
+	return &Action{
+		Type:      StartGame,
+		StartGame: &StartGamePayload{},
+	}
+}
+
 type UpdateStatePayload struct {
 	Players *UpdateStatePlayersPayload
 	Towers  *UpdateStateTowersPayload
@@ -285,6 +323,7 @@ type UpdateStatePlayerPayload struct {
 	Gold    int
 	Current bool
 	Winner  bool
+	Ready   bool
 }
 
 type UpdateStateTowersPayload struct {

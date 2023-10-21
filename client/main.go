@@ -11,7 +11,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/ltw/assets"
 	"github.com/xescugc/ltw/store"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 )
 
 var (
@@ -27,6 +30,8 @@ var (
 	name    string
 
 	wsc *websocket.Conn
+
+	normalFont font.Face
 )
 
 func init() {
@@ -36,6 +41,22 @@ func init() {
 	flag.StringVar(&name, "name", "john doe", "The name of the player")
 
 	rand.Seed(time.Now().UnixNano())
+
+	// Initialize Font
+	tt, err := opentype.Parse(assets.NormalFont_ttf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	const dpi = 72
+	normalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    24,
+		DPI:     dpi,
+		Hinting: font.HintingVertical,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func main() {
@@ -55,21 +76,17 @@ func main() {
 		NewLoggerStore(dispatcher)
 	}
 
-	m, err := store.NewMap()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	store := store.NewStore(dispatcher)
+	s := store.NewStore(dispatcher)
+	m := store.NewMap(dispatcher, s)
 	g := &Game{
-		Store:   store,
-		Players: NewPlayers(store),
-		Map:     m,
+		Store: s,
+		Map:   m,
 	}
 
 	// Establish connection
 	u := url.URL{Scheme: "ws", Host: wsHost, Path: "/ws"}
 
+	var err error
 	wsc, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Fatal(err)
@@ -84,7 +101,8 @@ func main() {
 	}
 
 	// TODO: Change this to pass the specific store needed instead of all the game object
-	g.Camera = NewCameraStore(dispatcher, g, screenW, screenH)
+	cs := NewCameraStore(dispatcher, m, screenW, screenH)
+	g.Camera = cs
 	g.Units = NewUnits(g)
 	g.Towers = NewTowers(g)
 	g.HUD, err = NewHUDStore(dispatcher, g)
@@ -92,7 +110,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := ebiten.RunGame(g); err != nil {
+	l, err := NewLobby(dispatcher, s, cs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rs := NewRouterStore(dispatcher, g, l)
+
+	if err := ebiten.RunGame(rs); err != nil {
 		log.Fatal(err)
 	}
 }

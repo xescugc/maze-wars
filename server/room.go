@@ -63,6 +63,11 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.AddPlayer:
+		if len(rstate.Rooms[act.AddPlayer.Room].Players) == 6 {
+			// The limit for now will be to 6 players but realistically
+			// it could have no limit
+			break
+		}
 		rstate.Rooms[act.AddPlayer.Room].Players[act.AddPlayer.ID] = act.AddPlayer.Websocket
 		rstate.Rooms[act.AddPlayer.Room].Connections[act.AddPlayer.Websocket.RemoteAddr().String()] = act.AddPlayer.ID
 
