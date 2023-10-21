@@ -86,7 +86,7 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 func (hs *HUDStore) Update() error {
 	hst := hs.GetState().(HUDState)
 	x, y := ebiten.CursorPosition()
-	cp := hs.game.Players.GetCurrentPlayer()
+	cp := hs.game.Store.Players.GetCurrentPlayer()
 	// Only send a CursorMove when the curso has actually moved
 	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
 		actionDispatcher.CursorMove(x, y)
@@ -161,7 +161,7 @@ func (hs *HUDStore) Update() error {
 func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	hst := hs.GetState().(HUDState)
 	cs := hs.game.Camera.GetState().(CameraState)
-	cp := hs.game.Players.GetCurrentPlayer()
+	cp := hs.game.Store.Players.GetCurrentPlayer()
 
 	if cp.Lives == 0 {
 		ebitenutil.DebugPrintAt(screen, "YOU LOST", int(cs.W/2), int(cs.H/2))
@@ -246,7 +246,7 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		}
 	case action.SelectTower:
 		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())
-		cp := hs.game.Players.GetCurrentPlayer()
+		cp := hs.game.Store.Players.GetCurrentPlayer()
 		// TODO: Insead of hardcoding the image and W, H we should
 		// use the Type on the action to select the right image
 		hstate.SelectedTower = &SelectedTower{

@@ -111,6 +111,13 @@ func (ac *ActionDispatcher) UnitKilled(pid, ut string) {
 	ac.dispatcher.Dispatch(uk)
 }
 
+// PlayerReady marks the player as ready to start the game
+func (ac *ActionDispatcher) PlayerReady(pid string) {
+	pr := action.NewPlayerReady(pid)
+	wsSend(pr)
+	ac.dispatcher.Dispatch(pr)
+}
+
 // WindowResizing new sizes of the window
 func (ac *ActionDispatcher) WindowResizing(w, h int) {
 	wr := action.NewWindowResizing(w, h)
@@ -122,4 +129,17 @@ func (ac *ActionDispatcher) JoinRoom(room, name string) {
 	jr := action.NewJoinRoom(room, name)
 	wsSend(jr)
 	ac.dispatcher.Dispatch(jr)
+}
+
+// NavigateTo navigates to the given route
+func (ac *ActionDispatcher) NavigateTo(route string) {
+	nt := action.NewNavigateTo(route)
+	ac.dispatcher.Dispatch(nt)
+}
+
+// StartGame notifies that the game will start,
+// used to update any store before that
+func (ac *ActionDispatcher) StartGame() {
+	sg := action.NewStartGame()
+	ac.dispatcher.Dispatch(sg)
 }

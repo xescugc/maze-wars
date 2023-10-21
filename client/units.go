@@ -31,7 +31,7 @@ func NewUnits(g *Game) *Units {
 
 func (us *Units) Update() error {
 	actionDispatcher.MoveUnit()
-	cp := us.game.Players.GetCurrentPlayer()
+	cp := us.game.Store.Players.GetCurrentPlayer()
 
 	for id, u := range us.game.Store.Units.GetState().(store.UnitsState).Units {
 		// Only do the events as the owern of the unit if not the actionDispatcher

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/ltw/store"
 )
@@ -11,11 +13,11 @@ import (
 type Game struct {
 	Store *store.Store
 
-	Camera  *CameraStore
-	HUD     *HUDStore
-	Players *Players
-	Units   *Units
-	Towers  *Towers
+	Camera *CameraStore
+	HUD    *HUDStore
+
+	Units  *Units
+	Towers *Towers
 
 	Map *store.Map
 
@@ -35,12 +37,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.HUD.Draw(screen)
 	g.Units.Draw(screen)
 	g.Towers.Draw(screen)
-}
 
-func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	cs := g.Camera.GetState().(CameraState)
-	if cs.W != float64(outsideWidth) || cs.H != float64(outsideHeight) {
-		actionDispatcher.WindowResizing(outsideWidth, outsideHeight)
-	}
-	return outsideWidth, outsideHeight
+	// Draw will draw just a partial image of the map based on the viewport, so it does not render everything but just the
+	// part that it's seen by the user
+	// If we want to render everything and just move the viewport around we need o render the full image and change the
+	// opt.GeoM.Transport to the Map.X/Y and change the Update function to do the opposite in terms of -+
+	op := &ebiten.DrawImageOptions{}
+	s := g.Camera.GetState().(CameraState)
+	op.GeoM.Scale(s.Zoom, s.Zoom)
+	inverseZoom := maxZoom - s.Zoom + zoomScale
+	screen.DrawImage(g.Map.GetState().(store.MapState).Image.(*ebiten.Image).SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
 }

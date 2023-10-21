@@ -1,11 +1,10 @@
 package main
 
 import (
-	"image"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/ltw/store"
 	"github.com/xescugc/ltw/utils"
 )
 
@@ -15,7 +14,7 @@ import (
 type CameraStore struct {
 	*flux.ReduceStore
 
-	game *Game
+	Map *store.Map
 
 	cameraSpeed float64
 }
@@ -35,9 +34,9 @@ const (
 // NewCameraStore creates a new CameraState linked to the Dispatcher d
 // with the Game g and with width w and height h which is the size of
 // the viewport
-func NewCameraStore(d *flux.Dispatcher, g *Game, w, h int) *CameraStore {
+func NewCameraStore(d *flux.Dispatcher, m *store.Map, w, h int) *CameraStore {
 	cs := &CameraStore{
-		game:        g,
+		Map:         m,
 		cameraSpeed: 10,
 	}
 
@@ -65,17 +64,7 @@ func (cs *CameraStore) Update() error {
 	return nil
 }
 
-// Draw will draw just a partial image of the map based on the viewport, so it does not render everything but just the
-// part that it's seen by the user
-// If we want to render everything and just move the viewport around we need o render the full image and change the
-// opt.GeoM.Transport to the Map.X/Y and change the Update function to do the opposite in terms of -+
-func (cs *CameraStore) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	s := cs.GetState().(CameraState)
-	op.GeoM.Scale(s.Zoom, s.Zoom)
-	inverseZoom := maxZoom - s.Zoom + zoomScale
-	screen.DrawImage(cs.game.Map.Image.(*ebiten.Image).SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
-}
+func (cs *CameraStore) Draw(screen *ebiten.Image) {}
 
 func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)
@@ -111,13 +100,13 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 		// values as we cannot go out of the map
 		if cstate.X <= 0 {
 			cstate.X = 0
-		} else if cstate.X >= float64(cs.game.Map.GetX()) {
-			cstate.X = float64(cs.game.Map.GetX())
+		} else if cstate.X >= float64(cs.Map.GetX()) {
+			cstate.X = float64(cs.Map.GetX())
 		}
 		if cstate.Y <= 0 {
 			cstate.Y = 0
-		} else if cstate.Y >= float64(cs.game.Map.GetY()) {
-			cstate.Y = float64(cs.game.Map.GetY())
+		} else if cstate.Y >= float64(cs.Map.GetY()) {
+			cstate.Y = float64(cs.Map.GetY())
 		}
 	case action.CameraZoom:
 		cstate.Zoom += float64(act.CameraZoom.Direction) * zoomScale

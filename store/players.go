@@ -31,6 +31,7 @@ type Player struct {
 	Gold    int
 	Current bool
 	Winner  bool
+	Ready   bool
 }
 
 func NewPlayers(d *flux.Dispatcher) *Players {
@@ -41,6 +42,15 @@ func NewPlayers(d *flux.Dispatcher) *Players {
 	})
 
 	return p
+}
+
+func (ps *Players) GetCurrentPlayer() Player {
+	for _, p := range ps.GetState().(PlayersState).Players {
+		if p.Current {
+			return *p
+		}
+	}
+	return Player{}
 }
 
 func (ps *Players) GetPlayerByID(id string) Player {
@@ -116,6 +126,8 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		}
 	case action.PlaceTower:
 		pstate.Players[act.PlaceTower.PlayerID].Gold -= tower.Towers[act.PlaceTower.Type].Gold
+	case action.PlayerReady:
+		pstate.Players[act.PlayerReady.ID].Ready = true
 	case action.UnitKilled:
 		pstate.Players[act.UnitKilled.PlayerID].Gold += unit.Units[act.UnitKilled.UnitType].Income
 	case action.UpdateState:

@@ -20,6 +20,9 @@ const (
 	TowerAttack
 	UnitKilled
 	WindowResizing
+	PlayerReady
+	NavigateTo
+	StartGame
 
 	// Specific to WS
 	JoinRoom
