@@ -104,7 +104,10 @@ func main() {
 	cs := NewCameraStore(dispatcher, m, screenW, screenH)
 	g.Camera = cs
 	g.Units = NewUnits(g)
-	g.Towers = NewTowers(g)
+	g.Towers, err = NewTowers(g)
+	if err != nil {
+		log.Fatal(err)
+	}
 	g.HUD, err = NewHUDStore(dispatcher, g)
 	if err != nil {
 		log.Fatal(err)

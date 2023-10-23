@@ -1,28 +1,41 @@
 package main
 
 import (
+	"bytes"
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/xescugc/ltw/assets"
 	"github.com/xescugc/ltw/store"
 	"github.com/xescugc/ltw/tower"
 )
 
 type Towers struct {
 	game *Game
+
+	tilesetLogicImage image.Image
 }
 
-func NewTowers(g *Game) *Towers {
-	ts := &Towers{
-		game: g,
+func NewTowers(g *Game) (*Towers, error) {
+	tli, _, err := image.Decode(bytes.NewReader(assets.TilesetLogic_png))
+	if err != nil {
+		return nil, err
 	}
 
-	return ts
+	ts := &Towers{
+		game:              g,
+		tilesetLogicImage: ebiten.NewImageFromImage(tli).SubImage(image.Rect(4*16, 5*16, 4*16+16, 5*16+16)),
+	}
+
+	return ts, nil
 }
 
 func (ts *Towers) Update() error {
 	uts := ts.game.Store.Units.GetState().(store.UnitsState).Units
 	tws := ts.game.Store.Towers.GetState().(store.TowersState).Towers
-	if len(uts) != 0 {
-		for _, t := range tws {
+	for _, t := range tws {
+		// If there are any units then we check if we can attack them
+		if len(uts) != 0 {
 			var (
 				minDist     float64 = 0
 				minDistUnit string
@@ -53,6 +66,7 @@ func (ts *Towers) Draw(screen *ebiten.Image) {
 
 func (ts *Towers) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
 	cs := c.GetState().(CameraState)
+	hst := ts.game.HUD.GetState().(HUDState)
 	if !t.IsColliding(cs.Object) {
 		return
 	}
@@ -60,4 +74,11 @@ func (ts *Towers) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower
 	op.GeoM.Translate(t.X-cs.X, t.Y-cs.Y)
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
 	screen.DrawImage(t.Image().(*ebiten.Image), op)
+
+	if t.ID == hst.TowerOpenMenuID {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(t.X-cs.X+8, t.Y-cs.Y+8)
+		op.GeoM.Scale(cs.Zoom, cs.Zoom)
+		screen.DrawImage(ts.tilesetLogicImage.(*ebiten.Image), op)
+	}
 }

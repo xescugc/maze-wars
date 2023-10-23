@@ -16,6 +16,7 @@ type Action struct {
 	CameraZoom           *CameraZoomPayload           `json:"camera_zoom,omitempty"`
 	SelectTower          *SelectTowerPayload          `json:"select_tower,omitempty"`
 	PlaceTower           *PlaceTowerPayload           `json:"place_tower,omitempty"`
+	RemoveTower          *RemoveTowerPayload          `json:"remove_tower,omitempty"`
 	SelectedTowerInvalid *SelectedTowerInvalidPayload `json:"selected_tower_invalid,omitempty"`
 	TowerAttack          *TowerAttackPayload          `json:"tower_attack,omitempty"`
 	UnitKilled           *UnitKilledPayload           `json:"unit_killed,omitempty"`
@@ -23,6 +24,9 @@ type Action struct {
 	PlayerReady          *PlayerReadyPayload          `json:"player_ready, omitempty"`
 	NavigateTo           *NavigateToPayload           `json:"navigate_to, omitempty"`
 	StartGame            *StartGamePayload            `json:"start_game, omitempty"`
+
+	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu, omitempty"`
+	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu, omitempty"`
 
 	AddPlayer    *AddPlayerPayload    `json:"add_player, omitempty"`
 	RemovePlayer *RemovePlayerPayload `json:"remove_player, omitempty"`
@@ -126,6 +130,23 @@ func NewPlaceTower(t, pid string, x, y int) *Action {
 			PlayerID: pid,
 			X:        x,
 			Y:        y,
+		},
+	}
+}
+
+type RemoveTowerPayload struct {
+	PlayerID  string
+	TowerID   string
+	TowerType string
+}
+
+func NewRemoveTower(pid, tid, tt string) *Action {
+	return &Action{
+		Type: RemoveTower,
+		RemoveTower: &RemoveTowerPayload{
+			PlayerID:  pid,
+			TowerID:   tid,
+			TowerType: tt,
 		},
 	}
 }
@@ -303,6 +324,29 @@ func NewStartGame() *Action {
 	}
 }
 
+type OpenTowerMenuPayload struct {
+	TowerID string
+}
+
+func NewOpenTowerMenu(tid string) *Action {
+	return &Action{
+		Type: OpenTowerMenu,
+		OpenTowerMenu: &OpenTowerMenuPayload{
+			TowerID: tid,
+		},
+	}
+}
+
+type CloseTowerMenuPayload struct {
+}
+
+func NewCloseTowerMenu() *Action {
+	return &Action{
+		Type:           CloseTowerMenu,
+		CloseTowerMenu: &CloseTowerMenuPayload{},
+	}
+}
+
 type UpdateStatePayload struct {
 	Players *UpdateStatePlayersPayload
 	Towers  *UpdateStateTowersPayload
@@ -333,6 +377,7 @@ type UpdateStateTowersPayload struct {
 type UpdateStateTowerPayload struct {
 	utils.Object
 
+	ID       string
 	Type     string
 	LineID   int
 	PlayerID string

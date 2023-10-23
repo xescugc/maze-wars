@@ -23,6 +23,8 @@ type TowersState struct {
 type Tower struct {
 	utils.Object
 
+	ID string
+
 	Type     string
 	LineID   int
 	PlayerID string
@@ -62,6 +64,7 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 		var w, h float64 = 16 * 2, 16 * 2
 		tid := uuid.Must(uuid.NewV4())
 		tstate.Towers[tid.String()] = &Tower{
+			ID: tid.String(),
 			Object: utils.Object{
 				X: float64(act.PlaceTower.X), Y: float64(act.PlaceTower.Y),
 				W: w, H: h,
@@ -89,6 +92,8 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 				delete(tstate.Towers, id)
 			}
 		}
+	case action.RemoveTower:
+		delete(tstate.Towers, act.RemoveTower.TowerID)
 	default:
 	}
 	return tstate

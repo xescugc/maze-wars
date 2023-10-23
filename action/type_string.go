@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingplayer_readynavigate_tostart_gamejoin_roomadd_playerremove_playerupdate_state"
+const _TypeName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingplayer_readynavigate_tostart_gameopen_tower_menuclose_tower_menujoin_roomadd_playerremove_playerupdate_state"
 
-var _TypeIndex = [...]uint16{0, 11, 22, 33, 42, 53, 63, 74, 86, 100, 122, 136, 147, 159, 170, 185, 197, 208, 218, 227, 237, 250, 262}
+var _TypeIndex = [...]uint16{0, 11, 22, 33, 42, 53, 63, 74, 86, 98, 112, 134, 148, 159, 171, 182, 197, 209, 220, 230, 245, 261, 270, 280, 293, 305}
 
-const _TypeLowerName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingplayer_readynavigate_tostart_gamejoin_roomadd_playerremove_playerupdate_state"
+const _TypeLowerName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingplayer_readynavigate_tostart_gameopen_tower_menuclose_tower_menujoin_roomadd_playerremove_playerupdate_state"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -32,24 +32,27 @@ func _TypeNoOp() {
 	_ = x[RemoveUnit-(4)]
 	_ = x[StealLive-(5)]
 	_ = x[PlaceTower-(6)]
-	_ = x[SelectTower-(7)]
-	_ = x[SelectedTower-(8)]
-	_ = x[SelectedTowerInvalid-(9)]
-	_ = x[DeselectTower-(10)]
-	_ = x[IncomeTick-(11)]
-	_ = x[TowerAttack-(12)]
-	_ = x[UnitKilled-(13)]
-	_ = x[WindowResizing-(14)]
-	_ = x[PlayerReady-(15)]
-	_ = x[NavigateTo-(16)]
-	_ = x[StartGame-(17)]
-	_ = x[JoinRoom-(18)]
-	_ = x[AddPlayer-(19)]
-	_ = x[RemovePlayer-(20)]
-	_ = x[UpdateState-(21)]
+	_ = x[RemoveTower-(7)]
+	_ = x[SelectTower-(8)]
+	_ = x[SelectedTower-(9)]
+	_ = x[SelectedTowerInvalid-(10)]
+	_ = x[DeselectTower-(11)]
+	_ = x[IncomeTick-(12)]
+	_ = x[TowerAttack-(13)]
+	_ = x[UnitKilled-(14)]
+	_ = x[WindowResizing-(15)]
+	_ = x[PlayerReady-(16)]
+	_ = x[NavigateTo-(17)]
+	_ = x[StartGame-(18)]
+	_ = x[OpenTowerMenu-(19)]
+	_ = x[CloseTowerMenu-(20)]
+	_ = x[JoinRoom-(21)]
+	_ = x[AddPlayer-(22)]
+	_ = x[RemovePlayer-(23)]
+	_ = x[UpdateState-(24)]
 }
 
-var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, MoveUnit, RemoveUnit, StealLive, PlaceTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, TowerAttack, UnitKilled, WindowResizing, PlayerReady, NavigateTo, StartGame, JoinRoom, AddPlayer, RemovePlayer, UpdateState}
+var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, MoveUnit, RemoveUnit, StealLive, PlaceTower, RemoveTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, TowerAttack, UnitKilled, WindowResizing, PlayerReady, NavigateTo, StartGame, OpenTowerMenu, CloseTowerMenu, JoinRoom, AddPlayer, RemovePlayer, UpdateState}
 
 var _TypeNameToValueMap = map[string]Type{
 	_TypeName[0:11]:         CursorMove,
@@ -66,36 +69,42 @@ var _TypeNameToValueMap = map[string]Type{
 	_TypeLowerName[53:63]:   StealLive,
 	_TypeName[63:74]:        PlaceTower,
 	_TypeLowerName[63:74]:   PlaceTower,
-	_TypeName[74:86]:        SelectTower,
-	_TypeLowerName[74:86]:   SelectTower,
-	_TypeName[86:100]:       SelectedTower,
-	_TypeLowerName[86:100]:  SelectedTower,
-	_TypeName[100:122]:      SelectedTowerInvalid,
-	_TypeLowerName[100:122]: SelectedTowerInvalid,
-	_TypeName[122:136]:      DeselectTower,
-	_TypeLowerName[122:136]: DeselectTower,
-	_TypeName[136:147]:      IncomeTick,
-	_TypeLowerName[136:147]: IncomeTick,
-	_TypeName[147:159]:      TowerAttack,
-	_TypeLowerName[147:159]: TowerAttack,
-	_TypeName[159:170]:      UnitKilled,
-	_TypeLowerName[159:170]: UnitKilled,
-	_TypeName[170:185]:      WindowResizing,
-	_TypeLowerName[170:185]: WindowResizing,
-	_TypeName[185:197]:      PlayerReady,
-	_TypeLowerName[185:197]: PlayerReady,
-	_TypeName[197:208]:      NavigateTo,
-	_TypeLowerName[197:208]: NavigateTo,
-	_TypeName[208:218]:      StartGame,
-	_TypeLowerName[208:218]: StartGame,
-	_TypeName[218:227]:      JoinRoom,
-	_TypeLowerName[218:227]: JoinRoom,
-	_TypeName[227:237]:      AddPlayer,
-	_TypeLowerName[227:237]: AddPlayer,
-	_TypeName[237:250]:      RemovePlayer,
-	_TypeLowerName[237:250]: RemovePlayer,
-	_TypeName[250:262]:      UpdateState,
-	_TypeLowerName[250:262]: UpdateState,
+	_TypeName[74:86]:        RemoveTower,
+	_TypeLowerName[74:86]:   RemoveTower,
+	_TypeName[86:98]:        SelectTower,
+	_TypeLowerName[86:98]:   SelectTower,
+	_TypeName[98:112]:       SelectedTower,
+	_TypeLowerName[98:112]:  SelectedTower,
+	_TypeName[112:134]:      SelectedTowerInvalid,
+	_TypeLowerName[112:134]: SelectedTowerInvalid,
+	_TypeName[134:148]:      DeselectTower,
+	_TypeLowerName[134:148]: DeselectTower,
+	_TypeName[148:159]:      IncomeTick,
+	_TypeLowerName[148:159]: IncomeTick,
+	_TypeName[159:171]:      TowerAttack,
+	_TypeLowerName[159:171]: TowerAttack,
+	_TypeName[171:182]:      UnitKilled,
+	_TypeLowerName[171:182]: UnitKilled,
+	_TypeName[182:197]:      WindowResizing,
+	_TypeLowerName[182:197]: WindowResizing,
+	_TypeName[197:209]:      PlayerReady,
+	_TypeLowerName[197:209]: PlayerReady,
+	_TypeName[209:220]:      NavigateTo,
+	_TypeLowerName[209:220]: NavigateTo,
+	_TypeName[220:230]:      StartGame,
+	_TypeLowerName[220:230]: StartGame,
+	_TypeName[230:245]:      OpenTowerMenu,
+	_TypeLowerName[230:245]: OpenTowerMenu,
+	_TypeName[245:261]:      CloseTowerMenu,
+	_TypeLowerName[245:261]: CloseTowerMenu,
+	_TypeName[261:270]:      JoinRoom,
+	_TypeLowerName[261:270]: JoinRoom,
+	_TypeName[270:280]:      AddPlayer,
+	_TypeLowerName[270:280]: AddPlayer,
+	_TypeName[280:293]:      RemovePlayer,
+	_TypeLowerName[280:293]: RemovePlayer,
+	_TypeName[293:305]:      UpdateState,
+	_TypeLowerName[293:305]: UpdateState,
 }
 
 var _TypeNames = []string{
@@ -107,20 +116,23 @@ var _TypeNames = []string{
 	_TypeName[53:63],
 	_TypeName[63:74],
 	_TypeName[74:86],
-	_TypeName[86:100],
-	_TypeName[100:122],
-	_TypeName[122:136],
-	_TypeName[136:147],
-	_TypeName[147:159],
-	_TypeName[159:170],
-	_TypeName[170:185],
-	_TypeName[185:197],
-	_TypeName[197:208],
-	_TypeName[208:218],
-	_TypeName[218:227],
-	_TypeName[227:237],
-	_TypeName[237:250],
-	_TypeName[250:262],
+	_TypeName[86:98],
+	_TypeName[98:112],
+	_TypeName[112:134],
+	_TypeName[134:148],
+	_TypeName[148:159],
+	_TypeName[159:171],
+	_TypeName[171:182],
+	_TypeName[182:197],
+	_TypeName[197:209],
+	_TypeName[209:220],
+	_TypeName[220:230],
+	_TypeName[230:245],
+	_TypeName[245:261],
+	_TypeName[261:270],
+	_TypeName[270:280],
+	_TypeName[280:293],
+	_TypeName[293:305],
 }
 
 // TypeString retrieves an enum value from the enum constants string name.

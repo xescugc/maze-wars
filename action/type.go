@@ -12,6 +12,7 @@ const (
 	RemoveUnit
 	StealLive
 	PlaceTower
+	RemoveTower
 	SelectTower
 	SelectedTower
 	SelectedTowerInvalid
@@ -23,6 +24,8 @@ const (
 	PlayerReady
 	NavigateTo
 	StartGame
+	OpenTowerMenu
+	CloseTowerMenu
 
 	// Specific to WS
 	JoinRoom

@@ -122,6 +122,25 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 				u.Path = us.astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
 			}
 		}
+	case action.RemoveTower:
+		// We wait for the towers store as we need to interact with it
+		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
+		ts := us.store.Towers.GetState().(TowersState)
+		p := us.store.Players.GetPlayerByID(act.RemoveTower.PlayerID)
+		for _, u := range ustate.Units {
+			// Only need to recalculate path for each unit when the placed tower
+			// is on the same LineID as the unit
+			if u.CurrentLineID == p.LineID {
+				tws := make([]utils.Object, 0, 0)
+				for _, t := range ts.Towers {
+					if t.LineID == u.CurrentLineID {
+						tws = append(tws, t.Object)
+					}
+				}
+
+				u.Path = us.astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+			}
+		}
 	case action.RemoveUnit:
 		delete(ustate.Units, act.RemoveUnit.UnitID)
 	case action.TowerAttack:

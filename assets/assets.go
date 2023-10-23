@@ -11,6 +11,9 @@ var CyclopeFaceset_png []byte
 //go:embed TilesetHouse.png
 var TilesetHouse_png []byte
 
+//go:embed TilesetLogic.png
+var TilesetLogic_png []byte
+
 //go:embed cyclope/Cyclopes.png
 var Cyclopes_png []byte
 
