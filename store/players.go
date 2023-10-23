@@ -126,6 +126,8 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		}
 	case action.PlaceTower:
 		pstate.Players[act.PlaceTower.PlayerID].Gold -= tower.Towers[act.PlaceTower.Type].Gold
+	case action.RemoveTower:
+		pstate.Players[act.RemoveTower.PlayerID].Gold += tower.Towers[act.RemoveTower.TowerType].Gold / 2
 	case action.PlayerReady:
 		pstate.Players[act.PlayerReady.ID].Ready = true
 	case action.UnitKilled:

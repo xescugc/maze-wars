@@ -35,7 +35,8 @@ type HUDState struct {
 	CyclopeButton utils.Object
 	SoldierButton utils.Object
 
-	SelectedTower *SelectedTower
+	SelectedTower   *SelectedTower
+	TowerOpenMenuID string
 
 	LastCursorPosition utils.Object
 }
@@ -84,9 +85,11 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 }
 
 func (hs *HUDStore) Update() error {
+	cs := hs.game.Camera.GetState().(CameraState)
 	hst := hs.GetState().(HUDState)
 	x, y := ebiten.CursorPosition()
 	cp := hs.game.Store.Players.GetCurrentPlayer()
+	tws := hs.game.Store.Towers.GetState().(store.TowersState).Towers
 	// Only send a CursorMove when the curso has actually moved
 	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
 		actionDispatcher.CursorMove(x, y)
@@ -98,30 +101,62 @@ func (hs *HUDStore) Update() error {
 		return nil
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		obj := utils.Object{
+		click := utils.Object{
 			X: float64(x),
 			Y: float64(y),
 			W: 1, H: 1,
 		}
+		clickAbsolute := utils.Object{
+			X: float64(x) + cs.X,
+			Y: float64(y) + cs.Y,
+			W: 1, H: 1,
+		}
 		// Check what the user has just clicked
-		if cp.Gold >= unit.Units[unit.Cyclope.String()].Gold && hst.CyclopeButton.IsColliding(obj) {
+		if cp.Gold >= unit.Units[unit.Cyclope.String()].Gold && hst.CyclopeButton.IsColliding(click) {
 			actionDispatcher.SummonUnit(unit.Cyclope.String(), cp.ID, cp.LineID, hs.game.Map.GetNextLineID(cp.LineID))
 			return nil
 		}
-		if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hst.SoldierButton.IsColliding(obj) {
+		if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hst.SoldierButton.IsColliding(click) {
 			actionDispatcher.SelectTower(tower.Soldier.String(), x, y)
 			return nil
 		}
 
 		if hst.SelectedTower != nil && !hst.SelectedTower.Invalid {
-			cs := hs.game.Camera.GetState().(CameraState)
 			actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y))
+			return nil
+		}
+		for _, t := range tws {
+
+			if clickAbsolute.IsColliding(t.Object) && cp.ID == t.PlayerID {
+				if hst.TowerOpenMenuID != "" {
+					// When the user clicks 2 times on the same tower we remove it
+					if t.ID == hst.TowerOpenMenuID {
+						actionDispatcher.RemoveTower(cp.ID, t.ID, t.Type)
+						actionDispatcher.CloseTowerMenu()
+						return nil
+					}
+				} else {
+					actionDispatcher.OpenTowerMenu(t.ID)
+					return nil
+				}
+			}
+		}
+		// If we are here no Tower was clicked but a click action was done,
+		// so we check if the TowerOpenMenuID is set to unset it as this was
+		// a click-off
+		if hst.TowerOpenMenuID != "" {
+			actionDispatcher.CloseTowerMenu()
 		}
 	}
 
 	if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && inpututil.IsKeyJustPressed(ebiten.KeyT) {
 		actionDispatcher.SelectTower(tower.Soldier.String(), x, y)
 		return nil
+	}
+	if hst.TowerOpenMenuID != "" {
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+			actionDispatcher.CloseTowerMenu()
+		}
 	}
 	if hst.SelectedTower != nil {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
@@ -289,6 +324,10 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		if hstate.SelectedTower != nil {
 			hstate.SelectedTower.Invalid = act.SelectedTowerInvalid.Invalid
 		}
+	case action.OpenTowerMenu:
+		hstate.TowerOpenMenuID = act.OpenTowerMenu.TowerID
+	case action.CloseTowerMenu:
+		hstate.TowerOpenMenuID = ""
 	default:
 	}
 

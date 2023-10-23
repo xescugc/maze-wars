@@ -69,9 +69,16 @@ func (ac *ActionDispatcher) CameraZoom(d int) {
 
 // PlaceTower places the tower 't' on the position X and Y of the player pid
 func (ac *ActionDispatcher) PlaceTower(t, pid string, x, y int) {
-	bta := action.NewPlaceTower(t, pid, x, y)
-	wsSend(bta)
-	ac.dispatcher.Dispatch(bta)
+	pta := action.NewPlaceTower(t, pid, x, y)
+	wsSend(pta)
+	ac.dispatcher.Dispatch(pta)
+}
+
+// RemoveTower removes the tower tid
+func (ac *ActionDispatcher) RemoveTower(pid, tid, tt string) {
+	rta := action.NewRemoveTower(pid, tid, tt)
+	wsSend(rta)
+	ac.dispatcher.Dispatch(rta)
 }
 
 // SelectTower selects the tower 't' on the position x, y
@@ -142,4 +149,17 @@ func (ac *ActionDispatcher) NavigateTo(route string) {
 func (ac *ActionDispatcher) StartGame() {
 	sg := action.NewStartGame()
 	ac.dispatcher.Dispatch(sg)
+}
+
+// OpenTowerMenu when a tower is clicked and the menu of
+// the tower is displayed
+func (ac *ActionDispatcher) OpenTowerMenu(tid string) {
+	otm := action.NewOpenTowerMenu(tid)
+	ac.dispatcher.Dispatch(otm)
+}
+
+// CloseTowerMenu when a tower menu needs to be closed
+func (ac *ActionDispatcher) CloseTowerMenu() {
+	ctm := action.NewCloseTowerMenu()
+	ac.dispatcher.Dispatch(ctm)
 }
