@@ -27,7 +27,7 @@ func (sm stepMap) get(s utils.Step) *queueItem {
 // all the Towers (tws) and only moving on the map valid area.
 // It returns the paths to follow in order, path[0] is the next move and path[-1] is the last one
 // there are no DIAGONAL MOVES just UP, DOWN, LEFT and RIGHT
-func (us *Units) astar(m *Map, lid int, u utils.MovingObject, tws []utils.Object) []utils.Step {
+func (us *Units) Astar(m *Map, lid int, u utils.MovingObject, tws []utils.Object) []utils.Step {
 	nm := stepMap{}
 	nq := &queue{}
 	heap.Init(nq)

@@ -122,7 +122,33 @@ func (hs *HUDStore) Update() error {
 		}
 
 		if hst.SelectedTower != nil && !hst.SelectedTower.Invalid {
-			actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y))
+			// We double check that placing the tower would not block the path
+			ts := hs.game.Store.Towers.GetState().(store.TowersState)
+			utws := make([]utils.Object, 0, 0)
+			for _, t := range ts.Towers {
+				// If the tower does not belong to the current user then we can skip
+				// as it's outside the Players Building Zone
+				if t.PlayerID != cp.ID {
+					continue
+				}
+				utws = append(utws, t.Object)
+			}
+			var fakex, fakey float64 = hs.game.Store.Map.GetRandomSpawnCoordinatesForLineID(cp.LineID)
+			utws = append(utws, utils.Object{
+				X: hst.SelectedTower.X + cs.X,
+				Y: hst.SelectedTower.Y + cs.Y,
+				H: hst.SelectedTower.H, W: hst.SelectedTower.W,
+			})
+			steps := hs.game.Store.Units.Astar(hs.game.Store.Map, cp.LineID, utils.MovingObject{
+				Object: utils.Object{
+					X: fakex,
+					Y: fakey,
+					W: 1, H: 1,
+				},
+			}, utws)
+			if len(steps) != 0 {
+				actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y))
+			}
 			return nil
 		}
 		for _, t := range tws {
@@ -163,9 +189,15 @@ func (hs *HUDStore) Update() error {
 			actionDispatcher.DeselectTower(hst.SelectedTower.Type)
 		} else {
 			ts := hs.game.Store.Towers.GetState().(store.TowersState)
-			cs := hs.game.Camera.GetState().(CameraState)
 			var invalid bool
+			utws := make([]utils.Object, 0, 0)
 			for _, t := range ts.Towers {
+				// If the tower does not belong to the current user then we can skip
+				// as it's outside the Players Building Zone
+				if t.PlayerID != cp.ID {
+					continue
+				}
+				utws = append(utws, t.Object)
 				// The t.Object has the X and Y relative to the map
 				// and the hst.SelectedTower has them relative to the
 				// screen so we need to port the t.Object to the same
@@ -183,6 +215,28 @@ func (hs *HUDStore) Update() error {
 			neo.Y += cs.Y
 			if !hs.game.Map.IsInValidBuildingZone(neo, hst.SelectedTower.LineID) {
 				invalid = true
+			}
+
+			// Only check if the line is blocked when is still valid position and it has not moved.
+			// TODO: We can improve this by storing this result (if blocking or not) so we only validate
+			// this once and not when the mouse is static with a selected tower
+			if !invalid && (hst.LastCursorPosition.X == float64(x) && hst.LastCursorPosition.Y == float64(y)) {
+				var fakex, fakey float64 = hs.game.Store.Map.GetRandomSpawnCoordinatesForLineID(cp.LineID)
+				utws = append(utws, utils.Object{
+					X: hst.SelectedTower.X + cs.X,
+					Y: hst.SelectedTower.Y + cs.Y,
+					H: hst.SelectedTower.H, W: hst.SelectedTower.W,
+				})
+				steps := hs.game.Store.Units.Astar(hs.game.Store.Map, cp.LineID, utils.MovingObject{
+					Object: utils.Object{
+						X: fakex,
+						Y: fakey,
+						W: 1, H: 1,
+					},
+				}, utws)
+				if len(steps) == 0 {
+					invalid = true
+				}
 			}
 			if invalid != hst.SelectedTower.Invalid {
 				actionDispatcher.SelectedTowerInvalid(invalid)
