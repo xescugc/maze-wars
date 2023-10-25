@@ -90,7 +90,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 				tws = append(tws, t.Object)
 			}
 		}
-		u.Path = us.astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+		u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
 		ustate.Units[uid.String()] = u
 	case action.MoveUnit:
 		for _, u := range ustate.Units {
@@ -119,7 +119,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 					}
 				}
 
-				u.Path = us.astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+				u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
 			}
 		}
 	case action.RemoveTower:
@@ -138,7 +138,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 					}
 				}
 
-				u.Path = us.astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+				u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
 			}
 		}
 	case action.RemoveUnit:
