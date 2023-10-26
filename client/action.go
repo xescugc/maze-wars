@@ -163,3 +163,9 @@ func (ac *ActionDispatcher) CloseTowerMenu() {
 	ctm := action.NewCloseTowerMenu()
 	ac.dispatcher.Dispatch(ctm)
 }
+
+// GoHome will move the camera to the current player home line
+func (ac *ActionDispatcher) GoHome() {
+	gha := action.NewGoHome()
+	ac.dispatcher.Dispatch(gha)
+}

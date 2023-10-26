@@ -14,7 +14,7 @@ import (
 type CameraStore struct {
 	*flux.ReduceStore
 
-	Map *store.Map
+	Store *store.Store
 
 	cameraSpeed float64
 }
@@ -34,9 +34,9 @@ const (
 // NewCameraStore creates a new CameraState linked to the Dispatcher d
 // with the Game g and with width w and height h which is the size of
 // the viewport
-func NewCameraStore(d *flux.Dispatcher, m *store.Map, w, h int) *CameraStore {
+func NewCameraStore(d *flux.Dispatcher, s *store.Store, w, h int) *CameraStore {
 	cs := &CameraStore{
-		Map:         m,
+		Store:       s,
 		cameraSpeed: 10,
 	}
 
@@ -100,19 +100,22 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 		// values as we cannot go out of the map
 		if cstate.X <= 0 {
 			cstate.X = 0
-		} else if cstate.X >= float64(cs.Map.GetX()) {
-			cstate.X = float64(cs.Map.GetX())
+		} else if cstate.X >= float64(cs.Store.Map.GetX()) {
+			cstate.X = float64(cs.Store.Map.GetX())
 		}
 		if cstate.Y <= 0 {
 			cstate.Y = 0
-		} else if cstate.Y >= float64(cs.Map.GetY()) {
-			cstate.Y = float64(cs.Map.GetY())
+		} else if cstate.Y >= float64(cs.Store.Map.GetY()) {
+			cstate.Y = float64(cs.Store.Map.GetY())
 		}
 	case action.CameraZoom:
 		cstate.Zoom += float64(act.CameraZoom.Direction) * zoomScale
 	case action.WindowResizing:
 		cstate.W = float64(act.WindowResizing.Width)
 		cstate.H = float64(act.WindowResizing.Height)
+	case action.GoHome:
+		cp := cs.Store.Players.GetCurrentPlayer()
+		cstate.X, cstate.Y = cs.Store.Map.GetHomeCoordinates(cp.LineID)
 	}
 
 	return cstate
