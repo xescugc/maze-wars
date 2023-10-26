@@ -1,15 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/xescugc/ltw/assets"
 	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/ltw/unit"
 )
 
 type Units struct {
 	game *Game
+
+	lifeBarProgress image.Image
+	lifeBarUnder    image.Image
 }
 
 var (
@@ -21,12 +27,24 @@ var (
 	}
 )
 
-func NewUnits(g *Game) *Units {
-	us := &Units{
-		game: g,
+func NewUnits(g *Game) (*Units, error) {
+	lbpi, _, err := image.Decode(bytes.NewReader(assets.LifeBarMiniProgress_png))
+	if err != nil {
+		return nil, err
 	}
 
-	return us
+	lbui, _, err := image.Decode(bytes.NewReader(assets.LifeBarMiniUnder_png))
+	if err != nil {
+		return nil, err
+	}
+
+	us := &Units{
+		game:            g,
+		lifeBarProgress: ebiten.NewImageFromImage(lbpi),
+		lifeBarUnder:    ebiten.NewImageFromImage(lbui),
+	}
+
+	return us, nil
 }
 
 func (us *Units) Update() error {
@@ -83,4 +101,16 @@ func (us *Units) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	i := (u.MovingCount / 5) % 4
 	sy := i * int(u.H)
 	screen.DrawImage(u.Image().(*ebiten.Image).SubImage(image.Rect(sx, sy, sx+int(u.W), sy+int(u.H))).(*ebiten.Image), op)
+
+	// Only draw the Health bar if the unit has been hit
+	h := unit.Units[u.Type].Health
+	if unit.Units[u.Type].Health != u.Health {
+		op = &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(us.lifeBarUnder.Bounds().Dy()))
+		screen.DrawImage(us.lifeBarUnder.(*ebiten.Image), op)
+
+		op = &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(us.lifeBarProgress.Bounds().Dy()))
+		screen.DrawImage(us.lifeBarProgress.(*ebiten.Image).SubImage(image.Rect(0, 0, int(float64(us.lifeBarProgress.Bounds().Dx())*(u.Health/h)), us.lifeBarProgress.Bounds().Dy())).(*ebiten.Image), op)
+	}
 }

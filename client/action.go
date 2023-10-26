@@ -108,6 +108,7 @@ func (ac *ActionDispatcher) IncomeTick() {
 // TowerAttack issues a attack to the Unit with uid
 func (ac *ActionDispatcher) TowerAttack(uid, tt string) {
 	ta := action.NewTowerAttack(uid, tt)
+	wsSend(ta)
 	ac.dispatcher.Dispatch(ta)
 }
 

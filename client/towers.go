@@ -33,7 +33,11 @@ func NewTowers(g *Game) (*Towers, error) {
 func (ts *Towers) Update() error {
 	uts := ts.game.Store.Units.GetState().(store.UnitsState).Units
 	tws := ts.game.Store.Towers.GetState().(store.TowersState).Towers
+	cp := ts.game.Store.Players.GetCurrentPlayer()
 	for _, t := range tws {
+		if t.PlayerID != cp.ID {
+			continue
+		}
 		// If there are any units then we check if we can attack them
 		if len(uts) != 0 {
 			var (
@@ -41,11 +45,14 @@ func (ts *Towers) Update() error {
 				minDistUnit string
 			)
 			for uid, u := range uts {
+				if u.CurrentLineID != cp.LineID {
+					continue
+				}
 				d := t.Distance(u.Object)
 				if minDist == 0 {
 					minDist = d
 				}
-				if d <= tower.Towers[t.Type].Range && d < minDist {
+				if d <= tower.Towers[t.Type].Range && d <= minDist {
 					minDist = d
 					minDistUnit = uid
 				}

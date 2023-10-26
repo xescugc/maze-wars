@@ -49,3 +49,9 @@ var Units_json []byte
 
 //go:embed NormalFont.ttf
 var NormalFont_ttf []byte
+
+//go:embed LifeBarMiniProgress.png
+var LifeBarMiniProgress_png []byte
+
+//go:embed LifeBarMiniUnder.png
+var LifeBarMiniUnder_png []byte
