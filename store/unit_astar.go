@@ -110,7 +110,7 @@ func straightPathToEnd(m *Map, lid int, s utils.Step) utils.Object {
 }
 
 func calculateObjectKey(o utils.Object) string {
-	return fmt.Sprintf("%s%s", o.X, o.Y)
+	return fmt.Sprintf("%f%f", o.X, o.Y)
 }
 
 type queueItem struct {
