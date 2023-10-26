@@ -24,6 +24,7 @@ type Action struct {
 	PlayerReady          *PlayerReadyPayload          `json:"player_ready, omitempty"`
 	NavigateTo           *NavigateToPayload           `json:"navigate_to, omitempty"`
 	StartGame            *StartGamePayload            `json:"start_game, omitempty"`
+	GoHome               *GoHomePayload               `json:"go_home, omitempty"`
 
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu, omitempty"`
 	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu, omitempty"`
@@ -337,13 +338,21 @@ func NewOpenTowerMenu(tid string) *Action {
 	}
 }
 
-type CloseTowerMenuPayload struct {
-}
+type CloseTowerMenuPayload struct{}
 
 func NewCloseTowerMenu() *Action {
 	return &Action{
 		Type:           CloseTowerMenu,
 		CloseTowerMenu: &CloseTowerMenuPayload{},
+	}
+}
+
+type GoHomePayload struct{}
+
+func NewGoHome() *Action {
+	return &Action{
+		Type:   GoHome,
+		GoHome: &GoHomePayload{},
 	}
 }
 

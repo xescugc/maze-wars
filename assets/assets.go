@@ -14,6 +14,9 @@ var TilesetHouse_png []byte
 //go:embed TilesetLogic.png
 var TilesetLogic_png []byte
 
+//go:embed TilesetElement.png
+var TilesetElement_png []byte
+
 //go:embed cyclope/Cyclopes.png
 var Cyclopes_png []byte
 

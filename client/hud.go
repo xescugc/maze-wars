@@ -28,12 +28,14 @@ type HUDStore struct {
 
 	cyclopeFacesetImage image.Image
 	tilesetHouseImage   image.Image
+	houseIcon           image.Image
 }
 
 // HUDState stores the HUD state
 type HUDState struct {
 	CyclopeButton utils.Object
 	SoldierButton utils.Object
+	HouseButton   utils.Object
 
 	SelectedTower   *SelectedTower
 	TowerOpenMenuID string
@@ -59,11 +61,17 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 		return nil, err
 	}
 
+	hi, _, err := image.Decode(bytes.NewReader(assets.TilesetElement_png))
+	if err != nil {
+		return nil, err
+	}
+
 	hs := &HUDStore{
 		game: g,
 
 		cyclopeFacesetImage: ebiten.NewImageFromImage(fi),
 		tilesetHouseImage:   ebiten.NewImageFromImage(thi).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2)),
+		houseIcon:           ebiten.NewImageFromImage(hi).SubImage(image.Rect(12*16, 0*16, 12*16+16, 0*16+16)),
 	}
 	cs := g.Camera.GetState().(CameraState)
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
@@ -78,6 +86,12 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 			Y: float64(cs.H - 16*2),
 			W: float64(16 * 2),
 			H: float64(16 * 2),
+		},
+		HouseButton: utils.Object{
+			X: float64(cs.W - 16),
+			Y: 0,
+			W: float64(16),
+			H: float64(16),
 		},
 	})
 
@@ -118,6 +132,10 @@ func (hs *HUDStore) Update() error {
 		}
 		if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hst.SoldierButton.IsColliding(click) {
 			actionDispatcher.SelectTower(tower.Soldier.String(), x, y)
+			return nil
+		}
+		if hst.HouseButton.IsColliding(click) {
+			actionDispatcher.GoHome()
 			return nil
 		}
 
@@ -277,6 +295,10 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	}
 	screen.DrawImage(hs.tilesetHouseImage.(*ebiten.Image), op)
 
+	op = &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(hst.HouseButton.X, hst.HouseButton.Y)
+	screen.DrawImage(hs.houseIcon.(*ebiten.Image), op)
+
 	if hst.SelectedTower != nil {
 		op = &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(hst.SelectedTower.X/cs.Zoom, hst.SelectedTower.Y/cs.Zoom)
@@ -332,6 +354,12 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 			Y: float64(cs.H - 16*2),
 			W: float64(16 * 2),
 			H: float64(16 * 2),
+		}
+		hstate.HouseButton = utils.Object{
+			X: float64(cs.W - 16),
+			Y: 0,
+			W: float64(16),
+			H: float64(16),
 		}
 	case action.SelectTower:
 		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())

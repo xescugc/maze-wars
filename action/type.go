@@ -26,6 +26,7 @@ const (
 	StartGame
 	OpenTowerMenu
 	CloseTowerMenu
+	GoHome
 
 	// Specific to WS
 	JoinRoom

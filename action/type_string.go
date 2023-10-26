@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingplayer_readynavigate_tostart_gameopen_tower_menuclose_tower_menujoin_roomadd_playerremove_playerupdate_state"
+const _TypeName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingplayer_readynavigate_tostart_gameopen_tower_menuclose_tower_menugo_homejoin_roomadd_playerremove_playerupdate_state"
 
-var _TypeIndex = [...]uint16{0, 11, 22, 33, 42, 53, 63, 74, 86, 98, 112, 134, 148, 159, 171, 182, 197, 209, 220, 230, 245, 261, 270, 280, 293, 305}
+var _TypeIndex = [...]uint16{0, 11, 22, 33, 42, 53, 63, 74, 86, 98, 112, 134, 148, 159, 171, 182, 197, 209, 220, 230, 245, 261, 268, 277, 287, 300, 312}
 
-const _TypeLowerName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingplayer_readynavigate_tostart_gameopen_tower_menuclose_tower_menujoin_roomadd_playerremove_playerupdate_state"
+const _TypeLowerName = "cursor_movecamera_zoomsummon_unitmove_unitremove_unitsteal_liveplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_ticktower_attackunit_killedwindow_resizingplayer_readynavigate_tostart_gameopen_tower_menuclose_tower_menugo_homejoin_roomadd_playerremove_playerupdate_state"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -46,13 +46,14 @@ func _TypeNoOp() {
 	_ = x[StartGame-(18)]
 	_ = x[OpenTowerMenu-(19)]
 	_ = x[CloseTowerMenu-(20)]
-	_ = x[JoinRoom-(21)]
-	_ = x[AddPlayer-(22)]
-	_ = x[RemovePlayer-(23)]
-	_ = x[UpdateState-(24)]
+	_ = x[GoHome-(21)]
+	_ = x[JoinRoom-(22)]
+	_ = x[AddPlayer-(23)]
+	_ = x[RemovePlayer-(24)]
+	_ = x[UpdateState-(25)]
 }
 
-var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, MoveUnit, RemoveUnit, StealLive, PlaceTower, RemoveTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, TowerAttack, UnitKilled, WindowResizing, PlayerReady, NavigateTo, StartGame, OpenTowerMenu, CloseTowerMenu, JoinRoom, AddPlayer, RemovePlayer, UpdateState}
+var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, MoveUnit, RemoveUnit, StealLive, PlaceTower, RemoveTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, TowerAttack, UnitKilled, WindowResizing, PlayerReady, NavigateTo, StartGame, OpenTowerMenu, CloseTowerMenu, GoHome, JoinRoom, AddPlayer, RemovePlayer, UpdateState}
 
 var _TypeNameToValueMap = map[string]Type{
 	_TypeName[0:11]:         CursorMove,
@@ -97,14 +98,16 @@ var _TypeNameToValueMap = map[string]Type{
 	_TypeLowerName[230:245]: OpenTowerMenu,
 	_TypeName[245:261]:      CloseTowerMenu,
 	_TypeLowerName[245:261]: CloseTowerMenu,
-	_TypeName[261:270]:      JoinRoom,
-	_TypeLowerName[261:270]: JoinRoom,
-	_TypeName[270:280]:      AddPlayer,
-	_TypeLowerName[270:280]: AddPlayer,
-	_TypeName[280:293]:      RemovePlayer,
-	_TypeLowerName[280:293]: RemovePlayer,
-	_TypeName[293:305]:      UpdateState,
-	_TypeLowerName[293:305]: UpdateState,
+	_TypeName[261:268]:      GoHome,
+	_TypeLowerName[261:268]: GoHome,
+	_TypeName[268:277]:      JoinRoom,
+	_TypeLowerName[268:277]: JoinRoom,
+	_TypeName[277:287]:      AddPlayer,
+	_TypeLowerName[277:287]: AddPlayer,
+	_TypeName[287:300]:      RemovePlayer,
+	_TypeLowerName[287:300]: RemovePlayer,
+	_TypeName[300:312]:      UpdateState,
+	_TypeLowerName[300:312]: UpdateState,
 }
 
 var _TypeNames = []string{
@@ -129,10 +132,11 @@ var _TypeNames = []string{
 	_TypeName[220:230],
 	_TypeName[230:245],
 	_TypeName[245:261],
-	_TypeName[261:270],
-	_TypeName[270:280],
-	_TypeName[280:293],
-	_TypeName[293:305],
+	_TypeName[261:268],
+	_TypeName[268:277],
+	_TypeName[277:287],
+	_TypeName[287:300],
+	_TypeName[300:312],
 }
 
 // TypeString retrieves an enum value from the enum constants string name.
