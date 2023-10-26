@@ -1,6 +1,6 @@
 {
     "soldier": {
-        "range": 32,
+        "range": 80,
         "damage": 1,
         "gold": 10
     }

@@ -81,7 +81,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			PlayerID:      act.SummonUnit.PlayerID,
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
-			Health:        10,
+			Health:        unit.Units[act.SummonUnit.Type].Health,
 		}
 		ts := us.store.Towers.GetState().(TowersState)
 		tws := make([]utils.Object, 0, 0)
@@ -144,8 +144,10 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 	case action.RemoveUnit:
 		delete(ustate.Units, act.RemoveUnit.UnitID)
 	case action.TowerAttack:
-		u := ustate.Units[act.TowerAttack.UnitID]
-		// For now the damage is just 1
+		u, ok := ustate.Units[act.TowerAttack.UnitID]
+		if !ok {
+			break
+		}
 		u.Health -= tower.Towers[act.TowerAttack.TowerType].Damage
 		if u.Health <= 0 {
 			u.Health = 0

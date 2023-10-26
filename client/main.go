@@ -103,7 +103,10 @@ func main() {
 	// TODO: Change this to pass the specific store needed instead of all the game object
 	cs := NewCameraStore(dispatcher, s, screenW, screenH)
 	g.Camera = cs
-	g.Units = NewUnits(g)
+	g.Units, err = NewUnits(g)
+	if err != nil {
+		log.Fatal(err)
+	}
 	g.Towers, err = NewTowers(g)
 	if err != nil {
 		log.Fatal(err)
