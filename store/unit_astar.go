@@ -93,8 +93,18 @@ func (us *Units) Astar(m *Map, lid int, u utils.MovingObject, tws []utils.Object
 				neighborStep.cost = cost
 				neighborStep.open = true
 				to := straightPathToEnd(m, lid, neighbor)
-				neighborStep.rank = cost + neighbor.Distance(to)
+				neighborStep.rank = cost + neighbor.PDistance(to)
 				neighborStep.parent = current
+				// We try to give priority to the ones
+				// that are not on the same direction.
+				// So we increase the rank of the step
+				// that is on the same direction as it
+				// was before.
+				// This helps on prioritizing doing
+				// diagonals
+				if neighborStep.step.Facing == current.step.Facing {
+					neighborStep.rank += 2
+				}
 				heap.Push(nq, neighborStep)
 			}
 		}
@@ -102,9 +112,10 @@ func (us *Units) Astar(m *Map, lid int, u utils.MovingObject, tws []utils.Object
 }
 
 func straightPathToEnd(m *Map, lid int, s utils.Step) utils.Object {
+	ez := m.EndZone(lid)
 	end := utils.Object{
-		X: s.X,
-		Y: m.EndZone(lid).Y,
+		X: ez.X + ez.W/2,
+		Y: ez.Y + ez.H,
 	}
 	return end
 }
