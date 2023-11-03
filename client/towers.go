@@ -48,7 +48,7 @@ func (ts *Towers) Update() error {
 				if u.CurrentLineID != cp.LineID {
 					continue
 				}
-				d := t.Distance(u.Object)
+				d := t.PDistance(u.Object)
 				if minDist == 0 {
 					minDist = d
 				}

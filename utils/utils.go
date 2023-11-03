@@ -40,12 +40,19 @@ func (o Object) IsInside(c Object) bool {
 	return selfRight >= enemyRight && selfLeft <= enemyLeft && selfBottom >= enemyBottom && selfTop <= enemyTop
 }
 
-// Distance will calculate the distance between the 2 objects
-// based on X and Y position and ignoring the W and H
-func (o Object) Distance(c Object) float64 {
+// PDistance will calculate the Pythagorean distance between the 2 objects
+// based on X and Y position
+func (o Object) PDistance(c Object) float64 {
 	return math.Sqrt(
 		math.Pow(o.X-c.X, 2) + math.Pow(o.Y-c.Y, 2),
 	)
+}
+
+// MDistance will calculate the Manhattan distance between the 2 objects
+// based on X and Y position
+func (o Object) MDistance(c Object) float64 {
+	//return 2 * (math.Abs(o.X-c.X) + math.Abs(o.Y-c.Y))
+	return (math.Abs(o.X-c.X) + math.Abs(o.Y-c.Y))
 }
 
 type Step struct {
