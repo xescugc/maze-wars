@@ -72,11 +72,11 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 		return state
 	}
 
-	ts.mxTowers.Lock()
-	defer ts.mxTowers.Unlock()
-
 	switch act.Type {
 	case action.PlaceTower:
+		ts.mxTowers.Lock()
+		defer ts.mxTowers.Unlock()
+
 		p := ts.store.Players.GetPlayerByID(act.PlaceTower.PlayerID)
 
 		var w, h float64 = 16 * 2, 16 * 2
@@ -92,6 +92,9 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 			PlayerID: p.ID,
 		}
 	case action.UpdateState:
+		ts.mxTowers.Lock()
+		defer ts.mxTowers.Unlock()
+
 		tids := make(map[string]struct{})
 		for id := range tstate.Towers {
 			tids[id] = struct{}{}
@@ -105,14 +108,19 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 			delete(tstate.Towers, id)
 		}
 	case action.RemovePlayer:
+		ts.mxTowers.Lock()
+		defer ts.mxTowers.Unlock()
+
 		for id, t := range tstate.Towers {
 			if t.PlayerID == act.RemovePlayer.ID {
 				delete(tstate.Towers, id)
 			}
 		}
 	case action.RemoveTower:
+		ts.mxTowers.Lock()
+		defer ts.mxTowers.Unlock()
+
 		delete(tstate.Towers, act.RemoveTower.TowerID)
-	default:
 	}
 	return tstate
 }

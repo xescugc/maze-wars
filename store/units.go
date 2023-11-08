@@ -79,11 +79,11 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		return state
 	}
 
-	us.mxUnits.Lock()
-	defer us.mxUnits.Unlock()
-
 	switch act.Type {
 	case action.SummonUnit:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
 		// We wait for the towers store as we need to interact with it
 		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
 		var w, h float64 = 16, 16
@@ -114,6 +114,9 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
 		ustate.Units[uid.String()] = u
 	case action.MoveUnit:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
 		for _, u := range ustate.Units {
 			if len(u.Path) > 0 {
 				nextStep := u.Path[0]
@@ -125,6 +128,9 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.PlaceTower:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
 		// We wait for the towers store as we need to interact with it
 		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
 		ts := us.store.Towers.GetState().(TowersState)
@@ -144,6 +150,9 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.RemoveTower:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
 		// We wait for the towers store as we need to interact with it
 		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
 		ts := us.store.Towers.GetTowers()
@@ -163,8 +172,14 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.RemoveUnit:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
 		delete(ustate.Units, act.RemoveUnit.UnitID)
 	case action.TowerAttack:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
 		u, ok := ustate.Units[act.TowerAttack.UnitID]
 		if !ok {
 			break
@@ -174,6 +189,9 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			u.Health = 0
 		}
 	case action.UpdateState:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
 		uids := make(map[string]struct{})
 		for id := range ustate.Units {
 			uids[id] = struct{}{}
@@ -187,12 +205,14 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			delete(ustate.Units, id)
 		}
 	case action.RemovePlayer:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
 		for id, u := range ustate.Units {
 			if u.PlayerID == act.RemovePlayer.ID {
 				delete(ustate.Units, id)
 			}
 		}
-	default:
 	}
 	return ustate
 }

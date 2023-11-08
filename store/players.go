@@ -100,11 +100,11 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		return state
 	}
 
-	ps.mxPlayers.Lock()
-	defer ps.mxPlayers.Unlock()
-
 	switch act.Type {
 	case action.AddPlayer:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		pstate.Players[act.AddPlayer.ID] = &Player{
 			ID:     act.AddPlayer.ID,
 			Name:   act.AddPlayer.Name,
@@ -114,8 +114,14 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			Gold:   40,
 		}
 	case action.RemovePlayer:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		delete(pstate.Players, act.RemovePlayer.ID)
 	case action.StealLive:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		fp := pstate.Players[act.StealLive.FromPlayerID]
 		fp.Lives -= 1
 		if fp.Lives < 0 {
@@ -139,9 +145,15 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			tp.Winner = true
 		}
 	case action.SummonUnit:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		pstate.Players[act.SummonUnit.PlayerID].Income += unit.Units[act.SummonUnit.Type].Income
 		pstate.Players[act.SummonUnit.PlayerID].Gold -= unit.Units[act.SummonUnit.Type].Gold
 	case action.IncomeTick:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		pstate.IncomeTimer -= 1
 		if pstate.IncomeTimer == 0 {
 			pstate.IncomeTimer = incomeTimer
@@ -150,14 +162,29 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.PlaceTower:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		pstate.Players[act.PlaceTower.PlayerID].Gold -= tower.Towers[act.PlaceTower.Type].Gold
 	case action.RemoveTower:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		pstate.Players[act.RemoveTower.PlayerID].Gold += tower.Towers[act.RemoveTower.TowerType].Gold / 2
 	case action.PlayerReady:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		pstate.Players[act.PlayerReady.ID].Ready = true
 	case action.UnitKilled:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		pstate.Players[act.UnitKilled.PlayerID].Gold += unit.Units[act.UnitKilled.UnitType].Income
 	case action.UpdateState:
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
 		pids := make(map[string]struct{})
 		for id := range pstate.Players {
 			pids[id] = struct{}{}
