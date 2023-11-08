@@ -2,6 +2,7 @@ package store
 
 import (
 	"image"
+	"sync"
 
 	"github.com/gofrs/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -16,6 +17,8 @@ type Units struct {
 	*flux.ReduceStore
 
 	store *Store
+
+	mxUnits sync.RWMutex
 }
 
 type UnitsState struct {
@@ -24,6 +27,8 @@ type UnitsState struct {
 
 type Unit struct {
 	utils.MovingObject
+
+	ID string
 
 	Type          string
 	PlayerID      string
@@ -51,6 +56,18 @@ func NewUnits(d *flux.Dispatcher, s *Store) *Units {
 	return u
 }
 
+// GetUnits returns the units list and it's meant for reading only purposes
+func (us *Units) GetUnits() []*Unit {
+	us.mxUnits.RLock()
+	defer us.mxUnits.RUnlock()
+	munits := us.GetState().(UnitsState)
+	units := make([]*Unit, 0, len(munits.Units))
+	for _, u := range munits.Units {
+		units = append(units, u)
+	}
+	return units
+}
+
 func (us *Units) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)
 	if !ok {
@@ -61,6 +78,9 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 	if !ok {
 		return state
 	}
+
+	us.mxUnits.Lock()
+	defer us.mxUnits.Unlock()
 
 	switch act.Type {
 	case action.SummonUnit:
@@ -77,15 +97,16 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 				},
 				Facing: ebiten.KeyS,
 			},
+			ID:            uid.String(),
 			Type:          act.SummonUnit.Type,
 			PlayerID:      act.SummonUnit.PlayerID,
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
 			Health:        unit.Units[act.SummonUnit.Type].Health,
 		}
-		ts := us.store.Towers.GetState().(TowersState)
+		ts := us.store.Towers.GetTowers()
 		tws := make([]utils.Object, 0, 0)
-		for _, t := range ts.Towers {
+		for _, t := range ts {
 			if t.LineID == u.CurrentLineID {
 				tws = append(tws, t.Object)
 			}
@@ -125,14 +146,14 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 	case action.RemoveTower:
 		// We wait for the towers store as we need to interact with it
 		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
-		ts := us.store.Towers.GetState().(TowersState)
+		ts := us.store.Towers.GetTowers()
 		p := us.store.Players.GetPlayerByID(act.RemoveTower.PlayerID)
 		for _, u := range ustate.Units {
 			// Only need to recalculate path for each unit when the placed tower
 			// is on the same LineID as the unit
 			if u.CurrentLineID == p.LineID {
 				tws := make([]utils.Object, 0, 0)
-				for _, t := range ts.Towers {
+				for _, t := range ts {
 					if t.LineID == u.CurrentLineID {
 						tws = append(tws, t.Object)
 					}

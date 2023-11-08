@@ -399,6 +399,7 @@ type UpdateStateUnitsPayload struct {
 type UpdateStateUnitPayload struct {
 	utils.MovingObject
 
+	ID            string
 	Type          string
 	PlayerID      string
 	PlayerLineID  int

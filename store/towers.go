@@ -2,6 +2,7 @@ package store
 
 import (
 	"image"
+	"sync"
 
 	"github.com/gofrs/uuid"
 	"github.com/xescugc/go-flux"
@@ -14,6 +15,8 @@ type Towers struct {
 	*flux.ReduceStore
 
 	store *Store
+
+	mxTowers sync.RWMutex
 }
 
 type TowersState struct {
@@ -46,6 +49,18 @@ func NewTowers(d *flux.Dispatcher, s *Store) *Towers {
 	return t
 }
 
+// GetTowers returns the towers list and it's meant for reading only purposes
+func (ts *Towers) GetTowers() []*Tower {
+	ts.mxTowers.RLock()
+	defer ts.mxTowers.RUnlock()
+	mtowers := ts.GetState().(TowersState)
+	towers := make([]*Tower, 0, len(mtowers.Towers))
+	for _, t := range mtowers.Towers {
+		towers = append(towers, t)
+	}
+	return towers
+}
+
 func (ts *Towers) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)
 	if !ok {
@@ -56,6 +71,9 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 	if !ok {
 		return state
 	}
+
+	ts.mxTowers.Lock()
+	defer ts.mxTowers.Unlock()
 
 	switch act.Type {
 	case action.PlaceTower:
