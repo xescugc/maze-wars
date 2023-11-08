@@ -63,10 +63,10 @@ func (l *Lobby) Update() error {
 		}
 	}
 
-	players := l.Store.Players.GetState().(store.PlayersState)
-	if len(players.Players) > 1 {
+	players := l.Store.Players.GetPlayers()
+	if len(players) > 1 {
 		allReady := true
-		for _, p := range players.Players {
+		for _, p := range players {
 			if !p.Ready {
 				allReady = false
 				break
@@ -83,11 +83,11 @@ func (l *Lobby) Update() error {
 
 func (l *Lobby) Draw(screen *ebiten.Image) {
 	cs := l.Camera.GetState().(CameraState)
-	ps := l.Store.Players.GetState().(store.PlayersState)
+	ps := l.Store.Players.GetPlayers()
 	text.Draw(screen, "LOBBY", normalFont, int(cs.W/2), int(cs.H/2), color.White)
 	var pcount = 1
 	var sortedPlayers = make([]*store.Player, 0, 0)
-	for _, p := range ps.Players {
+	for _, p := range ps {
 		sortedPlayers = append(sortedPlayers, p)
 	}
 	sort.Slice(sortedPlayers, func(i, j int) bool { return sortedPlayers[i].LineID < sortedPlayers[j].LineID })

@@ -173,10 +173,10 @@ func (m *Map) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.StartGame:
-		players := m.store.Players.GetState().(PlayersState)
-		if len(players.Players) > 1 {
+		players := m.store.Players.GetPlayers()
+		if len(players) > 1 {
 			allReady := true
-			for _, p := range players.Players {
+			for _, p := range players {
 				if !p.Ready {
 					allReady = false
 					break
@@ -188,7 +188,7 @@ func (m *Map) Reduce(state, a interface{}) interface{} {
 			//
 			// If all players are ready then the map must be set
 			if allReady {
-				mstate.Players = len(m.store.Players.GetState().(PlayersState).Players)
+				mstate.Players = len(players)
 				mstate.Image, ok = mapImages[mstate.Players]
 				if !ok {
 					log.Fatalf("The map for the number of players %d is not available", mstate.Players)

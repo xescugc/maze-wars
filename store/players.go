@@ -1,6 +1,8 @@
 package store
 
 import (
+	"sync"
+
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/tower"
@@ -13,6 +15,8 @@ const (
 
 type Players struct {
 	*flux.ReduceStore
+
+	mxPlayers sync.RWMutex
 }
 
 type PlayersState struct {
@@ -44,7 +48,21 @@ func NewPlayers(d *flux.Dispatcher) *Players {
 	return p
 }
 
+// GetPlayers returns the players list and it's meant for reading only purposes
+func (ps *Players) GetPlayers() []*Player {
+	ps.mxPlayers.RLock()
+	defer ps.mxPlayers.RUnlock()
+	mplayers := ps.GetState().(PlayersState)
+	players := make([]*Player, 0, len(mplayers.Players))
+	for _, p := range mplayers.Players {
+		players = append(players, p)
+	}
+	return players
+}
+
 func (ps *Players) GetCurrentPlayer() Player {
+	ps.mxPlayers.RLock()
+	defer ps.mxPlayers.RUnlock()
 	for _, p := range ps.GetState().(PlayersState).Players {
 		if p.Current {
 			return *p
@@ -54,11 +72,15 @@ func (ps *Players) GetCurrentPlayer() Player {
 }
 
 func (ps *Players) GetPlayerByID(id string) Player {
+	ps.mxPlayers.RLock()
+	defer ps.mxPlayers.RUnlock()
 	p, _ := ps.GetState().(PlayersState).Players[id]
 	return *p
 }
 
 func (ps *Players) GetByLineID(lid int) Player {
+	ps.mxPlayers.RLock()
+	defer ps.mxPlayers.RUnlock()
 	for _, p := range ps.GetState().(PlayersState).Players {
 		if p.LineID == lid {
 			return *p
@@ -77,6 +99,9 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 	if !ok {
 		return state
 	}
+
+	ps.mxPlayers.Lock()
+	defer ps.mxPlayers.Unlock()
 
 	switch act.Type {
 	case action.AddPlayer:

@@ -309,11 +309,12 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		screen.DrawImage(hst.SelectedTower.Image().(*ebiten.Image), op)
 	}
 
-	ps := hs.game.Store.Players.GetState().(store.PlayersState)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Income Timer: %ds", ps.IncomeTimer), 0, 0)
+	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
+	players := hs.game.Store.Players.GetPlayers()
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Income Timer: %ds", psit), 0, 0)
 	var pcount = 1
 	var sortedPlayers = make([]*store.Player, 0, 0)
-	for _, p := range ps.Players {
+	for _, p := range players {
 		sortedPlayers = append(sortedPlayers, p)
 	}
 	sort.Slice(sortedPlayers, func(i, j int) bool { return sortedPlayers[i].LineID < sortedPlayers[j].LineID })
