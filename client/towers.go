@@ -31,8 +31,8 @@ func NewTowers(g *Game) (*Towers, error) {
 }
 
 func (ts *Towers) Update() error {
-	uts := ts.game.Store.Units.GetState().(store.UnitsState).Units
-	tws := ts.game.Store.Towers.GetState().(store.TowersState).Towers
+	uts := ts.game.Store.Units.GetUnits()
+	tws := ts.game.Store.Towers.GetTowers()
 	cp := ts.game.Store.Players.GetCurrentPlayer()
 	for _, t := range tws {
 		if t.PlayerID != cp.ID {
@@ -44,7 +44,7 @@ func (ts *Towers) Update() error {
 				minDist     float64 = 0
 				minDistUnit string
 			)
-			for uid, u := range uts {
+			for _, u := range uts {
 				if u.CurrentLineID != cp.LineID {
 					continue
 				}
@@ -54,7 +54,7 @@ func (ts *Towers) Update() error {
 				}
 				if d <= tower.Towers[t.Type].Range && d <= minDist {
 					minDist = d
-					minDistUnit = uid
+					minDistUnit = u.ID
 				}
 			}
 			if minDistUnit != "" {
@@ -66,7 +66,7 @@ func (ts *Towers) Update() error {
 }
 
 func (ts *Towers) Draw(screen *ebiten.Image) {
-	for _, t := range ts.game.Store.Towers.GetState().(store.TowersState).Towers {
+	for _, t := range ts.game.Store.Towers.GetTowers() {
 		ts.DrawTower(screen, ts.game.Camera, t)
 	}
 }

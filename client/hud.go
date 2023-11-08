@@ -103,7 +103,7 @@ func (hs *HUDStore) Update() error {
 	hst := hs.GetState().(HUDState)
 	x, y := ebiten.CursorPosition()
 	cp := hs.game.Store.Players.GetCurrentPlayer()
-	tws := hs.game.Store.Towers.GetState().(store.TowersState).Towers
+	tws := hs.game.Store.Towers.GetTowers()
 	// Only send a CursorMove when the curso has actually moved
 	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
 		actionDispatcher.CursorMove(x, y)
@@ -141,9 +141,8 @@ func (hs *HUDStore) Update() error {
 
 		if hst.SelectedTower != nil && !hst.SelectedTower.Invalid {
 			// We double check that placing the tower would not block the path
-			ts := hs.game.Store.Towers.GetState().(store.TowersState)
 			utws := make([]utils.Object, 0, 0)
-			for _, t := range ts.Towers {
+			for _, t := range tws {
 				// If the tower does not belong to the current user then we can skip
 				// as it's outside the Players Building Zone
 				if t.PlayerID != cp.ID {
@@ -206,10 +205,9 @@ func (hs *HUDStore) Update() error {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.DeselectTower(hst.SelectedTower.Type)
 		} else {
-			ts := hs.game.Store.Towers.GetState().(store.TowersState)
 			var invalid bool
 			utws := make([]utils.Object, 0, 0)
-			for _, t := range ts.Towers {
+			for _, t := range tws {
 				// If the tower does not belong to the current user then we can skip
 				// as it's outside the Players Building Zone
 				if t.PlayerID != cp.ID {

@@ -7,7 +7,7 @@ require (
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/gorilla/websocket v1.5.0
 	github.com/hajimehoshi/ebiten/v2 v2.5.9
-	github.com/xescugc/go-flux v0.0.0-20220312003507-8d5ac35e55d7
+	github.com/xescugc/go-flux v1.0.1
 	golang.org/x/image v0.10.0
 )
 

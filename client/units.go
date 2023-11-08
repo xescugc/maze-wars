@@ -51,7 +51,7 @@ func (us *Units) Update() error {
 	actionDispatcher.MoveUnit()
 	cp := us.game.Store.Players.GetCurrentPlayer()
 
-	for id, u := range us.game.Store.Units.GetState().(store.UnitsState).Units {
+	for _, u := range us.game.Store.Units.GetUnits() {
 		// Only do the events as the owern of the unit if not the actionDispatcher
 		// will also dispatch it to the server and the event will be done len(players)
 		// amount of times
@@ -59,7 +59,7 @@ func (us *Units) Update() error {
 			if u.Health == 0 {
 				p := us.game.Store.Players.GetByLineID(u.CurrentLineID)
 				actionDispatcher.UnitKilled(p.ID, u.Type)
-				actionDispatcher.RemoveUnit(id)
+				actionDispatcher.RemoveUnit(u.ID)
 				continue
 			}
 			if us.game.Map.IsAtTheEnd(u.Object, u.CurrentLineID) {
@@ -67,7 +67,7 @@ func (us *Units) Update() error {
 				actionDispatcher.StealLive(p.ID, u.PlayerID)
 				nlid := us.game.Map.GetNextLineID(u.CurrentLineID)
 				if nlid == u.PlayerLineID {
-					actionDispatcher.RemoveUnit(id)
+					actionDispatcher.RemoveUnit(u.ID)
 				} else {
 					// TODO: Send to next line
 					// this will need to be done once
@@ -81,7 +81,7 @@ func (us *Units) Update() error {
 }
 
 func (us *Units) Draw(screen *ebiten.Image) {
-	for _, u := range us.game.Store.Units.GetState().(store.UnitsState).Units {
+	for _, u := range us.game.Store.Units.GetUnits() {
 		us.DrawUnit(screen, us.game.Camera, u)
 	}
 }
