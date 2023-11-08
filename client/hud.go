@@ -41,6 +41,7 @@ type HUDState struct {
 	TowerOpenMenuID string
 
 	LastCursorPosition utils.Object
+	CheckedPath        bool
 }
 
 type SelectedTower struct {
@@ -169,7 +170,6 @@ func (hs *HUDStore) Update() error {
 			return nil
 		}
 		for _, t := range tws {
-
 			if clickAbsolute.IsColliding(t.Object) && cp.ID == t.PlayerID {
 				if hst.TowerOpenMenuID != "" {
 					// When the user clicks 2 times on the same tower we remove it
@@ -236,7 +236,7 @@ func (hs *HUDStore) Update() error {
 			// Only check if the line is blocked when is still valid position and it has not moved.
 			// TODO: We can improve this by storing this result (if blocking or not) so we only validate
 			// this once and not when the mouse is static with a selected tower
-			if !invalid && (hst.LastCursorPosition.X == float64(x) && hst.LastCursorPosition.Y == float64(y)) {
+			if !invalid && (hst.LastCursorPosition.X == float64(x) && hst.LastCursorPosition.Y == float64(y) && !hst.CheckedPath) {
 				var fakex, fakey float64 = hs.game.Store.Map.GetRandomSpawnCoordinatesForLineID(cp.LineID)
 				utws = append(utws, utils.Object{
 					X: hst.SelectedTower.X + cs.X,
@@ -253,6 +253,7 @@ func (hs *HUDStore) Update() error {
 				if len(steps) == 0 {
 					invalid = true
 				}
+				actionDispatcher.CheckedPath(true)
 			}
 			if invalid != hst.SelectedTower.Invalid {
 				actionDispatcher.SelectedTowerInvalid(invalid)
@@ -399,6 +400,9 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 				hstate.SelectedTower.Y = float64(closestMultiple(act.CursorMove.Y, multiple)) - (hstate.SoldierButton.H / 2)
 			}
 		}
+		// If it has moved we set the CheckedPath as not checked as it's only checked
+		// when the Cursor has not moved
+		hstate.CheckedPath = false
 	case action.PlaceTower, action.DeselectTower:
 		hstate.SelectedTower = nil
 	case action.SelectedTowerInvalid:
@@ -409,6 +413,8 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		hstate.TowerOpenMenuID = act.OpenTowerMenu.TowerID
 	case action.CloseTowerMenu:
 		hstate.TowerOpenMenuID = ""
+	case action.CheckedPath:
+		hstate.CheckedPath = act.CheckedPath.Checked
 	default:
 	}
 

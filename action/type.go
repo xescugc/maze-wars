@@ -27,6 +27,7 @@ const (
 	OpenTowerMenu
 	CloseTowerMenu
 	GoHome
+	CheckedPath
 
 	// Specific to WS
 	JoinRoom

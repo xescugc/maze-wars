@@ -170,3 +170,9 @@ func (ac *ActionDispatcher) GoHome() {
 	gha := action.NewGoHome()
 	ac.dispatcher.Dispatch(gha)
 }
+
+// CheckedPath will set the value of the path checked
+func (ac *ActionDispatcher) CheckedPath(cp bool) {
+	cpa := action.NewCheckedPath(cp)
+	ac.dispatcher.Dispatch(cpa)
+}
