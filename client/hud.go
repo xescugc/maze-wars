@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
 	"math"
 	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/assets"
@@ -270,11 +271,11 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	cp := hs.game.Store.Players.GetCurrentPlayer()
 
 	if cp.Lives == 0 {
-		ebitenutil.DebugPrintAt(screen, "YOU LOST", int(cs.W/2), int(cs.H/2))
+		text.Draw(screen, "YOU LOST", normalFont, int(cs.W/2), int(cs.H/2), color.White)
 	}
 
 	if cp.Winner {
-		ebitenutil.DebugPrintAt(screen, "YOU WON!", int(cs.W/2), int(cs.H/2))
+		text.Draw(screen, "YOU WON!", normalFont, int(cs.W/2), int(cs.H/2), color.White)
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -312,7 +313,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
 	players := hs.game.Store.Players.GetPlayers()
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Income Timer: %ds", psit), 0, 0)
+	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), normalFont, 0, 0, color.White)
 	var pcount = 1
 	var sortedPlayers = make([]*store.Player, 0, 0)
 	for _, p := range players {
@@ -320,11 +321,11 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	}
 	sort.Slice(sortedPlayers, func(i, j int) bool { return sortedPlayers[i].LineID < sortedPlayers[j].LineID })
 	for _, p := range sortedPlayers {
-		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Name: %s, Lives: %d, Gold: %d, Income: %d", p.Name, p.Lives, p.Gold, p.Income), 0, 15*pcount)
+		text.Draw(screen, fmt.Sprintf("Name: %s, Lives: %d, Gold: %d, Income: %d", p.Name, p.Lives, p.Gold, p.Income), normalFont, 0, 15*pcount, color.White)
 		pcount++
 	}
 	if verbose {
-		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), 0, 15*(pcount))
+		text.Draw(screen, fmt.Sprintffmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), normalFont, 0, 15*pcount, color.White)
 	}
 }
 
