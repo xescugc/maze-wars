@@ -271,11 +271,11 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	cp := hs.game.Store.Players.GetCurrentPlayer()
 
 	if cp.Lives == 0 {
-		text.Draw(screen, "YOU LOST", normalFont, int(cs.W/2), int(cs.H/2), color.White)
+		text.Draw(screen, "YOU LOST", smallFont, int(cs.W/2), int(cs.H/2), color.White)
 	}
 
 	if cp.Winner {
-		text.Draw(screen, "YOU WON!", normalFont, int(cs.W/2), int(cs.H/2), color.White)
+		text.Draw(screen, "YOU WON!", smallFont, int(cs.W/2), int(cs.H/2), color.White)
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -313,7 +313,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
 	players := hs.game.Store.Players.GetPlayers()
-	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), normalFont, 0, 0, color.White)
+	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), smallFont, 0, 0, color.White)
 	var pcount = 1
 	var sortedPlayers = make([]*store.Player, 0, 0)
 	for _, p := range players {
@@ -321,11 +321,11 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	}
 	sort.Slice(sortedPlayers, func(i, j int) bool { return sortedPlayers[i].LineID < sortedPlayers[j].LineID })
 	for _, p := range sortedPlayers {
-		text.Draw(screen, fmt.Sprintf("Name: %s, Lives: %d, Gold: %d, Income: %d", p.Name, p.Lives, p.Gold, p.Income), normalFont, 0, 15*pcount, color.White)
+		text.Draw(screen, fmt.Sprintf("Name: %s, Lives: %d, Gold: %d, Income: %d", p.Name, p.Lives, p.Gold, p.Income), smallFont, 0, 15*pcount, color.White)
 		pcount++
 	}
 	if verbose {
-		text.Draw(screen, fmt.Sprintffmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), normalFont, 0, 15*pcount, color.White)
+		text.Draw(screen, fmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), smallFont, 0, 15*pcount, color.White)
 	}
 }
 

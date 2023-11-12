@@ -32,6 +32,7 @@ var (
 	wsc *websocket.Conn
 
 	normalFont font.Face
+	smallFont  font.Face
 )
 
 func init() {
@@ -51,6 +52,11 @@ func init() {
 	const dpi = 72
 	normalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    24,
+		DPI:     dpi,
+		Hinting: font.HintingVertical,
+	})
+	smallFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    16,
 		DPI:     dpi,
 		Hinting: font.HintingVertical,
 	})
