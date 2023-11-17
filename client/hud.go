@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"bytes"
@@ -9,11 +9,11 @@ import (
 	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/assets"
+	"github.com/xescugc/ltw/inputer"
 	"github.com/xescugc/ltw/store"
 	"github.com/xescugc/ltw/tower"
 	"github.com/xescugc/ltw/unit"
@@ -30,6 +30,8 @@ type HUDStore struct {
 	cyclopeFacesetImage image.Image
 	tilesetHouseImage   image.Image
 	houseIcon           image.Image
+
+	input inputer.Inputer
 }
 
 // HUDState stores the HUD state
@@ -52,7 +54,7 @@ type SelectedTower struct {
 }
 
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
-func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
+func NewHUDStore(d *flux.Dispatcher, i inputer.Inputer, g *Game) (*HUDStore, error) {
 	fi, _, err := image.Decode(bytes.NewReader(assets.CyclopeFaceset_png))
 	if err != nil {
 		return nil, err
@@ -74,6 +76,8 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 		cyclopeFacesetImage: ebiten.NewImageFromImage(fi),
 		tilesetHouseImage:   ebiten.NewImageFromImage(thi).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2)),
 		houseIcon:           ebiten.NewImageFromImage(hi).SubImage(image.Rect(12*16, 0*16, 12*16+16, 0*16+16)),
+
+		input: i,
 	}
 	cs := g.Camera.GetState().(CameraState)
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
@@ -103,7 +107,7 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 func (hs *HUDStore) Update() error {
 	cs := hs.game.Camera.GetState().(CameraState)
 	hst := hs.GetState().(HUDState)
-	x, y := ebiten.CursorPosition()
+	x, y := hs.input.CursorPosition()
 	cp := hs.game.Store.Players.GetCurrentPlayer()
 	tws := hs.game.Store.Towers.GetTowers()
 	// Only send a CursorMove when the curso has actually moved
@@ -116,7 +120,7 @@ func (hs *HUDStore) Update() error {
 	if cp.Lives == 0 || cp.Winner {
 		return nil
 	}
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+	if hs.input.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		click := utils.Object{
 			X: float64(x),
 			Y: float64(y),
@@ -129,7 +133,7 @@ func (hs *HUDStore) Update() error {
 		}
 		// Check what the user has just clicked
 		if cp.Gold >= unit.Units[unit.Cyclope.String()].Gold && hst.CyclopeButton.IsColliding(click) {
-			actionDispatcher.SummonUnit(unit.Cyclope.String(), cp.ID, cp.LineID, hs.game.Map.GetNextLineID(cp.LineID))
+			actionDispatcher.SummonUnit(unit.Cyclope.String(), cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
 			return nil
 		}
 		if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hst.SoldierButton.IsColliding(click) {
@@ -193,17 +197,17 @@ func (hs *HUDStore) Update() error {
 		}
 	}
 
-	if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && inpututil.IsKeyJustPressed(ebiten.KeyT) {
+	if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hs.input.IsKeyJustPressed(ebiten.KeyT) {
 		actionDispatcher.SelectTower(tower.Soldier.String(), x, y)
 		return nil
 	}
 	if hst.TowerOpenMenuID != "" {
-		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		if hs.input.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.CloseTowerMenu()
 		}
 	}
 	if hst.SelectedTower != nil {
-		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		if hs.input.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || hs.input.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.DeselectTower(hst.SelectedTower.Type)
 		} else {
 			var invalid bool
@@ -230,7 +234,7 @@ func (hs *HUDStore) Update() error {
 			neo := hst.SelectedTower.Object
 			neo.X += cs.X
 			neo.Y += cs.Y
-			if !hs.game.Map.IsInValidBuildingZone(neo, hst.SelectedTower.LineID) {
+			if !hs.game.Store.Map.IsInValidBuildingZone(neo, hst.SelectedTower.LineID) {
 				invalid = true
 			}
 
@@ -323,9 +327,6 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	for _, p := range sortedPlayers {
 		text.Draw(screen, fmt.Sprintf("Name: %s, Lives: %d, Gold: %d, Income: %d", p.Name, p.Lives, p.Gold, p.Income), smallFont, 0, 15*pcount, color.White)
 		pcount++
-	}
-	if verbose {
-		text.Draw(screen, fmt.Sprintf("(X: %d, Y: %d)", int(hst.LastCursorPosition.X+cs.X), int(hst.LastCursorPosition.Y+cs.Y)), smallFont, 0, 15*pcount, color.White)
 	}
 }
 
