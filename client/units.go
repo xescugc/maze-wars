@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"bytes"
@@ -62,10 +62,10 @@ func (us *Units) Update() error {
 				actionDispatcher.RemoveUnit(u.ID)
 				continue
 			}
-			if us.game.Map.IsAtTheEnd(u.Object, u.CurrentLineID) {
+			if us.game.Store.Map.IsAtTheEnd(u.Object, u.CurrentLineID) {
 				p := us.game.Store.Players.GetByLineID(u.CurrentLineID)
 				actionDispatcher.StealLive(p.ID, u.PlayerID)
-				nlid := us.game.Map.GetNextLineID(u.CurrentLineID)
+				nlid := us.game.Store.Map.GetNextLineID(u.CurrentLineID)
 				if nlid == u.PlayerLineID {
 					actionDispatcher.RemoveUnit(u.ID)
 				} else {

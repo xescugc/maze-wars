@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"image"
@@ -18,8 +18,6 @@ type Game struct {
 
 	Units  *Units
 	Towers *Towers
-
-	Map *store.Map
 
 	SessionID string
 }
@@ -45,7 +43,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	s := g.Camera.GetState().(CameraState)
 	op.GeoM.Scale(s.Zoom, s.Zoom)
 	inverseZoom := maxZoom - s.Zoom + zoomScale
-	screen.DrawImage(g.Map.GetState().(store.MapState).Image.(*ebiten.Image).SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
+	screen.DrawImage(g.Store.Map.GetState().(store.MapState).Image.(*ebiten.Image).SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
 
 	g.Camera.Draw(screen)
 	g.HUD.Draw(screen)

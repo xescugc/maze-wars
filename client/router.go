@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
@@ -15,14 +15,14 @@ type RouterStore struct {
 	*flux.ReduceStore
 
 	game  *Game
-	lobby *Lobby
+	lobby *LobbyStore
 }
 
 type RouterState struct {
 	Route string
 }
 
-func NewRouterStore(d *flux.Dispatcher, g *Game, l *Lobby) *RouterStore {
+func NewRouterStore(d *flux.Dispatcher, g *Game, l *LobbyStore) *RouterStore {
 	rs := &RouterStore{
 		game:  g,
 		lobby: l,

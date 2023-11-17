@@ -1,7 +1,7 @@
-package main
+package client
 
 import (
-	"flag"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/url"
@@ -9,10 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/assets"
-	"github.com/xescugc/ltw/store"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 )
@@ -22,25 +20,17 @@ var (
 	// all the actions have to be registered to it
 	actionDispatcher *ActionDispatcher
 
-	// verbose is used to check weather or not we have to display
-	// more logs
-	verbose bool
-	wsHost  string
-	room    string
-	name    string
-
 	wsc *websocket.Conn
 
 	normalFont font.Face
 	smallFont  font.Face
+
+	// TODO: Remove this global when we can specify
+	// the room from the client
+	room string
 )
 
 func init() {
-	flag.BoolVar(&verbose, "verbose", false, "Will log all the actions")
-	flag.StringVar(&wsHost, "ws-host", ":5555", "The host of the server, the format is 'host:port'")
-	flag.StringVar(&room, "room", "room", "The room to connect to")
-	flag.StringVar(&name, "name", "john doe", "The name of the player")
-
 	rand.Seed(time.Now().UnixNano())
 
 	// Initialize Font
@@ -65,72 +55,37 @@ func init() {
 	}
 }
 
-func main() {
-	flag.Parse()
-
-	screenW := 288
-	screenH := 240
-
+func New(ad *ActionDispatcher, rs *RouterStore, opt Options) error {
 	ebiten.SetWindowTitle("LTW")
-	ebiten.SetWindowSize(screenW*2, screenH*2)
+	ebiten.SetWindowSize(opt.ScreenW*2, opt.ScreenH*2)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	dispatcher := flux.NewDispatcher()
 
-	actionDispatcher = NewActionDispatcher(dispatcher)
-
-	if verbose {
-		NewLoggerStore(dispatcher)
-	}
-
-	s := store.NewStore(dispatcher)
-	m := store.NewMap(dispatcher, s)
-	g := &Game{
-		Store: s,
-		Map:   m,
-	}
+	actionDispatcher = ad
+	room = opt.Room
 
 	// Establish connection
-	u := url.URL{Scheme: "ws", Host: wsHost, Path: "/ws"}
+	u := url.URL{Scheme: "ws", Host: opt.HostURL, Path: "/ws"}
 
 	var err error
 	wsc, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to dial the server %q: %w", u, err)
 	}
 	defer wsc.Close()
 
 	go wsHandler()
 
-	err = wsc.WriteJSON(action.NewJoinRoom(room, name))
+	err = wsc.WriteJSON(action.NewJoinRoom(opt.Room, opt.Name))
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to write JSON: %w", err)
 	}
 
-	// TODO: Change this to pass the specific store needed instead of all the game object
-	cs := NewCameraStore(dispatcher, s, screenW, screenH)
-	g.Camera = cs
-	g.Units, err = NewUnits(g)
+	err = ebiten.RunGame(rs)
 	if err != nil {
-		log.Fatal(err)
-	}
-	g.Towers, err = NewTowers(g)
-	if err != nil {
-		log.Fatal(err)
-	}
-	g.HUD, err = NewHUDStore(dispatcher, g)
-	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to RunGame: %w", err)
 	}
 
-	l, err := NewLobby(dispatcher, s, cs)
-	if err != nil {
-		log.Fatal(err)
-	}
-	rs := NewRouterStore(dispatcher, g, l)
-
-	if err := ebiten.RunGame(rs); err != nil {
-		log.Fatal(err)
-	}
+	return nil
 }
 
 func wsHandler() {

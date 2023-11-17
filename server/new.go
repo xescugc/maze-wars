@@ -1,8 +1,7 @@
-package main
+package server
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,38 +9,30 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 )
 
 var upgrader = websocket.Upgrader{}
 var (
-	port string
-
 	// actionDispatcher is the main dispatcher of the application
 	// all the actions have to be registered to it
 	actionDispatcher *ActionDispatcher
 )
 
-func init() {
-	flag.StringVar(&port, "port", ":5555", "The port of the application with the ':'")
-}
-
-func main() {
-	flag.Parse()
+func New(ad *ActionDispatcher, rooms *RoomsStore, opt Options) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dispatcher := flux.NewDispatcher()
-
-	actionDispatcher = NewActionDispatcher(dispatcher)
-
-	rooms := NewRoomsStore(dispatcher)
+	actionDispatcher = ad
 
 	go startRoomsLoop(ctx, rooms)
 	http.HandleFunc("/ws", wsHandler(rooms))
-	log.Printf("Staring server at %s\n", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	log.Printf("Staring server at %s\n", opt.Port)
+	if err := http.ListenAndServe(opt.Port, nil); err != nil {
+		return fmt.Errorf("server error: %w", err)
+	}
+
+	return nil
 }
 
 func wsHandler(rooms *RoomsStore) func(http.ResponseWriter, *http.Request) {

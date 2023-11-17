@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"github.com/davecgh/go-spew/spew"
