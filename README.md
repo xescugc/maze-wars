@@ -1,5 +1,4 @@
-# ltw
-Line Tower Wars
+# Maze Wars
 
 ## Map
 
