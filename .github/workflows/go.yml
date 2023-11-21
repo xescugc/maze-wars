@@ -1,0 +1,45 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+    env:
+      # We overwrite this value to be 4 so
+      # the test can pass because if not the
+      # goroutines will not run in "parallel"
+      # and so the tests do not pass.
+      # 4 is because:
+      # * 1 Main run
+      # * 2 clients
+      # * 1 server
+      GOMAXPROCS: 4
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+      # We install xorg-dev because of https://github.com/go-gl/glfw/issues/129#issuecomment-75928365
+      # We install xvfb because of the error "The DISPLAY environment variable is missing" so we need
+      # to have a fake DISPLAY and xvfb does exactly that.
+      # Found it in https://stackoverflow.com/questions/834723/a-dev-null-equivilent-for-display-when-the-display-is-just-noise
+    - name: "Install xorg-dev and xvfb"
+      run: sudo apt-get install xvfb xorg-dev
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+
+    - name: Build
+      run: make build
+
+    - name: Test
+      run: make test
