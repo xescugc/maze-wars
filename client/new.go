@@ -69,7 +69,7 @@ func New(ad *ActionDispatcher, rs *RouterStore, opt Options) error {
 	var err error
 	wsc, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		return fmt.Errorf("failed to dial the server %q: %w", u, err)
+		return fmt.Errorf("failed to dial the server %q: %w", u.String(), err)
 	}
 	defer wsc.Close()
 

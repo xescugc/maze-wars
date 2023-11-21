@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
 
@@ -23,10 +24,10 @@ import (
 var (
 
 	// The actual one is 4
-	serverGameTick = 3 * time.Second
+	serverGameTick = time.Second / 2
 
 	// The actual one is 60
-	clientTPS = time.Second / 50
+	clientTPS = time.Second / 30
 )
 
 func TestRun(t *testing.T) {
@@ -63,7 +64,6 @@ func TestRun(t *testing.T) {
 		Store: s,
 	}
 
-	//i := inputer.NewEbiten()
 	i := mock.NewMockInputer(ctrl)
 
 	cs := client.NewCameraStore(cd, s, screenW, screenH)
@@ -174,6 +174,7 @@ func TestRun(t *testing.T) {
 
 		wait()
 		resetDefault()
+		wait(serverGameTick)
 
 		for _, p := range rooms.GetState().(server.RoomsState).Rooms[room].Game.Players.GetPlayers() {
 			if p.Name == p1n {
@@ -201,5 +202,6 @@ func wait(d ...time.Duration) {
 	if len(d) == 0 {
 		d = []time.Duration{clientTPS}
 	}
+	runtime.Gosched()
 	time.Sleep(d[0])
 }
