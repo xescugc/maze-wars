@@ -100,7 +100,7 @@ func (us *Units) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	sx := facingToTile[u.Facing] * int(u.W)
 	i := (u.MovingCount / 5) % 4
 	sy := i * int(u.H)
-	screen.DrawImage(u.Image().(*ebiten.Image).SubImage(image.Rect(sx, sy, sx+int(u.W), sy+int(u.H))).(*ebiten.Image), op)
+	screen.DrawImage(u.Sprite().(*ebiten.Image).SubImage(image.Rect(sx, sy, sx+int(u.W), sy+int(u.H))).(*ebiten.Image), op)
 
 	// Only draw the Health bar if the unit has been hit
 	h := unit.Units[u.Type].Health

@@ -1,7 +1,52 @@
 {
-    "cyclope": {
-        "health": 100,
-        "income": 1,
-        "gold": 10
-    }
+  "spirit":{
+    "health": 100,
+    "income": 1,
+    "gold": 10
+  },
+  "spirit2":{
+    "health": 200,
+    "income": 2,
+    "gold": 20
+  },
+  "flam2":{
+    "health": 300,
+    "income": 3,
+    "gold": 30
+  },
+  "flam":{
+    "health": 400,
+    "income": 4,
+    "gold": 40
+  },
+  "octopus":{
+    "health": 500,
+    "income": 5,
+    "gold": 50
+  },
+  "octopus2":{
+    "health": 600,
+    "income": 6,
+    "gold": 60
+  },
+  "raccon":{
+    "health": 700,
+    "income": 7,
+    "gold": 70
+  },
+  "gold_racoon":{
+    "health": 800,
+    "income": 8,
+    "gold": 80
+  },
+  "cyclope2":{
+    "health": 900,
+    "income": 9,
+    "gold": 90
+  },
+  "cyclope":{
+    "health": 1000,
+    "income":10,
+    "gold": 100
+  }
 }

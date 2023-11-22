@@ -40,8 +40,12 @@ type Unit struct {
 	Path []utils.Step
 }
 
-func (u *Unit) Image() image.Image {
-	return unit.Units[u.Type].Image
+func (u *Unit) Faceset() image.Image {
+	return unit.Units[u.Type].Faceset
+}
+
+func (u *Unit) Sprite() image.Image {
+	return unit.Units[u.Type].Sprite
 }
 
 func NewUnits(d *flux.Dispatcher, s *Store) *Units {
