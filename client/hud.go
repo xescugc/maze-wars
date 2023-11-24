@@ -27,20 +27,17 @@ type HUDStore struct {
 
 	game *Game
 
-	cyclopeFacesetImage image.Image
-	tilesetHouseImage   image.Image
-	houseIcon           image.Image
+	houseIcon image.Image
 
 	input inputer.Inputer
 }
 
 // HUDState stores the HUD state
 type HUDState struct {
-	Facesets []facesetButton
+	Units  []unitFacesetButton
+	Towers []towerFacesetButton
 
-	CyclopeButton utils.Object
-	SoldierButton utils.Object
-	HouseButton   utils.Object
+	HouseButton utils.Object
 
 	SelectedTower   *SelectedTower
 	TowerOpenMenuID string
@@ -49,8 +46,13 @@ type HUDState struct {
 	CheckedPath        bool
 }
 
-type facesetButton struct {
+type unitFacesetButton struct {
 	Unit   *unit.Unit
+	Object utils.Object
+}
+
+type towerFacesetButton struct {
+	Tower  *tower.Tower
 	Object utils.Object
 }
 
@@ -71,30 +73,9 @@ func NewHUDStore(d *flux.Dispatcher, i inputer.Inputer, g *Game) (*HUDStore, err
 	})
 
 	cs := g.Camera.GetState().(CameraState)
-	// We want to create rows of 5
-	fs := make([]facesetButton, 0, 0)
-	nrows := len(us) / 5
 
-	// As all the Faceset are equal squares
-	// we just need to take one
-	fhw := float64(us[0].Faceset.Bounds().Dx())
-	for i, u := range us {
-		fs = append(fs, facesetButton{
-			Unit: u,
-			Object: utils.Object{
-				X: cs.W - (fhw * float64(5-(i%5))),
-				Y: cs.H - (fhw * float64(nrows-(i/5))),
-				W: fhw,
-				H: fhw,
-			},
-		})
-	}
-
-	thi, _, err := image.Decode(bytes.NewReader(assets.TilesetHouse_png))
-	if err != nil {
-		return nil, err
-	}
-
+	ubs := calculateHUDUnitButtons(cs)
+	tbs := calculateHUDTowerButtons(cs)
 	hi, _, err := image.Decode(bytes.NewReader(assets.TilesetElement_png))
 	if err != nil {
 		return nil, err
@@ -103,19 +84,13 @@ func NewHUDStore(d *flux.Dispatcher, i inputer.Inputer, g *Game) (*HUDStore, err
 	hs := &HUDStore{
 		game: g,
 
-		tilesetHouseImage: ebiten.NewImageFromImage(thi).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2)),
-		houseIcon:         ebiten.NewImageFromImage(hi).SubImage(image.Rect(12*16, 0*16, 12*16+16, 0*16+16)),
+		houseIcon: ebiten.NewImageFromImage(hi).SubImage(image.Rect(12*16, 0*16, 12*16+16, 0*16+16)),
 
 		input: i,
 	}
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
-		Facesets: fs,
-		SoldierButton: utils.Object{
-			X: 0,
-			Y: float64(cs.H - 16*2),
-			W: float64(16 * 2),
-			H: float64(16 * 2),
-		},
+		Units:  ubs,
+		Towers: tbs,
 		HouseButton: utils.Object{
 			X: float64(cs.W - 16),
 			Y: 0,
@@ -155,15 +130,17 @@ func (hs *HUDStore) Update() error {
 			W: 1, H: 1,
 		}
 		// Check what the user has just clicked
-		for _, f := range hst.Facesets {
-			if cp.Gold >= f.Unit.Gold && f.Object.IsColliding(click) {
-				actionDispatcher.SummonUnit(f.Unit.Type.String(), cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
+		for _, u := range hst.Units {
+			if cp.Gold >= u.Unit.Gold && u.Object.IsColliding(click) {
+				actionDispatcher.SummonUnit(u.Unit.Type.String(), cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
 				return nil
 			}
 		}
-		if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hst.SoldierButton.IsColliding(click) {
-			actionDispatcher.SelectTower(tower.Soldier.String(), x, y)
-			return nil
+		for _, t := range hst.Towers {
+			if cp.Gold >= t.Tower.Gold && t.Object.IsColliding(click) {
+				actionDispatcher.SelectTower(t.Tower.Type.String(), x, y)
+				return nil
+			}
 		}
 		if hst.HouseButton.IsColliding(click) {
 			actionDispatcher.GoHome()
@@ -222,10 +199,11 @@ func (hs *HUDStore) Update() error {
 		}
 	}
 
-	if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hs.input.IsKeyJustPressed(ebiten.KeyT) {
-		actionDispatcher.SelectTower(tower.Soldier.String(), x, y)
-		return nil
-	}
+	// TODO: https://github.com/xescugc/maze-wars/issues/60
+	//if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hs.input.IsKeyJustPressed(ebiten.KeyT) {
+	//actionDispatcher.SelectTower(tower.Soldier.String(), x, y)
+	//return nil
+	//}
 	if hst.TowerOpenMenuID != "" {
 		if hs.input.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.CloseTowerMenu()
@@ -237,6 +215,7 @@ func (hs *HUDStore) Update() error {
 		} else {
 			var invalid bool
 			utws := make([]utils.Object, 0, 0)
+			// TODO: Check why the selected towers can be placed in top of other already palced towers
 			for _, t := range tws {
 				// If the tower does not belong to the current user then we can skip
 				// as it's outside the Players Building Zone
@@ -307,26 +286,28 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		text.Draw(screen, "YOU WON!", smallFont, int(cs.W/2), int(cs.H/2), color.White)
 	}
 
-	for _, f := range hst.Facesets {
+	for _, u := range hst.Units {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(f.Object.X, f.Object.Y)
-		if cp.Gold < f.Unit.Gold {
+		op.GeoM.Translate(u.Object.X, u.Object.Y)
+		if cp.Gold < u.Unit.Gold {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
-		screen.DrawImage(f.Unit.Faceset.(*ebiten.Image), op)
+		screen.DrawImage(u.Unit.Faceset.(*ebiten.Image), op)
+	}
+
+	for _, t := range hst.Towers {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(t.Object.X, t.Object.Y)
+		if cp.Gold < t.Tower.Gold {
+			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
+		} else if hst.SelectedTower != nil && hst.SelectedTower.Type == t.Tower.Type.String() {
+			// Once the tower is selected we gray it out
+			op.ColorM.Scale(0.5, 0.5, 0.5, 0.5)
+		}
+		screen.DrawImage(t.Tower.Faceset.(*ebiten.Image), op)
 	}
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(hst.SoldierButton.X, hst.SoldierButton.Y)
-	if cp.Gold < tower.Towers[tower.Soldier.String()].Gold {
-		op.ColorM.Scale(2, 0.5, 0.5, 0.9)
-	} else if hst.SelectedTower != nil && hst.SelectedTower.Type == tower.Soldier.String() {
-		// Once the tower is selected we gray it out
-		op.ColorM.Scale(0.5, 0.5, 0.5, 0.5)
-	}
-	screen.DrawImage(hs.tilesetHouseImage.(*ebiten.Image), op)
-
-	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(hst.HouseButton.X, hst.HouseButton.Y)
 	screen.DrawImage(hs.houseIcon.(*ebiten.Image), op)
 
@@ -339,13 +320,13 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
 
-		screen.DrawImage(hst.SelectedTower.Image().(*ebiten.Image), op)
+		screen.DrawImage(hst.SelectedTower.Faceset().(*ebiten.Image), op)
 	}
 
 	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
 	players := hs.game.Store.Players.GetPlayers()
-	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), smallFont, 0, 0, color.White)
-	var pcount = 1
+	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), smallFont, 0, 15, color.White)
+	var pcount = 2
 	var sortedPlayers = make([]*store.Player, 0, 0)
 	for _, p := range players {
 		sortedPlayers = append(sortedPlayers, p)
@@ -373,57 +354,26 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		hs.GetDispatcher().WaitFor(hs.game.Camera.GetDispatcherToken())
 		cs := hs.game.Camera.GetState().(CameraState)
 
-		us := make([]*unit.Unit, 0, 0)
-		for _, u := range unit.Units {
-			us = append(us, u)
-		}
-		sort.Slice(us, func(i, j int) bool {
-			return us[i].Gold < us[j].Gold
-		})
+		hstate.Units = calculateHUDUnitButtons(cs)
+		hstate.Towers = calculateHUDTowerButtons(cs)
 
-		// We want to create rows of 5
-		fs := make([]facesetButton, 0, 0)
-		nrows := len(us) / 5
-
-		// As all the Faceset are equal squares
-		// we just need to take one
-		fhw := float64(us[0].Faceset.Bounds().Dx())
-		for i, u := range us {
-			fs = append(fs, facesetButton{
-				Unit: u,
-				Object: utils.Object{
-					X: cs.W - (fhw * float64(5-(i%5))),
-					Y: cs.H - (fhw * float64(nrows-(i/5))),
-					W: fhw,
-					H: fhw,
-				},
-			})
-		}
-		hstate.Facesets = fs
-		hstate.SoldierButton = utils.Object{
-			X: 0,
-			Y: float64(cs.H - 16*2),
-			W: float64(16 * 2),
-			H: float64(16 * 2),
-		}
 		hstate.HouseButton = utils.Object{
 			X: float64(cs.W - 16),
 			Y: 0,
-			W: float64(16),
-			H: float64(16),
+			W: 16,
+			H: 16,
 		}
 	case action.SelectTower:
 		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())
 		cp := hs.game.Store.Players.GetCurrentPlayer()
-		// TODO: Insead of hardcoding the image and W, H we should
-		// use the Type on the action to select the right image
 		hstate.SelectedTower = &SelectedTower{
 			Tower: store.Tower{
 				Object: utils.Object{
-					X: float64(act.SelectTower.X) - (hstate.SoldierButton.W / 2),
-					Y: float64(act.SelectTower.Y) - (hstate.SoldierButton.H / 2),
-					W: hstate.SoldierButton.W,
-					H: hstate.SoldierButton.H,
+					// The Buttons have 16*2 so we want to place it on the middle so just 16
+					X: float64(act.SelectTower.X) - 16,
+					Y: float64(act.SelectTower.Y) - 16,
+					W: 32,
+					H: 32,
 				},
 				Type:   act.SelectTower.Type,
 				LineID: cp.LineID,
@@ -441,14 +391,14 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 			// as it has stayed on the previous position
 			var multiple int = 8
 			if act.CursorMove.X%multiple == 0 {
-				hstate.SelectedTower.X = float64(act.CursorMove.X) - (hstate.SoldierButton.W / 2)
+				hstate.SelectedTower.X = float64(act.CursorMove.X) - 16
 			} else if math.Abs(float64(act.CursorMove.X)-hstate.SelectedTower.X) > float64(multiple) {
-				hstate.SelectedTower.X = float64(closestMultiple(act.CursorMove.X, multiple)) - (hstate.SoldierButton.W / 2)
+				hstate.SelectedTower.X = float64(closestMultiple(act.CursorMove.X, multiple)) - 16
 			}
 			if act.CursorMove.Y%multiple == 0 {
-				hstate.SelectedTower.Y = float64(act.CursorMove.Y) - (hstate.SoldierButton.H / 2)
+				hstate.SelectedTower.Y = float64(act.CursorMove.Y) - 16
 			} else if math.Abs(float64(act.CursorMove.Y)-hstate.SelectedTower.Y) > float64(multiple) {
-				hstate.SelectedTower.Y = float64(closestMultiple(act.CursorMove.Y, multiple)) - (hstate.SoldierButton.H / 2)
+				hstate.SelectedTower.Y = float64(closestMultiple(act.CursorMove.Y, multiple)) - 16
 			}
 		}
 		// If it has moved we set the CheckedPath as not checked as it's only checked
@@ -470,6 +420,66 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	return hstate
+}
+
+func calculateHUDUnitButtons(cs CameraState) []unitFacesetButton {
+	us := make([]*unit.Unit, 0, 0)
+	for _, u := range unit.Units {
+		us = append(us, u)
+	}
+	sort.Slice(us, func(i, j int) bool {
+		return us[i].Gold < us[j].Gold
+	})
+
+	// We want to create rows of 5
+	fs := make([]unitFacesetButton, 0, 0)
+	nrows := len(us) / 5
+
+	// As all the Faceset are equal squares
+	// we just need to take one
+	fhw := float64(us[0].Faceset.Bounds().Dx())
+	for i, u := range us {
+		fs = append(fs, unitFacesetButton{
+			Unit: u,
+			Object: utils.Object{
+				X: cs.W - (fhw * float64(5-(i%5))),
+				Y: cs.H - (fhw * float64(nrows-(i/5))),
+				W: fhw,
+				H: fhw,
+			},
+		})
+	}
+	return fs
+}
+
+func calculateHUDTowerButtons(cs CameraState) []towerFacesetButton {
+	ts := make([]*tower.Tower, 0, 0)
+	for _, t := range tower.Towers {
+		ts = append(ts, t)
+	}
+	sort.Slice(ts, func(i, j int) bool {
+		return ts[i].Type > ts[j].Type
+	})
+
+	// We want to create rows of 5
+	fs := make([]towerFacesetButton, 0, 0)
+	nrows := (len(ts) / 5) + 1
+
+	// As all the Faceset are equal squares
+	// we just need to take one
+	fhw := float64(ts[0].Faceset.Bounds().Dx())
+	for i, t := range ts {
+		fs = append(fs, towerFacesetButton{
+			Tower: t,
+			Object: utils.Object{
+				X: 0 + (fhw * float64(i%5)),
+				Y: cs.H - (fhw * float64(nrows-(i/5))),
+				W: fhw,
+				H: fhw,
+			},
+		})
+	}
+	return fs
 }
 
 // closestMultiple finds the coses multiple of 'b' for the number 'a'
