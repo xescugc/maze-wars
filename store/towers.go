@@ -33,8 +33,8 @@ type Tower struct {
 	PlayerID string
 }
 
-func (t *Tower) Image() image.Image {
-	return tower.Towers[t.Type].Image
+func (t *Tower) Faceset() image.Image {
+	return tower.Towers[t.Type].Faceset
 }
 
 func NewTowers(d *flux.Dispatcher, s *Store) *Towers {

@@ -6,4 +6,5 @@ type Type int
 
 const (
 	Soldier Type = iota
+	Monk
 )

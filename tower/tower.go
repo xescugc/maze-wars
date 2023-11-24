@@ -11,11 +11,13 @@ import (
 )
 
 type Tower struct {
+	Type Type
+
 	Range  float64 `json:"range"`
 	Damage float64 `json:"damage"`
 	Gold   int     `json:"gold"`
 
-	Image image.Image
+	Faceset image.Image
 }
 
 var (
@@ -28,6 +30,11 @@ func init() {
 		log.Fatal(err)
 	}
 
+	i, _, err := image.Decode(bytes.NewReader(assets.TilesetHouse_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for t, tw := range Towers {
 		ty, err := TypeString(t)
 		if err != nil {
@@ -35,14 +42,12 @@ func init() {
 		}
 		switch ty {
 		case Soldier:
-			i, _, err := image.Decode(bytes.NewReader(assets.TilesetHouse_png))
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			tw.Image = ebiten.NewImageFromImage(i).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2))
+			tw.Faceset = ebiten.NewImageFromImage(i).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2))
+		case Monk:
+			tw.Faceset = ebiten.NewImageFromImage(i).SubImage(image.Rect(5*16, 15*16, 5*16+16*2, 15*16+16*2))
 		default:
 			log.Fatalf("failed to load tower %q\n", t)
 		}
+		tw.Type = ty
 	}
 }
