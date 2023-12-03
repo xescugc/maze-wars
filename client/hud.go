@@ -106,8 +106,8 @@ func (hs *HUDStore) Update() error {
 	cs := hs.game.Camera.GetState().(CameraState)
 	hst := hs.GetState().(HUDState)
 	x, y := hs.input.CursorPosition()
-	cp := hs.game.Store.Players.GetCurrentPlayer()
-	tws := hs.game.Store.Towers.GetTowers()
+	cp := hs.game.Store.Players.FindCurrent()
+	tws := hs.game.Store.Towers.List()
 	// Only send a CursorMove when the curso has actually moved
 	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
 		actionDispatcher.CursorMove(x, y)
@@ -131,13 +131,13 @@ func (hs *HUDStore) Update() error {
 		}
 		// Check what the user has just clicked
 		for _, u := range hst.Units {
-			if cp.Gold >= u.Unit.Gold && u.Object.IsColliding(click) {
+			if cp.CanSummonUnit(u.Unit.Type.String()) && u.Object.IsColliding(click) {
 				actionDispatcher.SummonUnit(u.Unit.Type.String(), cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
 				return nil
 			}
 		}
 		for _, t := range hst.Towers {
-			if cp.Gold >= t.Tower.Gold && t.Object.IsColliding(click) {
+			if cp.CanPlaceTower(t.Tower.Type.String()) && t.Object.IsColliding(click) {
 				actionDispatcher.SelectTower(t.Tower.Type.String(), x, y)
 				return nil
 			}
@@ -276,7 +276,7 @@ func (hs *HUDStore) Update() error {
 func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	hst := hs.GetState().(HUDState)
 	cs := hs.game.Camera.GetState().(CameraState)
-	cp := hs.game.Store.Players.GetCurrentPlayer()
+	cp := hs.game.Store.Players.FindCurrent()
 
 	if cp.Lives == 0 {
 		text.Draw(screen, "YOU LOST", smallFont, int(cs.W/2), int(cs.H/2), color.White)
@@ -289,7 +289,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	for _, u := range hst.Units {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(u.Object.X, u.Object.Y)
-		if cp.Gold < u.Unit.Gold {
+		if cp.CanSummonUnit(u.Unit.Type.String()) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
 		screen.DrawImage(u.Unit.Faceset.(*ebiten.Image), op)
@@ -298,7 +298,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	for _, t := range hst.Towers {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(t.Object.X, t.Object.Y)
-		if cp.Gold < t.Tower.Gold {
+		if cp.CanPlaceTower(t.Tower.Type.String()) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		} else if hst.SelectedTower != nil && hst.SelectedTower.Type == t.Tower.Type.String() {
 			// Once the tower is selected we gray it out
@@ -324,7 +324,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	}
 
 	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
-	players := hs.game.Store.Players.GetPlayers()
+	players := hs.game.Store.Players.List()
 	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), smallFont, 0, 15, color.White)
 	var pcount = 2
 	var sortedPlayers = make([]*store.Player, 0, 0)
@@ -365,7 +365,7 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		}
 	case action.SelectTower:
 		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())
-		cp := hs.game.Store.Players.GetCurrentPlayer()
+		cp := hs.game.Store.Players.FindCurrent()
 		hstate.SelectedTower = &SelectedTower{
 			Tower: store.Tower{
 				Object: utils.Object{

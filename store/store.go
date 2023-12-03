@@ -16,10 +16,9 @@ type Store struct {
 
 func NewStore(d *flux.Dispatcher) *Store {
 	s := &Store{
-		Players: NewPlayers(d),
-
 		dispatcher: d,
 	}
+	s.Players = NewPlayers(d, s)
 	s.Map = NewMap(d, s)
 	s.Towers = NewTowers(d, s)
 	s.Units = NewUnits(d, s)

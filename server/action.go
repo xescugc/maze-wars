@@ -66,7 +66,7 @@ func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 
 			// Towers
 			towers := make(map[string]*action.UpdateStateTowerPayload)
-			ts := r.Game.Towers.GetTowers()
+			ts := r.Game.Towers.List()
 			for _, t := range ts {
 				ustp := action.UpdateStateTowerPayload(*t)
 				towers[t.ID] = &ustp
@@ -74,7 +74,7 @@ func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 
 			// Units
 			units := make(map[string]*action.UpdateStateUnitPayload)
-			us := r.Game.Units.GetUnits()
+			us := r.Game.Units.List()
 			for _, u := range us {
 				usup := action.UpdateStateUnitPayload(*u)
 				units[u.ID] = &usup

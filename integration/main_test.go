@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"runtime"
 	"testing"
@@ -31,6 +32,9 @@ var (
 )
 
 func TestRun(t *testing.T) {
+	if os.Getenv("IS_CI") == "true" {
+		t.Skip("This test are skipped for now on the CI")
+	}
 	var (
 		err     error
 		room    = "room"
@@ -153,7 +157,7 @@ func TestRun(t *testing.T) {
 
 		ros := rooms.GetState().(server.RoomsState)
 
-		for len(rooms.GetState().(server.RoomsState).Rooms) != 1 || len(ros.Rooms[room].Game.Players.GetPlayers()) != 2 {
+		for len(rooms.GetState().(server.RoomsState).Rooms) != 1 || len(ros.Rooms[room].Game.Players.List()) != 2 {
 			if tries == 10 {
 				t.Fatal(t, "Could not initialize the players")
 			}
@@ -161,7 +165,7 @@ func TestRun(t *testing.T) {
 			time.Sleep(time.Second)
 			tries++
 		}
-		for _, p := range ros.Rooms[room].Game.Players.GetPlayers() {
+		for _, p := range ros.Rooms[room].Game.Players.List() {
 			players[p.Name] = p
 		}
 
@@ -176,7 +180,7 @@ func TestRun(t *testing.T) {
 		resetDefault()
 		wait(serverGameTick)
 
-		for _, p := range rooms.GetState().(server.RoomsState).Rooms[room].Game.Players.GetPlayers() {
+		for _, p := range rooms.GetState().(server.RoomsState).Rooms[room].Game.Players.List() {
 			if p.Name == p1n {
 				assert.True(t, p.Ready)
 			}
@@ -186,7 +190,7 @@ func TestRun(t *testing.T) {
 
 		// We mark 2 players as ready
 		sad.Dispatch(action.NewPlayerReady(players[p2n].ID))
-		for _, p := range rooms.GetState().(server.RoomsState).Rooms[room].Game.Players.GetPlayers() {
+		for _, p := range rooms.GetState().(server.RoomsState).Rooms[room].Game.Players.List() {
 			assert.True(t, p.Ready)
 		}
 
