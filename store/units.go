@@ -60,8 +60,8 @@ func NewUnits(d *flux.Dispatcher, s *Store) *Units {
 	return u
 }
 
-// GetUnits returns the units list and it's meant for reading only purposes
-func (us *Units) GetUnits() []*Unit {
+// List returns the units list and it's meant for reading only purposes
+func (us *Units) List() []*Unit {
 	us.mxUnits.RLock()
 	defer us.mxUnits.RUnlock()
 	munits := us.GetState().(UnitsState)
@@ -85,11 +85,17 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.SummonUnit:
+		us.GetDispatcher().WaitFor(
+			us.store.Towers.GetDispatcherToken(),
+		)
 		us.mxUnits.Lock()
 		defer us.mxUnits.Unlock()
 
+		p := us.store.Players.FindByID(act.SummonUnit.PlayerID)
+		if !p.CanSummonUnit(act.SummonUnit.Type) {
+			break
+		}
 		// We wait for the towers store as we need to interact with it
-		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
 		var w, h float64 = 16, 16
 		var x, y float64 = us.store.Map.GetRandomSpawnCoordinatesForLineID(act.SummonUnit.CurrentLineID)
 		uid := uuid.Must(uuid.NewV4())
@@ -108,7 +114,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			CurrentLineID: act.SummonUnit.CurrentLineID,
 			Health:        unit.Units[act.SummonUnit.Type].Health,
 		}
-		ts := us.store.Towers.GetTowers()
+		ts := us.store.Towers.List()
 		tws := make([]utils.Object, 0, 0)
 		for _, t := range ts {
 			if t.LineID == u.CurrentLineID {
@@ -132,13 +138,18 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.PlaceTower:
+		// We wait for the towers store as we need to interact with it
+		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
+
 		us.mxUnits.Lock()
 		defer us.mxUnits.Unlock()
 
-		// We wait for the towers store as we need to interact with it
-		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
 		ts := us.store.Towers.GetState().(TowersState)
-		p := us.store.Players.GetPlayerByID(act.PlaceTower.PlayerID)
+		p := us.store.Players.FindByID(act.PlaceTower.PlayerID)
+
+		if !p.CanPlaceTower(act.PlaceTower.Type) {
+			break
+		}
 		for _, u := range ustate.Units {
 			// Only need to recalculate path for each unit when the placed tower
 			// is on the same LineID as the unit
@@ -159,8 +170,8 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 
 		// We wait for the towers store as we need to interact with it
 		us.GetDispatcher().WaitFor(us.store.Towers.GetDispatcherToken())
-		ts := us.store.Towers.GetTowers()
-		p := us.store.Players.GetPlayerByID(act.RemoveTower.PlayerID)
+		ts := us.store.Towers.List()
+		p := us.store.Players.FindByID(act.RemoveTower.PlayerID)
 		for _, u := range ustate.Units {
 			// Only need to recalculate path for each unit when the placed tower
 			// is on the same LineID as the unit

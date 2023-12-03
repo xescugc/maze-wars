@@ -49,8 +49,8 @@ func NewTowers(d *flux.Dispatcher, s *Store) *Towers {
 	return t
 }
 
-// GetTowers returns the towers list and it's meant for reading only purposes
-func (ts *Towers) GetTowers() []*Tower {
+// List returns the towers list and it's meant for reading only purposes
+func (ts *Towers) List() []*Tower {
 	ts.mxTowers.RLock()
 	defer ts.mxTowers.RUnlock()
 	mtowers := ts.GetState().(TowersState)
@@ -77,7 +77,11 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 		ts.mxTowers.Lock()
 		defer ts.mxTowers.Unlock()
 
-		p := ts.store.Players.GetPlayerByID(act.PlaceTower.PlayerID)
+		p := ts.store.Players.FindByID(act.PlaceTower.PlayerID)
+
+		if !p.CanPlaceTower(act.PlaceTower.Type) {
+			break
+		}
 
 		var w, h float64 = 16 * 2, 16 * 2
 		tid := uuid.Must(uuid.NewV4())

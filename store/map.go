@@ -173,7 +173,7 @@ func (m *Map) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.StartGame:
-		players := m.store.Players.GetPlayers()
+		players := m.store.Players.List()
 		if len(players) > 1 {
 			allReady := true
 			for _, p := range players {

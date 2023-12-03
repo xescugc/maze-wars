@@ -70,12 +70,12 @@ func (ls *LobbyStore) Update() error {
 			W: 1, H: 1,
 		}
 		if lst.YesBtn.IsColliding(obj) {
-			cp := ls.Store.Players.GetCurrentPlayer()
+			cp := ls.Store.Players.FindCurrent()
 			actionDispatcher.PlayerReady(cp.ID)
 		}
 	}
 
-	players := ls.Store.Players.GetPlayers()
+	players := ls.Store.Players.List()
 	if len(players) > 1 {
 		allReady := true
 		for _, p := range players {
@@ -95,7 +95,7 @@ func (ls *LobbyStore) Update() error {
 
 func (ls *LobbyStore) Draw(screen *ebiten.Image) {
 	cs := ls.Camera.GetState().(CameraState)
-	ps := ls.Store.Players.GetPlayers()
+	ps := ls.Store.Players.List()
 	lst := ls.GetState().(LobbyState)
 	text.Draw(screen, "LOBBY", normalFont, int(cs.W/2), int(cs.H/2), color.White)
 	var pcount = 1

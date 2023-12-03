@@ -22,6 +22,7 @@ jobs:
       # * 2 clients
       # * 1 server
       GOMAXPROCS: 4
+      IS_CI: true
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3

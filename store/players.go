@@ -16,6 +16,8 @@ const (
 type Players struct {
 	*flux.ReduceStore
 
+	store *Store
+
 	mxPlayers sync.RWMutex
 }
 
@@ -38,8 +40,17 @@ type Player struct {
 	Ready   bool
 }
 
-func NewPlayers(d *flux.Dispatcher) *Players {
-	p := &Players{}
+func (p Player) CanSummonUnit(ut string) bool {
+	return (p.Gold - unit.Units[ut].Gold) >= 0
+}
+func (p Player) CanPlaceTower(tt string) bool {
+	return (p.Gold - tower.Towers[tt].Gold) >= 0
+}
+
+func NewPlayers(d *flux.Dispatcher, s *Store) *Players {
+	p := &Players{
+		store: s,
+	}
 	p.ReduceStore = flux.NewReduceStore(d, p.Reduce, PlayersState{
 		IncomeTimer: incomeTimer,
 		Players:     make(map[string]*Player),
@@ -49,7 +60,7 @@ func NewPlayers(d *flux.Dispatcher) *Players {
 }
 
 // GetPlayers returns the players list and it's meant for reading only purposes
-func (ps *Players) GetPlayers() []*Player {
+func (ps *Players) List() []*Player {
 	ps.mxPlayers.RLock()
 	defer ps.mxPlayers.RUnlock()
 	mplayers := ps.GetState().(PlayersState)
@@ -60,7 +71,7 @@ func (ps *Players) GetPlayers() []*Player {
 	return players
 }
 
-func (ps *Players) GetCurrentPlayer() Player {
+func (ps *Players) FindCurrent() Player {
 	ps.mxPlayers.RLock()
 	defer ps.mxPlayers.RUnlock()
 	for _, p := range ps.GetState().(PlayersState).Players {
@@ -71,14 +82,17 @@ func (ps *Players) GetCurrentPlayer() Player {
 	return Player{}
 }
 
-func (ps *Players) GetPlayerByID(id string) Player {
+func (ps *Players) FindByID(id string) Player {
 	ps.mxPlayers.RLock()
 	defer ps.mxPlayers.RUnlock()
-	p, _ := ps.GetState().(PlayersState).Players[id]
+	p, ok := ps.GetState().(PlayersState).Players[id]
+	if !ok {
+		return Player{}
+	}
 	return *p
 }
 
-func (ps *Players) GetByLineID(lid int) Player {
+func (ps *Players) FindByLineID(lid int) Player {
 	ps.mxPlayers.RLock()
 	defer ps.mxPlayers.RUnlock()
 	for _, p := range ps.GetState().(PlayersState).Players {
@@ -105,6 +119,18 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
 
+		var found bool
+		for _, p := range pstate.Players {
+			if p.Name == act.AddPlayer.Name {
+				found = true
+				break
+			}
+		}
+
+		if found {
+			break
+		}
+
 		pstate.Players[act.AddPlayer.ID] = &Player{
 			ID:     act.AddPlayer.ID,
 			Name:   act.AddPlayer.Name,
@@ -123,13 +149,14 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		defer ps.mxPlayers.Unlock()
 
 		fp := pstate.Players[act.StealLive.FromPlayerID]
+		tp := pstate.Players[act.StealLive.ToPlayerID]
+
 		fp.Lives -= 1
 		if fp.Lives < 0 {
 			fp.Lives = 0
+		} else {
+			tp.Lives += 1
 		}
-
-		tp := pstate.Players[act.StealLive.ToPlayerID]
-		tp.Lives += 1
 
 		var stillPlayersLeft bool
 		for _, p := range pstate.Players {
@@ -145,9 +172,15 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			tp.Winner = true
 		}
 	case action.SummonUnit:
+		// We need to wait for the units if not the units Store cannot check
+		// if the unit can be summoned if the Gold has already been removed
+		ps.GetDispatcher().WaitFor(ps.store.Units.GetDispatcherToken())
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
 
+		if !pstate.Players[act.SummonUnit.PlayerID].CanSummonUnit(act.SummonUnit.Type) {
+			break
+		}
 		pstate.Players[act.SummonUnit.PlayerID].Income += unit.Units[act.SummonUnit.Type].Income
 		pstate.Players[act.SummonUnit.PlayerID].Gold -= unit.Units[act.SummonUnit.Type].Gold
 	case action.IncomeTick:
@@ -162,8 +195,17 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.PlaceTower:
+		ps.GetDispatcher().WaitFor(
+			ps.store.Towers.GetDispatcherToken(),
+			ps.store.Units.GetDispatcherToken(),
+		)
+
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
+
+		if !pstate.Players[act.PlaceTower.PlayerID].CanPlaceTower(act.PlaceTower.Type) {
+			break
+		}
 
 		pstate.Players[act.PlaceTower.PlayerID].Gold -= tower.Towers[act.PlaceTower.Type].Gold
 	case action.RemoveTower:
