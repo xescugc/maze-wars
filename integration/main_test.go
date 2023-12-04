@@ -131,7 +131,7 @@ func TestRun(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
-		err = client.New(cad, rs, client.Options{
+		err = client.New(ctx, cad, rs, client.Options{
 			HostURL: "localhost:5555",
 			Room:    room,
 			Name:    p1n,

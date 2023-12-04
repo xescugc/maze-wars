@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/gofrs/uuid"
-	"github.com/gorilla/websocket"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/store"
 	"github.com/xescugc/ltw/tower"
 	"github.com/xescugc/ltw/unit"
+	"nhooyr.io/websocket"
 )
 
 func initStore() *store.Store {
@@ -23,7 +23,8 @@ func addPlayer(s *store.Store) store.Player {
 	name := fmt.Sprintf("name-%s", id.String())
 	lid := 2
 	ws := &websocket.Conn{}
-	s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws))
+	ra := "localhost"
+	s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws, ra))
 
 	return s.Players.FindByID(id.String())
 }

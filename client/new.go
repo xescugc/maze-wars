@@ -1,18 +1,20 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
 	"net/url"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/assets"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
+	"nhooyr.io/websocket"
+	"nhooyr.io/websocket/wsjson"
 )
 
 var (
@@ -55,7 +57,7 @@ func init() {
 	}
 }
 
-func New(ad *ActionDispatcher, rs *RouterStore, opt Options) error {
+func New(ctx context.Context, ad *ActionDispatcher, rs *RouterStore, opt Options) error {
 	ebiten.SetWindowTitle("LTW")
 	ebiten.SetWindowSize(opt.ScreenW*2, opt.ScreenH*2)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
@@ -67,18 +69,21 @@ func New(ad *ActionDispatcher, rs *RouterStore, opt Options) error {
 	u := url.URL{Scheme: "ws", Host: opt.HostURL, Path: "/ws"}
 
 	var err error
-	wsc, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
+
+	wsc, _, err = websocket.Dial(ctx, u.String(), nil)
 	if err != nil {
 		return fmt.Errorf("failed to dial the server %q: %w", u.String(), err)
 	}
-	defer wsc.Close()
 
-	go wsHandler()
+	wsc.SetReadLimit(-1)
 
-	err = wsc.WriteJSON(action.NewJoinRoom(opt.Room, opt.Name))
+	err = wsjson.Write(ctx, wsc, action.NewJoinRoom(opt.Room, opt.Name))
 	if err != nil {
 		return fmt.Errorf("failed to write JSON: %w", err)
 	}
+	defer wsc.CloseNow()
+
+	go wsHandler(ctx)
 
 	err = ebiten.RunGame(rs)
 	if err != nil {
@@ -88,10 +93,13 @@ func New(ad *ActionDispatcher, rs *RouterStore, opt Options) error {
 	return nil
 }
 
-func wsHandler() {
+func run(ctx context.Context, rs *RouterStore, u string, opt Options) {
+}
+
+func wsHandler(ctx context.Context) {
 	for {
 		var act *action.Action
-		err := wsc.ReadJSON(&act)
+		err := wsjson.Read(ctx, wsc, &act)
 		if err != nil {
 			// TODO remove from the Room
 			log.Fatal(err)
@@ -103,7 +111,7 @@ func wsHandler() {
 
 func wsSend(a *action.Action) {
 	a.Room = room
-	err := wsc.WriteJSON(a)
+	err := wsjson.Write(context.Background(), wsc, a)
 	if err != nil {
 		log.Fatal(err)
 	}

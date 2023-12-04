@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -56,8 +57,9 @@ var (
 				return fmt.Errorf("failed to initialize LobbyStore: %w", err)
 			}
 			rs := client.NewRouterStore(d, g, l)
+			ctx := context.Background()
 
-			err = client.New(ad, rs, client.Options{
+			err = client.New(ctx, ad, rs, client.Options{
 				HostURL: hostURL,
 				Room:    room,
 				Name:    name,

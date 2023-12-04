@@ -1,8 +1,8 @@
 package action
 
 import (
-	"github.com/gorilla/websocket"
 	"github.com/xescugc/ltw/utils"
+	"nhooyr.io/websocket"
 )
 
 type Action struct {
@@ -256,22 +256,24 @@ func NewJoinRoom(room, name string) *Action {
 }
 
 type AddPlayerPayload struct {
-	ID        string
-	Name      string
-	LineID    int
-	Websocket *websocket.Conn
-	Room      string
+	ID         string
+	Name       string
+	LineID     int
+	Websocket  *websocket.Conn
+	RemoteAddr string
+	Room       string
 }
 
-func NewAddPlayer(r, id, name string, lid int, ws *websocket.Conn) *Action {
+func NewAddPlayer(r, id, name string, lid int, ws *websocket.Conn, ra string) *Action {
 	return &Action{
 		Type: AddPlayer,
 		AddPlayer: &AddPlayerPayload{
-			ID:        id,
-			Name:      name,
-			LineID:    lid,
-			Websocket: ws,
-			Room:      r,
+			ID:         id,
+			Name:       name,
+			LineID:     lid,
+			Websocket:  ws,
+			RemoteAddr: ra,
+			Room:       r,
 		},
 	}
 }

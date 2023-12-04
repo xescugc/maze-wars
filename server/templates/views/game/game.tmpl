@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/js/wasm_exec.js"></script>
+<script>
+	// Polyfill
+	if (!WebAssembly.instantiateStreaming) {
+		WebAssembly.instantiateStreaming = async (resp, importObject) => {
+			const source = await (await resp).arrayBuffer();
+			return await WebAssembly.instantiate(source, importObject);
+		};
+	}
+
+	const go = new Go();
+	WebAssembly.instantiateStreaming(fetch("/wasm/maze-wars.wasm"), go.importObject).then(result => {
+		go.run(result.instance);
+    var currentUrl = new URL(document.referrer);
+    const urlParams = new URLSearchParams(currentUrl.search);
+
+    const room = currentUrl.pathname.split("/")[2]
+    const name = urlParams.get("name")
+    const err = new_client(room, name);
+    if (err != null) {
+      console.log("error",err)
+    }
+	});
+</script>
