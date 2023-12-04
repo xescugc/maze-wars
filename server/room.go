@@ -3,9 +3,9 @@ package server
 import (
 	"sync"
 
-	"github.com/gorilla/websocket"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
+	"nhooyr.io/websocket"
 )
 
 type RoomsStore struct {
@@ -20,11 +20,16 @@ type Room struct {
 	Name string
 
 	muPlayers sync.RWMutex
-	Players   map[string]*websocket.Conn
+	Players   map[string]PlayerConn
 
 	Connections map[string]string
 
 	Game *Game
+}
+
+type PlayerConn struct {
+	Conn       *websocket.Conn
+	RemoteAddr string
 }
 
 func NewRoomsStore(d *flux.Dispatcher) *RoomsStore {
@@ -57,7 +62,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		if _, ok := rstate.Rooms[act.JoinRoom.Room]; !ok {
 			rstate.Rooms[act.JoinRoom.Room] = &Room{
 				Name:        act.JoinRoom.Room,
-				Players:     make(map[string]*websocket.Conn),
+				Players:     make(map[string]PlayerConn),
 				Connections: make(map[string]string),
 				Game:        NewGame(rd),
 			}
@@ -68,14 +73,17 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			// it could have no limit
 			break
 		}
-		rstate.Rooms[act.AddPlayer.Room].Players[act.AddPlayer.ID] = act.AddPlayer.Websocket
-		rstate.Rooms[act.AddPlayer.Room].Connections[act.AddPlayer.Websocket.RemoteAddr().String()] = act.AddPlayer.ID
+		rstate.Rooms[act.AddPlayer.Room].Players[act.AddPlayer.ID] = PlayerConn{
+			Conn:       act.AddPlayer.Websocket,
+			RemoteAddr: act.AddPlayer.RemoteAddr,
+		}
+		rstate.Rooms[act.AddPlayer.Room].Connections[act.AddPlayer.RemoteAddr] = act.AddPlayer.ID
 
 		rstate.Rooms[act.Room].Game.Dispatch(act)
 	case action.RemovePlayer:
-		ws := rstate.Rooms[act.RemovePlayer.Room].Players[act.RemovePlayer.ID]
+		pc := rstate.Rooms[act.RemovePlayer.Room].Players[act.RemovePlayer.ID]
 		delete(rstate.Rooms[act.RemovePlayer.Room].Players, act.RemovePlayer.ID)
-		delete(rstate.Rooms[act.RemovePlayer.Room].Connections, ws.RemoteAddr().String())
+		delete(rstate.Rooms[act.RemovePlayer.Room].Connections, pc.RemoteAddr)
 
 		rstate.Rooms[act.Room].Game.Dispatch(act)
 

@@ -289,7 +289,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	for _, u := range hst.Units {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(u.Object.X, u.Object.Y)
-		if cp.CanSummonUnit(u.Unit.Type.String()) {
+		if !cp.CanSummonUnit(u.Unit.Type.String()) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
 		screen.DrawImage(u.Unit.Faceset.(*ebiten.Image), op)
@@ -298,7 +298,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	for _, t := range hst.Towers {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(t.Object.X, t.Object.Y)
-		if cp.CanPlaceTower(t.Tower.Type.String()) {
+		if !cp.CanPlaceTower(t.Tower.Type.String()) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		} else if hst.SelectedTower != nil && hst.SelectedTower.Type == t.Tower.Type.String() {
 			// Once the tower is selected we gray it out

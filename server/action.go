@@ -1,12 +1,14 @@
 package server
 
 import (
+	"context"
 	"log"
 
-	"github.com/gorilla/websocket"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/store"
+	"nhooyr.io/websocket"
+	"nhooyr.io/websocket/wsjson"
 )
 
 // ActionDispatcher is in charge of dispatching actions to the
@@ -29,8 +31,8 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	ac.dispatcher.Dispatch(a)
 }
 
-func (ac *ActionDispatcher) AddPlayer(sid, id, name string, lid int, ws *websocket.Conn) {
-	npa := action.NewAddPlayer(sid, id, name, lid, ws)
+func (ac *ActionDispatcher) AddPlayer(sid, id, name string, lid int, ws *websocket.Conn, ra string) {
+	npa := action.NewAddPlayer(sid, id, name, lid, ws, ra)
 	ac.dispatcher.Dispatch(npa)
 }
 
@@ -52,7 +54,7 @@ func (ac *ActionDispatcher) MoveUnit(rooms *RoomsStore) {
 
 func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 	for _, r := range rooms.GetState().(RoomsState).Rooms {
-		for id, con := range r.Players {
+		for id, pc := range r.Players {
 			// Players
 			players := make(map[string]*action.UpdateStatePlayerPayload)
 			ps := r.Game.Players.GetState().(store.PlayersState)
@@ -92,7 +94,7 @@ func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 					Units: units,
 				},
 			)
-			err := con.WriteJSON(aus)
+			err := wsjson.Write(context.Background(), pc.Conn, aus)
 			if err != nil {
 				log.Fatal(err)
 			}

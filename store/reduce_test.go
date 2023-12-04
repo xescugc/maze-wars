@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/gofrs/uuid"
-	"github.com/gorilla/websocket"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/xescugc/ltw/action"
@@ -12,6 +11,7 @@ import (
 	"github.com/xescugc/ltw/tower"
 	"github.com/xescugc/ltw/unit"
 	"github.com/xescugc/ltw/utils"
+	"nhooyr.io/websocket"
 )
 
 // This test are meant to check which Stores interact with Actions
@@ -400,7 +400,8 @@ func TestAddPlayer(t *testing.T) {
 		name := "name"
 		lid := 2
 		ws := &websocket.Conn{}
-		s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws))
+		ra := "localhost"
+		s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws, ra))
 
 		p := store.Player{
 			ID:     id.String(),
@@ -425,8 +426,10 @@ func TestAddPlayer(t *testing.T) {
 		name := "name"
 		lid := 2
 		ws := &websocket.Conn{}
-		s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws))
-		s.Dispatch(action.NewAddPlayer(sid2, id2.String(), name, lid+1, ws))
+		ra1 := "localhost"
+		ra2 := "localhost2"
+		s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws, ra1))
+		s.Dispatch(action.NewAddPlayer(sid2, id2.String(), name, lid+1, ws, ra2))
 
 		p := store.Player{
 			ID:     id.String(),

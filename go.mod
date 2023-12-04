@@ -1,21 +1,24 @@
 module github.com/xescugc/ltw
 
-go 1.17
+go 1.21
 
 require (
 	github.com/davecgh/go-spew v1.1.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang/mock v1.6.0
-	github.com/gorilla/websocket v1.5.0
+	github.com/gorilla/handlers v1.5.2
+	github.com/gorilla/mux v1.8.1
 	github.com/hajimehoshi/ebiten/v2 v2.5.9
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/xescugc/go-flux v1.0.1
 	golang.org/x/image v0.10.0
+	nhooyr.io/websocket v1.8.10
 )
 
 require (
 	github.com/ebitengine/purego v0.4.0 // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jezek/xgb v1.1.0 // indirect

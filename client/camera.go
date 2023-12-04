@@ -29,6 +29,7 @@ const (
 	zoomScale = 0.5
 	minZoom   = 0
 	maxZoom   = 2
+	leeway    = 50
 )
 
 // NewCameraStore creates a new CameraState linked to the Dispatcher d
@@ -83,15 +84,15 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 		// it means the cursor is moving out of boundaries so we
 		// increase the camera X/Y at a ratio of the cameraSpeed
 		// so we move it around on the map
-		if float64(act.CursorMove.Y) >= cstate.H {
+		if float64(act.CursorMove.Y) >= (cstate.H - leeway) {
 			cstate.Y += cs.cameraSpeed
-		} else if act.CursorMove.Y <= 0 {
+		} else if act.CursorMove.Y <= (0 + leeway) {
 			cstate.Y -= cs.cameraSpeed
 		}
 
-		if float64(act.CursorMove.X) >= cstate.W {
+		if float64(act.CursorMove.X) >= (cstate.W - leeway) {
 			cstate.X += cs.cameraSpeed
-		} else if act.CursorMove.X <= 0 {
+		} else if act.CursorMove.X <= (0 + leeway) {
 			cstate.X -= cs.cameraSpeed
 		}
 

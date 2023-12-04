@@ -3,11 +3,11 @@ package store_test
 import (
 	"testing"
 
-	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/store"
+	"nhooyr.io/websocket"
 )
 
 func TestNewPlayers(t *testing.T) {
@@ -31,8 +31,9 @@ func TestPlayers_List(t *testing.T) {
 	name := "name"
 	lid := 2
 	ws := &websocket.Conn{}
+	ra := "localhost"
 	// To have any player we have to add it first
-	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws))
+	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws, ra))
 
 	playes := ps.List()
 	eplayers := []*store.Player{
@@ -58,8 +59,9 @@ func TestPlayers_FindCurrent(t *testing.T) {
 	name := "name"
 	lid := 2
 	ws := &websocket.Conn{}
+	ra := "localhost"
 	// To have any player we have to add it first
-	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws))
+	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws, ra))
 
 	cp := ps.FindCurrent()
 
@@ -94,8 +96,9 @@ func TestPlayers_FindByID(t *testing.T) {
 	name := "name"
 	lid := 2
 	ws := &websocket.Conn{}
+	ra := "localhost"
 	// To have any player we have to add it first
-	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws))
+	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws, ra))
 
 	cp := ps.FindByID("none")
 
@@ -123,8 +126,9 @@ func TestPlayers_FindByLineID(t *testing.T) {
 	name := "name"
 	lid := 2
 	ws := &websocket.Conn{}
+	ra := "localhost"
 	// To have any player we have to add it first
-	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws))
+	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws, ra))
 
 	cp := ps.FindByLineID(99)
 
