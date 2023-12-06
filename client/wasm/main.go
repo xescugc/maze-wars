@@ -21,14 +21,14 @@ func main() {
 
 func NewClient() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
-		if len(args) != 2 || (args[0].String() == "" || args[1].String() == "") {
-			return fmt.Errorf("requires 2 parameters: room and name")
+		if len(args) != 3 || (args[0].String() == "" || args[1].String() == "" || args[2].String() == "") {
+			return fmt.Errorf("requires 3 parameters: host, room and name")
 		}
 		var (
 			err     error
-			room    = args[0].String()
-			name    = args[1].String()
-			hostURL = "localhost:5555"
+			hostURL = args[0].String()
+			room    = args[1].String()
+			name    = args[2].String()
 			screenW = 288
 			screenH = 240
 		)
