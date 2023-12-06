@@ -87,6 +87,7 @@ func (ls *LobbyStore) Update() error {
 		if allReady {
 			actionDispatcher.NavigateTo(GameRoute)
 			actionDispatcher.StartGame()
+			actionDispatcher.GoHome()
 		}
 	}
 
