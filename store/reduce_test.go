@@ -87,6 +87,7 @@ func TestSummonUnit(t *testing.T) {
 
 		// We need to set the path after the X, Y are set
 		eu.Path = s.Units.Astar(s.Map, clid, eu.MovingObject, nil)
+		eu.HashPath = utils.HashSteps(eu.Path)
 
 		// AS the Unit is created we remove it from the gold
 		// and add more income
