@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -61,6 +64,10 @@ type Step struct {
 	Facing ebiten.Key
 }
 
+func (s Step) String() string {
+	return fmt.Sprintf("X:%f, Y:%f, W:%f, H:%f, F:%s", s.X, s.Y, s.W, s.H, s.Facing.String())
+}
+
 // NeighborSteps returns all the possible steps around the o
 func (o Object) NeighborSteps() []Step {
 	return []Step{
@@ -107,4 +114,12 @@ type MovingObject struct {
 
 	Facing      ebiten.Key
 	MovingCount int
+}
+
+func HashSteps(ss []Step) string {
+	var buffer bytes.Buffer
+	for _, s := range ss {
+		buffer.WriteString(s.String())
+	}
+	return fmt.Sprintf("%x", (sha256.Sum256([]byte(buffer.String()))))
 }

@@ -55,5 +55,6 @@ func TestUnits_List(t *testing.T) {
 	}
 	// We calculate the path also
 	eunits[0].Path = us.Astar(st.Map, clid, eunits[0].MovingObject, nil)
+	eunits[0].HashPath = utils.HashSteps(eunits[0].Path)
 	assert.Equal(t, eunits, units)
 }

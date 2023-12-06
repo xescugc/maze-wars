@@ -37,7 +37,8 @@ type Unit struct {
 
 	Health float64
 
-	Path []utils.Step
+	Path     []utils.Step
+	HashPath string
 }
 
 func (u *Unit) Faceset() image.Image {
@@ -122,6 +123,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			}
 		}
 		u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+		u.HashPath = utils.HashSteps(u.Path)
 		ustate.Units[uid.String()] = u
 	case action.MoveUnit:
 		us.mxUnits.Lock()
@@ -203,6 +205,15 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		if u.Health <= 0 {
 			u.Health = 0
 		}
+	case action.RemovePlayer:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
+		for id, u := range ustate.Units {
+			if u.PlayerID == act.RemovePlayer.ID {
+				delete(ustate.Units, id)
+			}
+		}
 	case action.UpdateState:
 		us.mxUnits.Lock()
 		defer us.mxUnits.Unlock()
@@ -214,19 +225,20 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		for id, u := range act.UpdateState.Units.Units {
 			delete(uids, id)
 			nu := Unit(*u)
+			ou, ok := ustate.Units[id]
+
+			if ok {
+				if ou.HashPath == nu.HashPath {
+					nu.Path = ou.Path
+				}
+			}
+
+			// If the path is the same we set it. This cannot be done directly
+			// as the Unit on the client may be faster than the Unit on the server
 			ustate.Units[id] = &nu
 		}
 		for id := range uids {
 			delete(ustate.Units, id)
-		}
-	case action.RemovePlayer:
-		us.mxUnits.Lock()
-		defer us.mxUnits.Unlock()
-
-		for id, u := range ustate.Units {
-			if u.PlayerID == act.RemovePlayer.ID {
-				delete(ustate.Units, id)
-			}
 		}
 	}
 	return ustate

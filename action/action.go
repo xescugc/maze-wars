@@ -76,9 +76,7 @@ func NewMoveUnit() *Action {
 	}
 }
 
-type RemoveUnitPayload struct {
-	UnitID string
-}
+type RemoveUnitPayload struct{ UnitID string }
 
 func NewRemoveUnit(uid string) *Action {
 	return &Action{
@@ -423,7 +421,8 @@ type UpdateStateUnitPayload struct {
 
 	Health float64
 
-	Path []utils.Step
+	Path     []utils.Step
+	HashPath string
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated
