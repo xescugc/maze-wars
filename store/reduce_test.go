@@ -131,13 +131,13 @@ func TestSummonUnit(t *testing.T) {
 	})
 }
 
-func TestMoveUnit(t *testing.T) {
+func TestTPS(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
 		p, u := summonUnit(s, p)
 
-		s.Dispatch(action.NewMoveUnit())
+		s.Dispatch(action.NewTPS())
 
 		ps := playersInitialState()
 		ps.Players[p.ID] = &p

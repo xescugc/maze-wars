@@ -145,7 +145,7 @@ func startRoomsLoop(ctx context.Context, rooms *RoomsStore) {
 		case <-incomeTicker.C:
 			actionDispatcher.IncomeTick(rooms)
 		case <-moveTicker.C:
-			actionDispatcher.MoveUnit(rooms)
+			actionDispatcher.TPS(rooms)
 		case <-ctx.Done():
 			stateTicker.Stop()
 			incomeTicker.Stop()

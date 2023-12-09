@@ -70,9 +70,9 @@ func NewSummonUnit(t, pid string, plid, clid int) *Action {
 	}
 }
 
-func NewMoveUnit() *Action {
+func NewTPS() *Action {
 	return &Action{
-		Type: MoveUnit,
+		Type: TPS,
 	}
 }
 

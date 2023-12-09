@@ -22,7 +22,8 @@ type CameraStore struct {
 // CameraState is the store data on the Camera
 type CameraState struct {
 	utils.Object
-	Zoom float64
+	Zoom               float64
+	LastCursorPosition utils.Object
 }
 
 const (
@@ -80,19 +81,23 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.CursorMove:
+		// We update the last seen cursor position to not resend unnecessary events
+		cstate.LastCursorPosition.X = float64(act.CursorMove.X)
+		cstate.LastCursorPosition.Y = float64(act.CursorMove.Y)
+	case action.TPS:
 		// If the X or Y exceed the current Height or Width then
 		// it means the cursor is moving out of boundaries so we
 		// increase the camera X/Y at a ratio of the cameraSpeed
 		// so we move it around on the map
-		if float64(act.CursorMove.Y) >= (cstate.H - leeway) {
+		if float64(cstate.LastCursorPosition.Y) >= (cstate.H - leeway) {
 			cstate.Y += cs.cameraSpeed
-		} else if act.CursorMove.Y <= (0 + leeway) {
+		} else if cstate.LastCursorPosition.Y <= (0 + leeway) {
 			cstate.Y -= cs.cameraSpeed
 		}
 
-		if float64(act.CursorMove.X) >= (cstate.W - leeway) {
+		if float64(cstate.LastCursorPosition.X) >= (cstate.W - leeway) {
 			cstate.X += cs.cameraSpeed
-		} else if act.CursorMove.X <= (0 + leeway) {
+		} else if cstate.LastCursorPosition.X <= (0 + leeway) {
 			cstate.X -= cs.cameraSpeed
 		}
 

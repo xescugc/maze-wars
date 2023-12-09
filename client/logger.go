@@ -25,9 +25,9 @@ func (ss *LoggerStore) Reduce(cstate, a interface{}) interface{} {
 		return cstate
 	}
 
-	// As the MoveUnit is called on every TPS we can
+	// As the TPS is called on every TPS we can
 	// ignore it
-	if act.Type == action.MoveUnit {
+	if act.Type == action.TPS {
 		return cstate
 	}
 	// Prints all the action types

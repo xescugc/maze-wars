@@ -54,7 +54,7 @@ func TestRun(t *testing.T) {
 	// Start the Server
 	go func() {
 		err := server.New(sad, rooms, server.Options{
-			Port: ":5555",
+			Port: "5555",
 		})
 		require.NoError(t, err)
 	}()

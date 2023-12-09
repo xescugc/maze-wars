@@ -47,9 +47,9 @@ func (ac *ActionDispatcher) IncomeTick(rooms *RoomsStore) {
 	ac.dispatcher.Dispatch(ita)
 }
 
-func (ac *ActionDispatcher) MoveUnit(rooms *RoomsStore) {
-	mua := action.NewMoveUnit()
-	ac.dispatcher.Dispatch(mua)
+func (ac *ActionDispatcher) TPS(rooms *RoomsStore) {
+	tpsa := action.NewTPS()
+	ac.dispatcher.Dispatch(tpsa)
 }
 
 func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {

@@ -8,7 +8,7 @@ const (
 	CursorMove Type = iota
 	CameraZoom
 	SummonUnit
-	MoveUnit
+	TPS
 	RemoveUnit
 	StealLive
 	PlaceTower
