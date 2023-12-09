@@ -1,7 +1,22 @@
 <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      #loading {
+        margin-top: 240px;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <center>
+      <p id="loading">LOADING GAME ...</p>
+    </center>
+  </body>
+</html>
 <script src="/js/wasm_exec.js"></script>
 <script>
-	// Polyfill
+  // Polyfill
 	if (!WebAssembly.instantiateStreaming) {
 		WebAssembly.instantiateStreaming = async (resp, importObject) => {
 			const source = await (await resp).arrayBuffer();
@@ -11,7 +26,9 @@
 
 	const go = new Go();
 	WebAssembly.instantiateStreaming(fetch("/wasm/maze-wars.wasm"), go.importObject).then(result => {
-		go.run(result.instance);
+    var loading = document.getElementById("loading")
+    go.run(result.instance);
+    loading.remove()
     var currentUrl = new URL(document.referrer);
     const urlParams = new URLSearchParams(currentUrl.search);
 

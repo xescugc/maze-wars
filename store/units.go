@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/gofrs/uuid"
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/tower"
@@ -106,7 +105,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 					X: x, Y: y,
 					W: w, H: h,
 				},
-				Facing: ebiten.KeyS,
+				Facing: utils.Down,
 			},
 			ID:            uid.String(),
 			Type:          act.SummonUnit.Type,

@@ -1,0 +1,21 @@
+version: "3"
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:0.9.1
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      maze-wars:
+
+  maze-wars:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.maze-wars.prod
+    expose:
+      - 3000
+    environment:
+      - PORT=3000
+      - VIRTUAL_HOST=maze-wars.com,www.maze-wars.com
+    restart: on-failure

@@ -9,6 +9,7 @@ import (
 	"github.com/xescugc/ltw/assets"
 	"github.com/xescugc/ltw/store"
 	"github.com/xescugc/ltw/unit"
+	"github.com/xescugc/ltw/utils"
 )
 
 type Units struct {
@@ -19,11 +20,11 @@ type Units struct {
 }
 
 var (
-	facingToTile = map[ebiten.Key]int{
-		ebiten.KeyS: 0,
-		ebiten.KeyW: 1,
-		ebiten.KeyA: 2,
-		ebiten.KeyD: 3,
+	directionToTile = map[utils.Direction]int{
+		utils.Down:  0,
+		utils.Up:    1,
+		utils.Left:  2,
+		utils.Right: 3,
 	}
 )
 
@@ -97,10 +98,10 @@ func (us *Units) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y)
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
-	sx := facingToTile[u.Facing] * int(u.W)
+	sx := directionToTile[u.Facing] * int(u.W)
 	i := (u.MovingCount / 5) % 4
 	sy := i * int(u.H)
-	screen.DrawImage(u.Sprite().(*ebiten.Image).SubImage(image.Rect(sx, sy, sx+int(u.W), sy+int(u.H))).(*ebiten.Image), op)
+	screen.DrawImage(ebiten.NewImageFromImage(u.Sprite()).SubImage(image.Rect(sx, sy, sx+int(u.W), sy+int(u.H))).(*ebiten.Image), op)
 
 	// Only draw the Health bar if the unit has been hit
 	h := unit.Units[u.Type].Health

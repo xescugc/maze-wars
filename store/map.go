@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/assets"
@@ -38,11 +37,11 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	mapImages[2] = ebiten.NewImageFromImage(m2)
-	mapImages[3] = ebiten.NewImageFromImage(m3)
-	mapImages[4] = ebiten.NewImageFromImage(m4)
-	mapImages[5] = ebiten.NewImageFromImage(m5)
-	mapImages[6] = ebiten.NewImageFromImage(m6)
+	mapImages[2] = m2
+	mapImages[3] = m3
+	mapImages[4] = m4
+	mapImages[5] = m5
+	mapImages[6] = m6
 }
 
 // Map is a struct that holds all the information of the current map
