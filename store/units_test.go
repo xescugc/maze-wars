@@ -3,7 +3,6 @@ package store_test
 import (
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
@@ -44,7 +43,7 @@ func TestUnits_List(t *testing.T) {
 					X: units[0].X, Y: units[0].Y,
 					W: 16, H: 16,
 				},
-				Facing: ebiten.KeyS,
+				Facing: utils.Down,
 			},
 			Type:          unit.Spirit.String(),
 			PlayerID:      player.ID,

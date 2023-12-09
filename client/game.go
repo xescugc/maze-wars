@@ -43,7 +43,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	s := g.Camera.GetState().(CameraState)
 	op.GeoM.Scale(s.Zoom, s.Zoom)
 	inverseZoom := maxZoom - s.Zoom + zoomScale
-	screen.DrawImage(g.Store.Map.GetState().(store.MapState).Image.(*ebiten.Image).SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
+	mi := ebiten.NewImageFromImage(g.Store.Map.GetState().(store.MapState).Image)
+	screen.DrawImage(mi.SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
 
 	g.Camera.Draw(screen)
 	g.HUD.Draw(screen)

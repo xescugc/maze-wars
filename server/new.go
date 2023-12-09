@@ -50,7 +50,7 @@ func New(ad *ActionDispatcher, rooms *RoomsStore, opt Options) error {
 	hmux.Handle("/wasm/", http.FileServer(http.FS(assets.Assets)))
 
 	svr := &http.Server{
-		Addr:    opt.Port,
+		Addr:    fmt.Sprintf(":%s", opt.Port),
 		Handler: handlers.LoggingHandler(os.Stdout, hmux),
 	}
 

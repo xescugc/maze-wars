@@ -6,7 +6,6 @@ import (
 	"image"
 	"log"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/ltw/assets"
 )
 
@@ -42,12 +41,16 @@ func init() {
 		}
 		switch ty {
 		case Soldier:
-			tw.Faceset = ebiten.NewImageFromImage(i).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2))
+			tw.Faceset = i.(SubImager).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2))
 		case Monk:
-			tw.Faceset = ebiten.NewImageFromImage(i).SubImage(image.Rect(5*16, 15*16, 5*16+16*2, 15*16+16*2))
+			tw.Faceset = i.(SubImager).SubImage(image.Rect(5*16, 15*16, 5*16+16*2, 15*16+16*2))
 		default:
 			log.Fatalf("failed to load tower %q\n", t)
 		}
 		tw.Type = ty
 	}
+}
+
+type SubImager interface {
+	SubImage(r image.Rectangle) image.Image
 }

@@ -10,9 +10,13 @@ build:
 test: wasm ## Run the tests
 	@xvfb-run go test ./...
 
+.PHONY: dc-serve
+dc-serve: ## Starts the server using docker-compose
+	@docker-compose -f docker/docker-compose.yml -f docker/develop.yml up --build --no-deps maze-wars
+
 .PHONY: serve
 serve: wasm ## Starts the server
-	@go run . server
+	@go run ./cmd/server
 
 .PHONY: wa-build
 wa-build: ## Build the wasm Game

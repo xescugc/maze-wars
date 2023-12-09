@@ -1,0 +1,15 @@
+version: "3"
+services:
+  maze-wars:
+    volumes:
+      - cache:/go
+    networks:
+      maze-wars:
+
+volumes:
+  cache:
+  attachments:
+    driver: local
+
+networks:
+  maze-wars:

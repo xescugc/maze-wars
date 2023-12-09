@@ -5,8 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"math"
-
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Object struct {
@@ -61,7 +59,7 @@ func (o Object) MDistance(c Object) float64 {
 type Step struct {
 	Object
 
-	Facing ebiten.Key
+	Facing Direction
 }
 
 func (s Step) String() string {
@@ -77,7 +75,7 @@ func (o Object) NeighborSteps() []Step {
 				X: o.X,
 				W: 1, H: 1,
 			},
-			Facing: ebiten.KeyW,
+			Facing: Up,
 		},
 
 		Step{
@@ -86,7 +84,7 @@ func (o Object) NeighborSteps() []Step {
 				X: o.X,
 				W: 1, H: 1,
 			},
-			Facing: ebiten.KeyS,
+			Facing: Down,
 		},
 
 		Step{
@@ -95,7 +93,7 @@ func (o Object) NeighborSteps() []Step {
 				Y: o.Y,
 				W: 1, H: 1,
 			},
-			Facing: ebiten.KeyA,
+			Facing: Left,
 		},
 
 		Step{
@@ -104,7 +102,7 @@ func (o Object) NeighborSteps() []Step {
 				Y: o.Y,
 				W: 1, H: 1,
 			},
-			Facing: ebiten.KeyD,
+			Facing: Right,
 		},
 	}
 }
@@ -112,7 +110,7 @@ func (o Object) NeighborSteps() []Step {
 type MovingObject struct {
 	Object
 
-	Facing      ebiten.Key
+	Facing      Direction
 	MovingCount int
 }
 

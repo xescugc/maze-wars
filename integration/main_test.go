@@ -143,7 +143,7 @@ func TestRun(t *testing.T) {
 
 	// To run the 2nd client we need to exec it locally
 	go func() {
-		cmd := exec.CommandContext(ctx, "go", "run", "..", "client", "--name", p2n)
+		cmd := exec.CommandContext(ctx, "go", "run", "../cmd/client/", "--name", p2n)
 		err = cmd.Run()
 		require.NoError(t, err)
 	}()

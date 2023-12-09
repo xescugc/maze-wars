@@ -292,7 +292,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		if !cp.CanSummonUnit(u.Unit.Type.String()) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
-		screen.DrawImage(u.Unit.Faceset.(*ebiten.Image), op)
+		screen.DrawImage(ebiten.NewImageFromImage(u.Unit.Faceset), op)
 	}
 
 	for _, t := range hst.Towers {
@@ -304,7 +304,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 			// Once the tower is selected we gray it out
 			op.ColorM.Scale(0.5, 0.5, 0.5, 0.5)
 		}
-		screen.DrawImage(t.Tower.Faceset.(*ebiten.Image), op)
+		screen.DrawImage(ebiten.NewImageFromImage(t.Tower.Faceset), op)
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -320,7 +320,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
 
-		screen.DrawImage(hst.SelectedTower.Faceset().(*ebiten.Image), op)
+		screen.DrawImage(ebiten.NewImageFromImage(hst.SelectedTower.Faceset()), op)
 	}
 
 	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer

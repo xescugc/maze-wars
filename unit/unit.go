@@ -6,7 +6,6 @@ import (
 	"image"
 	"log"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/ltw/assets"
 )
 
@@ -81,8 +80,8 @@ func init() {
 			log.Fatal(err)
 		}
 
-		u.Sprite = ebiten.NewImageFromImage(si)
-		u.Faceset = ebiten.NewImageFromImage(fi)
+		u.Sprite = si
+		u.Faceset = fi
 		u.Type = ty
 	}
 }

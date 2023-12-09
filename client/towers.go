@@ -80,7 +80,7 @@ func (ts *Towers) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(t.X-cs.X, t.Y-cs.Y)
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
-	screen.DrawImage(t.Faceset().(*ebiten.Image), op)
+	screen.DrawImage(ebiten.NewImageFromImage(t.Faceset()), op)
 
 	if t.ID == hst.TowerOpenMenuID {
 		op := &ebiten.DrawImageOptions{}

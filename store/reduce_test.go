@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/gofrs/uuid"
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/xescugc/ltw/action"
 	"github.com/xescugc/ltw/store"
@@ -68,7 +67,7 @@ func TestSummonUnit(t *testing.T) {
 					//X: units[0].X, Y: units[0].Y,
 					W: 16, H: 16,
 				},
-				Facing: ebiten.KeyS,
+				Facing: utils.Down,
 			},
 			Type:          unit.Spirit.String(),
 			PlayerID:      p.ID,
