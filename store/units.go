@@ -124,7 +124,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
 		u.HashPath = utils.HashSteps(u.Path)
 		ustate.Units[uid.String()] = u
-	case action.MoveUnit:
+	case action.TPS:
 		us.mxUnits.Lock()
 		defer us.mxUnits.Unlock()
 

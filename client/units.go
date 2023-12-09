@@ -49,7 +49,6 @@ func NewUnits(g *Game) (*Units, error) {
 }
 
 func (us *Units) Update() error {
-	actionDispatcher.MoveUnit()
 	cp := us.game.Store.Players.FindCurrent()
 
 	for _, u := range us.game.Store.Units.List() {

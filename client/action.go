@@ -40,10 +40,10 @@ func (ac *ActionDispatcher) SummonUnit(unit, pid string, plid, clid int) {
 	//ac.dispatcher.Dispatch(sua)
 }
 
-// MoveUnit moves all the units
-func (ac *ActionDispatcher) MoveUnit() {
-	mua := action.NewMoveUnit()
-	ac.dispatcher.Dispatch(mua)
+// TPS is the call for every TPS event
+func (ac *ActionDispatcher) TPS() {
+	tpsa := action.NewTPS()
+	ac.dispatcher.Dispatch(tpsa)
 }
 
 // RemoveUnit removes the unit with the id 'uid'

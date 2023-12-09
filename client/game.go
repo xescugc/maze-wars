@@ -28,6 +28,8 @@ func (g *Game) Update() error {
 	g.Units.Update()
 	g.Towers.Update()
 
+	actionDispatcher.TPS()
+
 	return nil
 }
 
