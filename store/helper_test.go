@@ -20,8 +20,8 @@ func initStore() *store.Store {
 func addPlayer(s *store.Store) store.Player {
 	sid := "sid"
 	id := uuid.Must(uuid.NewV4())
-	name := fmt.Sprintf("name-%s", id.String())
-	lid := 2
+	name := fmt.Sprintf("name-%d", len(s.Players.List()))
+	lid := len(s.Players.List())
 	ws := &websocket.Conn{}
 	ra := "localhost"
 	s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws, ra))
@@ -30,8 +30,7 @@ func addPlayer(s *store.Store) store.Player {
 }
 
 func summonUnit(s *store.Store, p store.Player) (store.Player, store.Unit) {
-	clid := 2
-	s.Dispatch(action.NewSummonUnit(unit.Spirit.String(), p.ID, p.LineID, clid))
+	s.Dispatch(action.NewSummonUnit(unit.Spirit.String(), p.ID, p.LineID, p.LineID))
 
 	// We know the Summon does this and as 'p' is not a pointer
 	// we need to do it manually

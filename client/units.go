@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 
@@ -52,7 +53,7 @@ func (us *Units) Update() error {
 	cp := us.game.Store.Players.FindCurrent()
 
 	for _, u := range us.game.Store.Units.List() {
-		// Only do the events as the owern of the unit if not the actionDispatcher
+		// Only do the events as the owner of the unit if not the actionDispatcher
 		// will also dispatch it to the server and the event will be done len(players)
 		// amount of times
 		if cp.ID == u.PlayerID {
@@ -66,12 +67,11 @@ func (us *Units) Update() error {
 				p := us.game.Store.Players.FindByLineID(u.CurrentLineID)
 				actionDispatcher.StealLive(p.ID, u.PlayerID)
 				nlid := us.game.Store.Map.GetNextLineID(u.CurrentLineID)
+				fmt.Println(u.PlayerLineID, u.CurrentLineID, nlid)
 				if nlid == u.PlayerLineID {
 					actionDispatcher.RemoveUnit(u.ID)
 				} else {
-					// TODO: Send to next line
-					// this will need to be done once
-					// we add more than 2 players
+					actionDispatcher.ChangeUnitLine(u.ID)
 				}
 			}
 		}

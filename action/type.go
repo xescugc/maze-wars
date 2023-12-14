@@ -28,6 +28,7 @@ const (
 	CloseTowerMenu
 	GoHome
 	CheckedPath
+	ChangeUnitLine
 
 	// Specific to WS
 	JoinRoom
