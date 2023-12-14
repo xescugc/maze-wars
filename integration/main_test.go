@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/client"
-	"github.com/xescugc/ltw/mock"
-	"github.com/xescugc/ltw/server"
-	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/client"
+	"github.com/xescugc/maze-wars/mock"
+	"github.com/xescugc/maze-wars/server"
+	"github.com/xescugc/maze-wars/store"
 )
 
 //"github.com/stretchr/testify/assert"

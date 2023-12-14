@@ -2,7 +2,7 @@ package store
 
 import (
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/maze-wars/action"
 )
 
 type Store struct {

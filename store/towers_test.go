@@ -5,10 +5,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/store"
-	"github.com/xescugc/ltw/tower"
-	"github.com/xescugc/ltw/utils"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/tower"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 func TestNewTowers(t *testing.T) {

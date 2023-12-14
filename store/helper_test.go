@@ -5,10 +5,10 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/store"
-	"github.com/xescugc/ltw/tower"
-	"github.com/xescugc/ltw/unit"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/tower"
+	"github.com/xescugc/maze-wars/unit"
 	"nhooyr.io/websocket"
 )
 

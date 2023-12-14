@@ -1,4 +1,4 @@
-module github.com/xescugc/ltw
+module github.com/xescugc/maze-wars
 
 go 1.21
 

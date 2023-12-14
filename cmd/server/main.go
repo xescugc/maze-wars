@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/server"
+	"github.com/xescugc/maze-wars/server"
 )
 
 var (

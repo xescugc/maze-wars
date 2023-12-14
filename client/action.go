@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/maze-wars/action"
 )
 
 // ActionDispatcher is in charge of dispatching actions to the

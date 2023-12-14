@@ -6,7 +6,7 @@ import (
 	"image"
 	"log"
 
-	"github.com/xescugc/ltw/assets"
+	"github.com/xescugc/maze-wars/assets"
 )
 
 type Unit struct {

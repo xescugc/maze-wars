@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/assets"
-	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/assets"
+	"github.com/xescugc/maze-wars/store"
 )
 
 func TestNewMap(t *testing.T) {

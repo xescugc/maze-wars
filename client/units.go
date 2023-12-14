@@ -7,10 +7,10 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/ltw/assets"
-	"github.com/xescugc/ltw/store"
-	"github.com/xescugc/ltw/unit"
-	"github.com/xescugc/ltw/utils"
+	"github.com/xescugc/maze-wars/assets"
+	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/unit"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type Units struct {

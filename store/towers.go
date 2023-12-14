@@ -6,9 +6,9 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/tower"
-	"github.com/xescugc/ltw/utils"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/tower"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type Towers struct {

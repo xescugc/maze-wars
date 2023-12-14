@@ -4,7 +4,7 @@ import (
 	"container/heap"
 	"fmt"
 
-	"github.com/xescugc/ltw/utils"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 // stepMap is a collection of steps for quick reference

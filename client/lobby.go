@@ -9,11 +9,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/assets"
-	"github.com/xescugc/ltw/inputer"
-	"github.com/xescugc/ltw/store"
-	"github.com/xescugc/ltw/utils"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/assets"
+	"github.com/xescugc/maze-wars/inputer"
+	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type LobbyStore struct {

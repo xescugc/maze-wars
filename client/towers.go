@@ -5,9 +5,9 @@ import (
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/ltw/assets"
-	"github.com/xescugc/ltw/store"
-	"github.com/xescugc/ltw/tower"
+	"github.com/xescugc/maze-wars/assets"
+	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/tower"
 )
 
 type Towers struct {

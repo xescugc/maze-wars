@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/maze-wars/store"
 )
 
 func TestNewStore(t *testing.T) {
