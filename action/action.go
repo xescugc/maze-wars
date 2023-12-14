@@ -1,7 +1,7 @@
 package action
 
 import (
-	"github.com/xescugc/ltw/utils"
+	"github.com/xescugc/maze-wars/utils"
 	"nhooyr.io/websocket"
 )
 

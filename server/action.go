@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/store"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )

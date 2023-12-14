@@ -4,7 +4,7 @@ import (
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/maze-wars/store"
 )
 
 // Game is the main struct that is the initializer

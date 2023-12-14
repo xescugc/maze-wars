@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/assets"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/assets"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 	"nhooyr.io/websocket"
@@ -58,7 +58,7 @@ func init() {
 }
 
 func New(ctx context.Context, ad *ActionDispatcher, rs *RouterStore, opt Options) error {
-	ebiten.SetWindowTitle("LTW")
+	ebiten.SetWindowTitle("Maze Wars")
 	ebiten.SetWindowSize(opt.ScreenW*2, opt.ScreenH*2)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 

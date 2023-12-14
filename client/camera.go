@@ -3,9 +3,9 @@ package client
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/store"
-	"github.com/xescugc/ltw/utils"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 // CameraStore is in charge of what it's seen
@@ -54,7 +54,7 @@ func NewCameraStore(d *flux.Dispatcher, s *store.Store, w, h int) *CameraStore {
 }
 
 func (cs *CameraStore) Update() error {
-	// TODO: https://github.com/xescugc/ltw/issues/4
+	// TODO: https://github.com/xescugc/maze-wars/issues/4
 	//s := cs.GetState().(CameraState)
 	//if _, wy := ebiten.Wheel(); wy != 0 {
 	//fmt.Println(s.Zoom)

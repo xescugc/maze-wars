@@ -14,9 +14,9 @@ import (
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 
-	"github.com/xescugc/ltw/action"
-	"github.com/xescugc/ltw/server/assets"
-	"github.com/xescugc/ltw/server/templates"
+	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/server/assets"
+	"github.com/xescugc/maze-wars/server/templates"
 )
 
 var (

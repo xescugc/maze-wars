@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/maze-wars/store"
 )
 
 type Game struct {

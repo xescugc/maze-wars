@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/action"
+	"github.com/xescugc/maze-wars/action"
 )
 
 // LoggerStore is a logger store in charge of logging all the actions

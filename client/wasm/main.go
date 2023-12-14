@@ -9,9 +9,9 @@ import (
 	"syscall/js"
 
 	"github.com/xescugc/go-flux"
-	"github.com/xescugc/ltw/client"
-	"github.com/xescugc/ltw/inputer"
-	"github.com/xescugc/ltw/store"
+	"github.com/xescugc/maze-wars/client"
+	"github.com/xescugc/maze-wars/inputer"
+	"github.com/xescugc/maze-wars/store"
 )
 
 func main() {
