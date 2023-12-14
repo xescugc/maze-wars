@@ -1,7 +1,8 @@
 package client
 
 import (
-	"github.com/davecgh/go-spew/spew"
+	"fmt"
+
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/ltw/action"
 )
@@ -30,8 +31,8 @@ func (ss *LoggerStore) Reduce(cstate, a interface{}) interface{} {
 	if act.Type == action.TPS {
 		return cstate
 	}
-	// Prints all the action types
-	spew.Dump(act)
+
+	fmt.Println(act.Type)
 
 	return cstate
 }

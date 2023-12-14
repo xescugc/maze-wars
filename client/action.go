@@ -149,6 +149,7 @@ func (ac *ActionDispatcher) NavigateTo(route string) {
 // used to update any store before that
 func (ac *ActionDispatcher) StartGame() {
 	sg := action.NewStartGame()
+	wsSend(sg)
 	ac.dispatcher.Dispatch(sg)
 }
 
@@ -175,4 +176,11 @@ func (ac *ActionDispatcher) GoHome() {
 func (ac *ActionDispatcher) CheckedPath(cp bool) {
 	cpa := action.NewCheckedPath(cp)
 	ac.dispatcher.Dispatch(cpa)
+}
+
+// ChangeUnitLine will move the unit to the next line
+func (ac *ActionDispatcher) ChangeUnitLine(uid string) {
+	cula := action.NewChangeUnitLine(uid)
+	wsSend(cula)
+	ac.dispatcher.Dispatch(cula)
 }

@@ -18,6 +18,7 @@ var (
 	hostURL string
 	screenW int
 	screenH int
+	verbose bool
 
 	clientCmd = &cobra.Command{
 		Use: "client",
@@ -25,6 +26,9 @@ var (
 			var err error
 
 			d := flux.NewDispatcher()
+			if verbose {
+				client.NewLoggerStore(d)
+			}
 			ad := client.NewActionDispatcher(d)
 
 			s := store.NewStore(d)
@@ -79,6 +83,7 @@ func init() {
 	clientCmd.Flags().StringVar(&name, "name", "john doe", "The name of the client")
 	clientCmd.Flags().IntVar(&screenW, "screenw", 288, "The default width of the screen when not full screen")
 	clientCmd.Flags().IntVar(&screenH, "screenh", 240, "The default height of the screen when not full screen")
+	clientCmd.Flags().BoolVar(&verbose, "verbose", false, "Logs information of the running client")
 }
 
 func main() {

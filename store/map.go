@@ -80,12 +80,6 @@ func (m *Map) GetY() int { return m.GetState().(MapState).Image.Bounds().Dy() }
 // then starts again
 func (m *Map) GetNextLineID(clid int) int {
 	clid += 1
-	// For now as we only have 2 players
-	// 0 is for player 1 and 1 for player 2
-	// so anything higher that 1 has to go back
-	// to 0
-	// This should change depending on the
-	// number of players on the game
 	if clid > (m.GetState().(MapState).Players - 1) {
 		clid = 0
 	}

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"image"
 	"sync"
 
@@ -163,6 +164,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 				}
 
 				u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+				u.HashPath = utils.HashSteps(u.Path)
 			}
 		}
 	case action.RemoveTower:
@@ -185,6 +187,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 				}
 
 				u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+				u.HashPath = utils.HashSteps(u.Path)
 			}
 		}
 	case action.RemoveUnit:
@@ -213,6 +216,29 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 				delete(ustate.Units, id)
 			}
 		}
+	case action.ChangeUnitLine:
+		us.mxUnits.Lock()
+		defer us.mxUnits.Unlock()
+
+		u, ok := ustate.Units[act.ChangeUnitLine.UnitID]
+		if !ok {
+			break
+		}
+
+		fmt.Println("before", u.CurrentLineID)
+		u.CurrentLineID = us.store.Map.GetNextLineID(u.CurrentLineID)
+		fmt.Println("after", u.CurrentLineID)
+		u.X, u.Y = us.store.Map.GetRandomSpawnCoordinatesForLineID(u.CurrentLineID)
+
+		ts := us.store.Towers.List()
+		tws := make([]utils.Object, 0, 0)
+		for _, t := range ts {
+			if t.LineID == u.CurrentLineID {
+				tws = append(tws, t.Object)
+			}
+		}
+		u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+		u.HashPath = utils.HashSteps(u.Path)
 	case action.UpdateState:
 		us.mxUnits.Lock()
 		defer us.mxUnits.Unlock()

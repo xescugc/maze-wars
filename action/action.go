@@ -12,6 +12,7 @@ type Action struct {
 	CursorMove           *CursorMovePayload           `json:"cursor_move,omitempty"`
 	SummonUnit           *SummonUnitPayload           `json:"summon_unit,omitempty"`
 	RemoveUnit           *RemoveUnitPayload           `json:"remove_unit,omitempty"`
+	ChangeUnitLine       *ChangeUnitLinePayload       `json:"change_unit_line,omitempty"`
 	StealLive            *StealLivePayload            `json:"steal_live,omitempty"`
 	CameraZoom           *CameraZoomPayload           `json:"camera_zoom,omitempty"`
 	SelectTower          *SelectTowerPayload          `json:"select_tower,omitempty"`
@@ -82,6 +83,19 @@ func NewRemoveUnit(uid string) *Action {
 	return &Action{
 		Type: RemoveUnit,
 		RemoveUnit: &RemoveUnitPayload{
+			UnitID: uid,
+		},
+	}
+}
+
+type ChangeUnitLinePayload struct {
+	UnitID string
+}
+
+func NewChangeUnitLine(uid string) *Action {
+	return &Action{
+		Type: ChangeUnitLine,
+		ChangeUnitLine: &ChangeUnitLinePayload{
 			UnitID: uid,
 		},
 	}

@@ -44,7 +44,7 @@ var (
 )
 
 func TestActions(t *testing.T) {
-	assert.Len(t, action.TypeValues(), 27, "This is a hard check to remember that if a new action Type is added it should also have a test on this file")
+	assert.Len(t, action.TypeValues(), 28, "This is a hard check to remember that if a new action Type is added it should also have a test on this file")
 }
 
 func TestEmpty(t *testing.T) {
@@ -56,7 +56,7 @@ func TestSummonUnit(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
-		clid := 2
+		clid := 0
 
 		eu := &store.Unit{
 			// As the ID is a UUID we cannot guess it
@@ -104,7 +104,7 @@ func TestSummonUnit(t *testing.T) {
 	t.Run("Do not reach negative gold", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
-		clid := 2
+		clid := 0
 
 		// We start with 40 gold, each Spirit
 		// takes 10 gold so with that we can only
@@ -281,6 +281,8 @@ func TestPlaceTower(t *testing.T) {
 		ts.Towers[tw.ID] = &tw
 
 		u.Path = s.Units.Astar(s.Map, u.CurrentLineID, u.MovingObject, []utils.Object{tw.Object})
+		u.HashPath = utils.HashSteps(u.Path)
+
 		us := unitsInitialState()
 		us.Units[u.ID] = &u
 
@@ -457,6 +459,44 @@ func TestRemovePlayer(t *testing.T) {
 		s.Dispatch(action.NewRemovePlayer("room", p.ID))
 
 		equalStore(t, s)
+	})
+}
+
+func TestChangeUnitLine(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		s := initStore()
+		p1 := addPlayer(s)
+		p2 := addPlayer(s)
+		p3 := addPlayer(s)
+		p1, u1 := summonUnit(s, p1)
+
+		s.Dispatch(action.NewPlayerReady(p1.ID))
+		s.Dispatch(action.NewPlayerReady(p2.ID))
+		s.Dispatch(action.NewPlayerReady(p3.ID))
+		s.Dispatch(action.NewStartGame())
+		s.Dispatch(action.NewChangeUnitLine(u1.ID))
+
+		p1.Ready, p2.Ready, p3.Ready = true, true, true
+
+		ps := playersInitialState()
+		ps.Players[p1.ID] = &p1
+		ps.Players[p2.ID] = &p2
+		ps.Players[p3.ID] = &p3
+
+		u1.CurrentLineID += 1
+
+		units := s.Units.List()
+		// As this are random assigned we cannot expect them
+		u1.X, u1.Y = units[0].X, units[0].Y
+
+		// We need to set the path after the X, Y are set
+		u1.Path = s.Units.Astar(s.Map, u1.CurrentLineID, u1.MovingObject, nil)
+		u1.HashPath = utils.HashSteps(u1.Path)
+
+		us := unitsInitialState()
+		us.Units[u1.ID] = &u1
+
+		equalStore(t, s, us, ps)
 	})
 }
 
