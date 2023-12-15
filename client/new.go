@@ -36,7 +36,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 
 	// Initialize Font
-	tt, err := opentype.Parse(assets.NormalFont_ttf)
+	tt, err := opentype.Parse(assets.Kongtext_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,6 +55,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 }
 
 func New(ctx context.Context, ad *ActionDispatcher, rs *RouterStore, opt Options) error {

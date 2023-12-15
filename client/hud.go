@@ -7,6 +7,8 @@ import (
 	"image/color"
 	"math"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
@@ -323,19 +325,58 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		screen.DrawImage(ebiten.NewImageFromImage(hst.SelectedTower.Faceset()), op)
 	}
 
+	// To make the table for the players more readable we are gonna make a table,
+	// the table will have headers and here I'm gonna put the characters each one
+	// will have from left to right:
+	// * -Space-: 2 "|\s"
+	// * Name: 20
+	// * -Space-: 3 "\s|\s"
+	// * Lives: 8
+	// * -Space-: 3 "\s|\s"
+	// * Gold: 8
+	// * -Space-: 3 "\s|\s"
+	// * Income: 8
+	// * -Space-: 2 "\s|"
+	// Total of 57
 	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
 	players := hs.game.Store.Players.List()
-	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), smallFont, 0, 15, color.White)
-	var pcount = 2
+	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), smallFont, 0, 16, color.White)
+	var pcount = 4
 	var sortedPlayers = make([]*store.Player, 0, 0)
 	for _, p := range players {
 		sortedPlayers = append(sortedPlayers, p)
 	}
 	sort.Slice(sortedPlayers, func(i, j int) bool { return sortedPlayers[i].LineID < sortedPlayers[j].LineID })
+	text.Draw(screen, "---------------------------------------------------------", smallFont, 0, 32, color.White)
+	text.Draw(screen, "| Name                 | Lives    | Gold     | Income   |", smallFont, 0, 48, color.White)
 	for _, p := range sortedPlayers {
-		text.Draw(screen, fmt.Sprintf("Name: %s, Lives: %d, Gold: %d, Income: %d", p.Name, p.Lives, p.Gold, p.Income), smallFont, 0, 15*pcount, color.White)
+		var c color.Color = color.White
+		if p.ID == cp.ID {
+			c = green
+		}
+		text.Draw(screen, fmt.Sprintf(
+			"| %s | %s | %s | %s |",
+			fillIn(p.Name, 20),
+			fillIn(strconv.Itoa(p.Lives), 8),
+			fillIn(strconv.Itoa(p.Gold), 8),
+			fillIn(strconv.Itoa(p.Income), 8),
+		), smallFont, 0, 16*pcount, c)
 		pcount++
 	}
+	text.Draw(screen, "_________________________________________________________", smallFont, 0, 16*pcount, color.White)
+}
+
+func fillIn(s string, l int) string {
+	ss := make([]string, l, l)
+	for i, v := range s {
+		ss[i] = string(v)
+	}
+	for i, v := range ss {
+		if string(v) == "" {
+			ss[i] = " "
+		}
+	}
+	return strings.Join(ss, "")
 }
 
 func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
