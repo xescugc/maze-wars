@@ -105,8 +105,8 @@ var Towers_json []byte
 //go:embed units.json
 var Units_json []byte
 
-//go:embed NormalFont.ttf
-var NormalFont_ttf []byte
+//go:embed kongtext.ttf
+var Kongtext_ttf []byte
 
 //go:embed LifeBarMiniProgress.png
 var LifeBarMiniProgress_png []byte
