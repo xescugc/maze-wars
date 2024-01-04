@@ -1,21 +1,32 @@
 package client
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	"nhooyr.io/websocket"
+	"nhooyr.io/websocket/wsjson"
 )
 
 // ActionDispatcher is in charge of dispatching actions to the
 // application dispatcher
 type ActionDispatcher struct {
 	dispatcher *flux.Dispatcher
+	opt        Options
 }
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
-func NewActionDispatcher(d *flux.Dispatcher) *ActionDispatcher {
+func NewActionDispatcher(d *flux.Dispatcher, opt Options) *ActionDispatcher {
 	return &ActionDispatcher{
 		dispatcher: d,
+		opt:        opt,
 	}
 }
 
@@ -132,13 +143,6 @@ func (ac *ActionDispatcher) WindowResizing(w, h int) {
 	ac.dispatcher.Dispatch(wr)
 }
 
-// JoinRoom new sizes of the window
-func (ac *ActionDispatcher) JoinRoom(room, name string) {
-	jr := action.NewJoinRoom(room, name)
-	wsSend(jr)
-	ac.dispatcher.Dispatch(jr)
-}
-
 // NavigateTo navigates to the given route
 func (ac *ActionDispatcher) NavigateTo(route string) {
 	nt := action.NewNavigateTo(route)
@@ -147,8 +151,8 @@ func (ac *ActionDispatcher) NavigateTo(route string) {
 
 // StartGame notifies that the game will start,
 // used to update any store before that
-func (ac *ActionDispatcher) StartGame() {
-	sg := action.NewStartGame()
+func (ac *ActionDispatcher) StartGame(r string) {
+	sg := action.NewStartGame(r)
 	wsSend(sg)
 	ac.dispatcher.Dispatch(sg)
 }
@@ -183,4 +187,65 @@ func (ac *ActionDispatcher) ChangeUnitLine(uid string) {
 	cula := action.NewChangeUnitLine(uid)
 	wsSend(cula)
 	ac.dispatcher.Dispatch(cula)
+}
+
+func (ac *ActionDispatcher) SignUpSubmit(un string) {
+	httpu := url.URL{Scheme: "http", Host: ac.opt.HostURL, Path: "/users"}
+	resp, err := http.Post(httpu.String(), "application/json", bytes.NewBuffer([]byte(fmt.Sprintf(`{"username":"%s"}`, un))))
+	if err != nil {
+		ac.dispatcher.Dispatch(action.NewSignUpError(err.Error()))
+		return
+	}
+	body := struct {
+		Error string `json:"error"`
+	}{}
+	if resp.StatusCode != http.StatusCreated {
+		err = json.NewDecoder(resp.Body).Decode(&body)
+		if err != nil {
+			ac.dispatcher.Dispatch(action.NewSignUpError(err.Error()))
+			return
+		}
+		ac.dispatcher.Dispatch(action.NewSignUpError(body.Error))
+		return
+	}
+
+	ac.dispatcher.Dispatch(action.NewSignUpError(""))
+
+	ctx := context.Background()
+
+	// Establish connection
+	wsu := url.URL{Scheme: "ws", Host: ac.opt.HostURL, Path: "/ws"}
+
+	wsc, _, err = websocket.Dial(ctx, wsu.String(), nil)
+	if err != nil {
+		panic(fmt.Errorf("failed to dial the server %q: %w", wsu.String(), err))
+	}
+
+	wsc.SetReadLimit(-1)
+
+	usia := action.NewUserSignIn(un)
+	err = wsjson.Write(ctx, wsc, usia)
+	if err != nil {
+		panic(fmt.Errorf("failed to write JSON: %w", err))
+	}
+
+	ac.dispatcher.Dispatch(usia)
+
+	go wsHandler(ctx)
+
+	ac.dispatcher.Dispatch(action.NewNavigateTo(LobbyRoute))
+}
+
+func (ac *ActionDispatcher) JoinWaitingRoom(un string) {
+	jwra := action.NewJoinWaitingRoom(un)
+	wsSend(jwra)
+
+	ac.dispatcher.Dispatch(action.NewNavigateTo(WaitingRoomRoute))
+}
+
+func (ac *ActionDispatcher) ExitWaitingRoom(un string) {
+	ewra := action.NewExitWaitingRoom(un)
+	wsSend(ewra)
+
+	ac.dispatcher.Dispatch(action.NewNavigateTo(LobbyRoute))
 }

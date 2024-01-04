@@ -33,9 +33,7 @@
     const urlParams = new URLSearchParams(currentUrl.search);
 
     const host = currentUrl.host
-    const room = currentUrl.pathname.split("/")[2]
-    const name = urlParams.get("name")
-    const err = new_client(host, room, name);
+    const err = new_client(host);
     if (err != null) {
       console.log("error",err)
     }

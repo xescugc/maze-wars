@@ -29,10 +29,18 @@ const (
 	GoHome
 	CheckedPath
 	ChangeUnitLine
+	SignUpError
+	UserSignUp
+	UserSignIn
+	UserSignOut
+	JoinWaitingRoom
+	ExitWaitingRoom
 
 	// Specific to WS
-	JoinRoom
 	AddPlayer
 	RemovePlayer
 	UpdateState
+	UpdateUsers
+	WaitRoomCountdownTick
+	SyncWaitingRoom
 )

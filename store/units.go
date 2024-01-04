@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"image"
 	"sync"
 
@@ -225,9 +224,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 			break
 		}
 
-		fmt.Println("before", u.CurrentLineID)
 		u.CurrentLineID = us.store.Map.GetNextLineID(u.CurrentLineID)
-		fmt.Println("after", u.CurrentLineID)
 		u.X, u.Y = us.store.Map.GetRandomSpawnCoordinatesForLineID(u.CurrentLineID)
 
 		ts := us.store.Towers.List()

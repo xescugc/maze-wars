@@ -7,7 +7,6 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
-	"nhooyr.io/websocket"
 )
 
 func TestNewPlayers(t *testing.T) {
@@ -26,14 +25,12 @@ func TestPlayers_List(t *testing.T) {
 	d := flux.NewDispatcher()
 	st := store.NewStore(d)
 	ps := store.NewPlayers(d, st)
-	sid := "sid"
+
 	id := "id"
 	name := "name"
 	lid := 2
-	ws := &websocket.Conn{}
-	ra := "localhost"
 	// To have any player we have to add it first
-	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws, ra))
+	d.Dispatch(action.NewAddPlayer(id, name, lid))
 
 	playes := ps.List()
 	eplayers := []*store.Player{
@@ -54,14 +51,11 @@ func TestPlayers_FindCurrent(t *testing.T) {
 	d := flux.NewDispatcher()
 	st := store.NewStore(d)
 	ps := store.NewPlayers(d, st)
-	sid := "sid"
 	id := "id"
 	name := "name"
 	lid := 2
-	ws := &websocket.Conn{}
-	ra := "localhost"
 	// To have any player we have to add it first
-	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws, ra))
+	d.Dispatch(action.NewAddPlayer(id, name, lid))
 
 	cp := ps.FindCurrent()
 
@@ -91,14 +85,11 @@ func TestPlayers_FindByID(t *testing.T) {
 	d := flux.NewDispatcher()
 	st := store.NewStore(d)
 	ps := store.NewPlayers(d, st)
-	sid := "sid"
 	id := "id"
 	name := "name"
 	lid := 2
-	ws := &websocket.Conn{}
-	ra := "localhost"
 	// To have any player we have to add it first
-	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws, ra))
+	d.Dispatch(action.NewAddPlayer(id, name, lid))
 
 	cp := ps.FindByID("none")
 
@@ -121,14 +112,11 @@ func TestPlayers_FindByLineID(t *testing.T) {
 	d := flux.NewDispatcher()
 	st := store.NewStore(d)
 	ps := store.NewPlayers(d, st)
-	sid := "sid"
 	id := "id"
 	name := "name"
 	lid := 2
-	ws := &websocket.Conn{}
-	ra := "localhost"
 	// To have any player we have to add it first
-	d.Dispatch(action.NewAddPlayer(sid, id, name, lid, ws, ra))
+	d.Dispatch(action.NewAddPlayer(id, name, lid))
 
 	cp := ps.FindByLineID(99)
 

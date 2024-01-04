@@ -5,7 +5,6 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.maze-wars.dev
     ports:
-      #- '5555:5555'
-      - '4000:4000'
+      - '5555:5555'
     environment:
-      - PORT=4000
+      - PORT=5555

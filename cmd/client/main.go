@@ -13,8 +13,6 @@ import (
 )
 
 var (
-	room    string
-	name    string
 	hostURL string
 	screenW int
 	screenH int
@@ -24,12 +22,17 @@ var (
 		Use: "client",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
+			opt := client.Options{
+				HostURL: hostURL,
+				ScreenW: screenW,
+				ScreenH: screenH,
+			}
 
 			d := flux.NewDispatcher()
 			if verbose {
 				client.NewLoggerStore(d)
 			}
-			ad := client.NewActionDispatcher(d)
+			ad := client.NewActionDispatcher(d, opt)
 
 			s := store.NewStore(d)
 
@@ -57,20 +60,24 @@ var (
 				return fmt.Errorf("failed to initialize HUDStore: %w", err)
 			}
 
-			l, err := client.NewLobbyStore(d, i, s, cs)
+			us := client.NewUserStore(d)
+			cls := client.NewStore(s, us)
+
+			l, err := client.NewLobbyStore(d, i, cls)
 			if err != nil {
 				return fmt.Errorf("failed to initialize LobbyStore: %w", err)
 			}
-			rs := client.NewRouterStore(d, g, l)
+
+			su, err := client.NewSignUpStore(d, i, s)
+			if err != nil {
+				return fmt.Errorf("failed to initial SignUpStore: %w", err)
+			}
+			wr := client.NewWaitingRoomStore(d, cls)
+
+			rs := client.NewRouterStore(d, su, l, wr, g)
 			ctx := context.Background()
 
-			err = client.New(ctx, ad, rs, client.Options{
-				HostURL: hostURL,
-				Room:    room,
-				Name:    name,
-				ScreenW: screenW,
-				ScreenH: screenH,
-			})
+			err = client.New(ctx, ad, rs, opt)
 
 			return err
 		},
@@ -79,8 +86,6 @@ var (
 
 func init() {
 	clientCmd.Flags().StringVar(&hostURL, "port", "localhost:5555", "The URL of the server")
-	clientCmd.Flags().StringVar(&room, "room", "room", "The room name to join")
-	clientCmd.Flags().StringVar(&name, "name", "john doe", "The name of the client")
 	clientCmd.Flags().IntVar(&screenW, "screenw", 288, "The default width of the screen when not full screen")
 	clientCmd.Flags().IntVar(&screenH, "screenh", 240, "The default height of the screen when not full screen")
 	clientCmd.Flags().BoolVar(&verbose, "verbose", false, "Logs information of the running client")

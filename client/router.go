@@ -7,30 +7,35 @@ import (
 )
 
 const (
-	LobbyRoute = "lobby"
-	GameRoute  = "game"
+	SignUpRoute      = "sign_up"
+	LobbyRoute       = "lobby"
+	GameRoute        = "game"
+	WaitingRoomRoute = "waiting_room"
 )
 
 type RouterStore struct {
 	*flux.ReduceStore
 
-	game  *Game
-	lobby *LobbyStore
+	game        *Game
+	lobby       *LobbyStore
+	signUp      *SignUpStore
+	waitingRoom *WaitingRoomStore
 }
 
 type RouterState struct {
 	Route string
 }
 
-func NewRouterStore(d *flux.Dispatcher, g *Game, l *LobbyStore) *RouterStore {
+func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, l *LobbyStore, wr *WaitingRoomStore, g *Game) *RouterStore {
 	rs := &RouterStore{
-		game:  g,
-		lobby: l,
+		game:        g,
+		lobby:       l,
+		signUp:      su,
+		waitingRoom: wr,
 	}
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RouterState{
-		Route: LobbyRoute,
-		//Route: GameRoute,
+		Route: SignUpRoute,
 	})
 
 	return rs
@@ -39,8 +44,12 @@ func NewRouterStore(d *flux.Dispatcher, g *Game, l *LobbyStore) *RouterStore {
 func (rs *RouterStore) Update() error {
 	rstate := rs.GetState().(RouterState)
 	switch rstate.Route {
+	case SignUpRoute:
+		rs.signUp.Update()
 	case LobbyRoute:
 		rs.lobby.Update()
+	case WaitingRoomRoute:
+		rs.waitingRoom.Update()
 	case GameRoute:
 		rs.game.Update()
 	}
@@ -50,8 +59,12 @@ func (rs *RouterStore) Update() error {
 func (rs *RouterStore) Draw(screen *ebiten.Image) {
 	rstate := rs.GetState().(RouterState)
 	switch rstate.Route {
+	case SignUpRoute:
+		rs.signUp.Draw(screen)
 	case LobbyRoute:
 		rs.lobby.Draw(screen)
+	case WaitingRoomRoute:
+		rs.waitingRoom.Draw(screen)
 	case GameRoute:
 		rs.game.Draw(screen)
 	}
@@ -79,6 +92,8 @@ func (rs *RouterStore) Reduce(state, a interface{}) interface{} {
 	switch act.Type {
 	case action.NavigateTo:
 		rstate.Route = act.NavigateTo.Route
+	case action.StartGame:
+		rstate.Route = GameRoute
 	}
 
 	return rstate

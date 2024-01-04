@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net/url"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -26,10 +25,6 @@ var (
 
 	normalFont font.Face
 	smallFont  font.Face
-
-	// TODO: Remove this global when we can specify
-	// the room from the client
-	room string
 )
 
 func init() {
@@ -45,12 +40,12 @@ func init() {
 	normalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    24,
 		DPI:     dpi,
-		Hinting: font.HintingVertical,
+		Hinting: font.HintingFull,
 	})
 	smallFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    16,
 		DPI:     dpi,
-		Hinting: font.HintingVertical,
+		Hinting: font.HintingFull,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -64,37 +59,17 @@ func New(ctx context.Context, ad *ActionDispatcher, rs *RouterStore, opt Options
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	actionDispatcher = ad
-	room = opt.Room
 
-	// Establish connection
-	u := url.URL{Scheme: "ws", Host: opt.HostURL, Path: "/ws"}
-
-	var err error
-
-	wsc, _, err = websocket.Dial(ctx, u.String(), nil)
-	if err != nil {
-		return fmt.Errorf("failed to dial the server %q: %w", u.String(), err)
-	}
-
-	wsc.SetReadLimit(-1)
-
-	err = wsjson.Write(ctx, wsc, action.NewJoinRoom(opt.Room, opt.Name))
-	if err != nil {
-		return fmt.Errorf("failed to write JSON: %w", err)
-	}
-	defer wsc.CloseNow()
-
-	go wsHandler(ctx)
-
-	err = ebiten.RunGame(rs)
+	err := ebiten.RunGame(rs)
 	if err != nil {
 		return fmt.Errorf("failed to RunGame: %w", err)
 	}
 
-	return nil
-}
+	if wsc != nil {
+		wsc.CloseNow()
+	}
 
-func run(ctx context.Context, rs *RouterStore, u string, opt Options) {
+	return nil
 }
 
 func wsHandler(ctx context.Context) {
@@ -111,7 +86,7 @@ func wsHandler(ctx context.Context) {
 }
 
 func wsSend(a *action.Action) {
-	a.Room = room
+	// TODO: ADD THE ROOM
 	err := wsjson.Write(context.Background(), wsc, a)
 	if err != nil {
 		log.Fatal(err)

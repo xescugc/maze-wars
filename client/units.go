@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"image/color"
 
@@ -67,7 +66,6 @@ func (us *Units) Update() error {
 				p := us.game.Store.Players.FindByLineID(u.CurrentLineID)
 				actionDispatcher.StealLive(p.ID, u.PlayerID)
 				nlid := us.game.Store.Map.GetNextLineID(u.CurrentLineID)
-				fmt.Println(u.PlayerLineID, u.CurrentLineID, nlid)
 				if nlid == u.PlayerLineID {
 					actionDispatcher.RemoveUnit(u.ID)
 				} else {

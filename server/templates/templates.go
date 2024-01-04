@@ -16,7 +16,7 @@ const (
 var (
 	layoutsDir = filepath.Join(viewsDir, "layouts")
 
-	//go:embed views/layouts/* views/home/* views/game/* views/rooms/*
+	//go:embed views/layouts/* views/home/* views/game/*
 	files embed.FS
 
 	// Templates is the cache of all the templates we have
