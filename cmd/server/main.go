@@ -15,11 +15,16 @@ var (
 	serverCmd = &cobra.Command{
 		Use: "server",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ss := &server.Store{}
 			d := flux.NewDispatcher()
-			ad := server.NewActionDispatcher(d)
-			rooms := server.NewRoomsStore(d)
+			ad := server.NewActionDispatcher(d, ss)
+			rooms := server.NewRoomsStore(d, ss)
+			users := server.NewUsersStore(d)
 
-			err := server.New(ad, rooms, server.Options{
+			ss.Rooms = rooms
+			ss.Users = users
+
+			err := server.New(ad, ss, server.Options{
 				Port: viper.GetString("port"),
 			})
 			if err != nil {

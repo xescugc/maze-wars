@@ -1,0 +1,35 @@
+{{template "main" .}}
+{{define "title" }}
+  Maze Wars - Play
+{{ end }}
+{{define "content"}}
+  <div class="px-3">
+		<p class ="lead">
+			Some text related to the game
+		</p>
+		<iframe id="iframe" src="/game" width="580" height="480" scrolling="no"></iframe>
+    <button id="fullscreen" class="btn btn-lg btn-light fw-bold border-white bg-white">Full Screen</a>
+	</div>
+  <script>
+    var fullscreen = "fullscreen"
+    var btn = document.getElementById(fullscreen);
+    var iframe = document.getElementById("iframe");
+
+    // Even if in fullscreen the button cannot be seen
+    // we'll keep the logic to make it add/remove the
+    // class
+    btn.onclick = function(event) {
+      if (iframe.classList.contains(fullscreen)) {
+        iframe.classList.remove(fullscreen)
+      } else {
+        iframe.classList.add(fullscreen)
+      }
+    };
+    document.addEventListener("keydown", function (e) {
+      e = e || window.event;
+      if (e.key === "Escape") {
+        iframe.classList.remove(fullscreen)
+      }
+    });
+  </script>
+{{ end}}

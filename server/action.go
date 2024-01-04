@@ -7,7 +7,6 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
-	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
 
@@ -15,25 +14,52 @@ import (
 // application dispatcher
 type ActionDispatcher struct {
 	dispatcher *flux.Dispatcher
+	store      *Store
 }
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
-func NewActionDispatcher(d *flux.Dispatcher) *ActionDispatcher {
+func NewActionDispatcher(d *flux.Dispatcher, s *Store) *ActionDispatcher {
 	return &ActionDispatcher{
 		dispatcher: d,
+		store:      s,
 	}
 }
 
 // Dispatch is a helper to access to the internal dispatch directly with an action.
 // This should only be used from the WS Handler to forward server actions directly
 func (ac *ActionDispatcher) Dispatch(a *action.Action) {
-	ac.dispatcher.Dispatch(a)
+	switch a.Type {
+	case action.JoinWaitingRoom:
+		rstate := ac.store.Rooms.GetState().(RoomsState)
+		oldwr := rstate.CurrentWaitingRoom
+
+		ac.dispatcher.Dispatch(a)
+
+		rstate = ac.store.Rooms.GetState().(RoomsState)
+		// The only possibility for the CWR to be "" is that it has
+		// reached the full size, so we need to start the game
+		if rstate.CurrentWaitingRoom == "" && oldwr != "" {
+			ac.startGame(oldwr)
+		}
+	default:
+		ac.dispatcher.Dispatch(a)
+	}
 }
 
-func (ac *ActionDispatcher) AddPlayer(sid, id, name string, lid int, ws *websocket.Conn, ra string) {
-	npa := action.NewAddPlayer(sid, id, name, lid, ws, ra)
-	ac.dispatcher.Dispatch(npa)
+func (ac *ActionDispatcher) startGame(oldwr string) {
+	rstate := ac.store.Rooms.GetState().(RoomsState)
+	sga := action.NewStartGame(oldwr)
+
+	ac.dispatcher.Dispatch(sga)
+	ac.UpdateState(ac.store.Rooms)
+
+	for _, p := range rstate.Rooms[oldwr].Players {
+		err := wsjson.Write(context.Background(), p.Conn, sga)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func (ac *ActionDispatcher) RemovePlayer(rn, sid string) {
@@ -47,13 +73,44 @@ func (ac *ActionDispatcher) IncomeTick(rooms *RoomsStore) {
 	ac.dispatcher.Dispatch(ita)
 }
 
+func (ac *ActionDispatcher) WaitRoomCountdownTick() {
+	rstate := ac.store.Rooms.GetState().(RoomsState)
+	oldwr := rstate.CurrentWaitingRoom
+
+	wrcta := action.NewWaitRoomCountdownTick()
+	ac.dispatcher.Dispatch(wrcta)
+
+	rstate = ac.store.Rooms.GetState().(RoomsState)
+	// The only possibility for the CWR to be "" is that it has
+	// reached the full size, so we need to start the game
+	if rstate.CurrentWaitingRoom == "" && oldwr != "" {
+		ac.startGame(oldwr)
+	}
+}
+
 func (ac *ActionDispatcher) TPS(rooms *RoomsStore) {
 	tpsa := action.NewTPS()
 	ac.dispatcher.Dispatch(tpsa)
 }
 
+func (ac *ActionDispatcher) UserSignUp(un string) {
+	ac.dispatcher.Dispatch(action.NewUserSignUp(un))
+}
+
+func (ac *ActionDispatcher) UserSignIn(un string) {
+	ac.dispatcher.Dispatch(action.NewUserSignIn(un))
+}
+
+func (ac *ActionDispatcher) UserSignOut(un string) {
+	ac.dispatcher.Dispatch(action.NewUserSignOut(un))
+}
+
 func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
-	for _, r := range rooms.GetState().(RoomsState).Rooms {
+	rstate := rooms.GetState().(RoomsState)
+	for _, r := range rstate.Rooms {
+		if r.Name == rstate.CurrentWaitingRoom {
+			continue
+		}
 		for id, pc := range r.Players {
 			// Players
 			players := make(map[string]*action.UpdateStatePlayerPayload)
@@ -95,6 +152,38 @@ func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 				},
 			)
 			err := wsjson.Write(context.Background(), pc.Conn, aus)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
+
+func (ac *ActionDispatcher) UpdateUsers(users *UsersStore) {
+	for _, u := range users.List() {
+		// This will carry more information on the future
+		// potentially more customized to the current user
+		auu := action.NewUpdateUsers(
+			len(users.List()),
+		)
+		err := wsjson.Write(context.Background(), u.Conn, auu)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func (ac *ActionDispatcher) SyncWaitingRoom(rooms *RoomsStore) {
+	rstate := rooms.GetState().(RoomsState)
+	if rstate.CurrentWaitingRoom != "" {
+		cwr := rstate.Rooms[rstate.CurrentWaitingRoom]
+		swra := action.NewSyncWaitingRoom(
+			len(cwr.Players),
+			cwr.Size,
+			cwr.Countdown,
+		)
+		for _, p := range cwr.Players {
+			err := wsjson.Write(context.Background(), p.Conn, swra)
 			if err != nil {
 				log.Fatal(err)
 			}

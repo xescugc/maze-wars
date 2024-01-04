@@ -31,10 +31,18 @@ type Action struct {
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu, omitempty"`
 	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu, omitempty"`
 
-	AddPlayer    *AddPlayerPayload    `json:"add_player, omitempty"`
-	RemovePlayer *RemovePlayerPayload `json:"remove_player, omitempty"`
-	JoinRoom     *JoinRoomPayload     `json:"join_room, omitempty"`
-	UpdateState  *UpdateStatePayload  `json:"update_state, omitempty"`
+	UserSignUp  *UserSignUpPayload  `json:"user_sign_up, omitempty"`
+	SignUpError *SignUpErrorPayload `json:"sign_in_error, omitempty"`
+	UserSignIn  *UserSignInPayload  `json:"user_sign_in, omitempty"`
+	UserSignOut *UserSignOutPayload `json:"user_sign_out, omitempty"`
+
+	AddPlayer       *AddPlayerPayload       `json:"add_player, omitempty"`
+	RemovePlayer    *RemovePlayerPayload    `json:"remove_player, omitempty"`
+	JoinWaitingRoom *JoinWaitingRoomPayload `json:"join_waiting_room, omitempty"`
+	ExitWaitingRoom *ExitWaitingRoomPayload `json:"exit_waiting_room, omitempty"`
+	UpdateState     *UpdateStatePayload     `json:"update_state, omitempty"`
+	UpdateUsers     *UpdateUsersPayload     `json:"update_users, omitempty"`
+	SyncWaitingRoom *SyncWaitingRoomPayload `json:"sync_waiting_room, omitempty"`
 }
 
 type CursorMovePayload struct {
@@ -207,6 +215,12 @@ func NewIncomeTick() *Action {
 	}
 }
 
+func NewWaitRoomCountdownTick() *Action {
+	return &Action{
+		Type: WaitRoomCountdownTick,
+	}
+}
+
 type TowerAttackPayload struct {
 	TowerType string
 	UnitID    string
@@ -252,40 +266,19 @@ func NewWindowResizing(w, h int) *Action {
 	}
 }
 
-type JoinRoomPayload struct {
-	Room string
-	Name string
-}
-
-func NewJoinRoom(room, name string) *Action {
-	return &Action{
-		Type: JoinRoom,
-		JoinRoom: &JoinRoomPayload{
-			Room: room,
-			Name: name,
-		},
-	}
-}
-
 type AddPlayerPayload struct {
-	ID         string
-	Name       string
-	LineID     int
-	Websocket  *websocket.Conn
-	RemoteAddr string
-	Room       string
+	ID     string
+	Name   string
+	LineID int
 }
 
-func NewAddPlayer(r, id, name string, lid int, ws *websocket.Conn, ra string) *Action {
+func NewAddPlayer(id, name string, lid int) *Action {
 	return &Action{
 		Type: AddPlayer,
 		AddPlayer: &AddPlayerPayload{
-			ID:         id,
-			Name:       name,
-			LineID:     lid,
-			Websocket:  ws,
-			RemoteAddr: ra,
-			Room:       r,
+			ID:     id,
+			Name:   name,
+			LineID: lid,
 		},
 	}
 }
@@ -331,12 +324,16 @@ func NewNavigateTo(route string) *Action {
 	}
 }
 
-type StartGamePayload struct{}
+type StartGamePayload struct {
+	Room string
+}
 
-func NewStartGame() *Action {
+func NewStartGame(r string) *Action {
 	return &Action{
-		Type:      StartGame,
-		StartGame: &StartGamePayload{},
+		Type: StartGame,
+		StartGame: &StartGamePayload{
+			Room: r,
+		},
 	}
 }
 
@@ -380,6 +377,105 @@ func NewCheckedPath(cp bool) *Action {
 		Type: CheckedPath,
 		CheckedPath: &CheckedPathPayload{
 			Checked: cp,
+		},
+	}
+}
+
+type SignUpErrorPayload struct {
+	Error string
+}
+
+func NewSignUpError(e string) *Action {
+	return &Action{
+		Type: SignUpError,
+		SignUpError: &SignUpErrorPayload{
+			Error: e,
+		},
+	}
+}
+
+type UserSignInPayload struct {
+	Username   string
+	Websocket  *websocket.Conn
+	RemoteAddr string
+}
+
+// NewUserSignIn initializes the UserSignIn with just the username
+// the rest of the data needs to be manually set by someone else
+func NewUserSignIn(un string) *Action {
+	return &Action{
+		Type: UserSignIn,
+		UserSignIn: &UserSignInPayload{
+			Username: un,
+		},
+	}
+}
+
+type UserSignOutPayload struct {
+	Username string
+}
+
+func NewUserSignOut(un string) *Action {
+	return &Action{
+		Type: UserSignOut,
+		UserSignOut: &UserSignOutPayload{
+			Username: un,
+		},
+	}
+}
+
+type UserSignUpPayload struct {
+	Username string
+}
+
+func NewUserSignUp(un string) *Action {
+	return &Action{
+		Type: UserSignUp,
+		UserSignUp: &UserSignUpPayload{
+			Username: un,
+		},
+	}
+}
+
+type JoinWaitingRoomPayload struct {
+	Username string
+}
+
+func NewJoinWaitingRoom(un string) *Action {
+	return &Action{
+		Type: JoinWaitingRoom,
+		JoinWaitingRoom: &JoinWaitingRoomPayload{
+			Username: un,
+		},
+	}
+}
+
+type ExitWaitingRoomPayload struct {
+	Username string
+}
+
+func NewExitWaitingRoom(un string) *Action {
+	return &Action{
+		Type: ExitWaitingRoom,
+		ExitWaitingRoom: &ExitWaitingRoomPayload{
+			Username: un,
+		},
+	}
+}
+
+type SyncWaitingRoomPayload struct {
+	TotalPlayers int
+	Size         int
+	Countdown    int
+}
+
+func NewSyncWaitingRoom(tp, s, cd int) *Action {
+	return &Action{
+		Type: SyncWaitingRoom,
+		SyncWaitingRoom: &SyncWaitingRoomPayload{
+			TotalPlayers: tp,
+			Size:         s,
+			Countdown:    cd,
 		},
 	}
 }
@@ -447,6 +543,19 @@ func NewUpdateState(players *UpdateStatePlayersPayload, towers *UpdateStateTower
 			Players: players,
 			Towers:  towers,
 			Units:   units,
+		},
+	}
+}
+
+type UpdateUsersPayload struct {
+	TotalUsers int
+}
+
+func NewUpdateUsers(totalUsers int) *Action {
+	return &Action{
+		Type: UpdateUsers,
+		UpdateUsers: &UpdateUsersPayload{
+			TotalUsers: totalUsers,
 		},
 	}
 }

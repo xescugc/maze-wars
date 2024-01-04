@@ -9,7 +9,6 @@ import (
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
-	"nhooyr.io/websocket"
 )
 
 func initStore() *store.Store {
@@ -18,13 +17,10 @@ func initStore() *store.Store {
 }
 
 func addPlayer(s *store.Store) store.Player {
-	sid := "sid"
 	id := uuid.Must(uuid.NewV4())
 	name := fmt.Sprintf("name-%d", len(s.Players.List()))
 	lid := len(s.Players.List())
-	ws := &websocket.Conn{}
-	ra := "localhost"
-	s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws, ra))
+	s.Dispatch(action.NewAddPlayer(id.String(), name, lid))
 
 	return s.Players.FindByID(id.String())
 }

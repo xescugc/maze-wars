@@ -10,7 +10,6 @@ import (
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
-	"nhooyr.io/websocket"
 )
 
 // This test are meant to check which Stores interact with Actions
@@ -397,13 +396,10 @@ func TestPlayerReady(t *testing.T) {
 func TestAddPlayer(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
-		sid := "sid"
 		id := uuid.Must(uuid.NewV4())
 		name := "name"
 		lid := 2
-		ws := &websocket.Conn{}
-		ra := "localhost"
-		s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws, ra))
+		s.Dispatch(action.NewAddPlayer(id.String(), name, lid))
 
 		p := store.Player{
 			ID:     id.String(),
@@ -421,17 +417,12 @@ func TestAddPlayer(t *testing.T) {
 	})
 	t.Run("AlreadyExists", func(t *testing.T) {
 		s := initStore()
-		sid := "sid"
-		sid2 := "sid2"
 		id := uuid.Must(uuid.NewV4())
 		id2 := uuid.Must(uuid.NewV4())
 		name := "name"
 		lid := 2
-		ws := &websocket.Conn{}
-		ra1 := "localhost"
-		ra2 := "localhost2"
-		s.Dispatch(action.NewAddPlayer(sid, id.String(), name, lid, ws, ra1))
-		s.Dispatch(action.NewAddPlayer(sid2, id2.String(), name, lid+1, ws, ra2))
+		s.Dispatch(action.NewAddPlayer(id.String(), name, lid))
+		s.Dispatch(action.NewAddPlayer(id2.String(), name, lid+1))
 
 		p := store.Player{
 			ID:     id.String(),
@@ -473,7 +464,7 @@ func TestChangeUnitLine(t *testing.T) {
 		s.Dispatch(action.NewPlayerReady(p1.ID))
 		s.Dispatch(action.NewPlayerReady(p2.ID))
 		s.Dispatch(action.NewPlayerReady(p3.ID))
-		s.Dispatch(action.NewStartGame())
+		s.Dispatch(action.NewStartGame("room"))
 		s.Dispatch(action.NewChangeUnitLine(u1.ID))
 
 		p1.Ready, p2.Ready, p3.Ready = true, true, true

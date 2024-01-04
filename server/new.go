@@ -2,13 +2,13 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/gofrs/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"nhooyr.io/websocket"
@@ -25,23 +25,23 @@ var (
 	actionDispatcher *ActionDispatcher
 )
 
-func New(ad *ActionDispatcher, rooms *RoomsStore, opt Options) error {
+func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	actionDispatcher = ad
 
-	go startRoomsLoop(ctx, rooms)
+	go startLoop(ctx, s)
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/ws", wsHandler(rooms)).Methods(http.MethodGet)
+	r.HandleFunc("/ws", wsHandler(s)).Methods(http.MethodGet)
 
-	r.HandleFunc("/rooms", roomsCreateHandler).Methods(http.MethodPost)
-	r.HandleFunc("/rooms/new", roomsNewHandler).Methods(http.MethodGet)
-	r.HandleFunc("/rooms/{room}", roomsShowHandler).Methods(http.MethodGet)
+	r.HandleFunc("/play", playHandler).Methods(http.MethodGet)
 	r.HandleFunc("/game", gameHandler).Methods(http.MethodGet)
 	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
+
+	r.HandleFunc("/users", usersCreateHandler(s)).Methods(http.MethodPost).Headers("Content-Type", "application/json")
 
 	hmux := http.NewServeMux()
 	hmux.Handle("/", r)
@@ -67,23 +67,9 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, nil)
 }
 
-func roomsShowHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := templates.Templates["views/rooms/show.tmpl"]
+func playHandler(w http.ResponseWriter, r *http.Request) {
+	t, _ := templates.Templates["views/game/play.tmpl"]
 	t.Execute(w, nil)
-}
-
-func roomsNewHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := templates.Templates["views/rooms/new.tmpl"]
-	t.Execute(w, nil)
-}
-
-func roomsCreateHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	name := r.FormValue("name")
-	room := r.FormValue("room")
-
-	w.Header().Set("Location", fmt.Sprintf("/rooms/%s?name=%s", room, name))
-	w.WriteHeader(http.StatusSeeOther)
 }
 
 func gameHandler(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +77,45 @@ func gameHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, nil)
 }
 
-func wsHandler(rooms *RoomsStore) func(http.ResponseWriter, *http.Request) {
+type usersCreateRequest struct {
+	Username string `json:"username"`
+}
+
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
+func usersCreateHandler(s *Store) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var ucr usersCreateRequest
+
+		err := json.NewDecoder(r.Body).Decode(&ucr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(errorResponse{Error: err.Error()})
+			return
+		}
+
+		if ucr.Username == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(errorResponse{Error: "Username cannot be empty"})
+			return
+		}
+
+		if _, ok := s.Users.FindByUsername(ucr.Username); ok {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(errorResponse{Error: "User already exists"})
+			return
+		}
+
+		actionDispatcher.UserSignUp(ucr.Username)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 	return func(hw http.ResponseWriter, hr *http.Request) {
 		ws, _ := websocket.Accept(hw, hr, nil)
 		defer ws.CloseNow()
@@ -104,7 +128,13 @@ func wsHandler(rooms *RoomsStore) func(http.ResponseWriter, *http.Request) {
 			if err != nil {
 				fmt.Printf("Error when reading the WS message: %s\n", err)
 
-				for rn, r := range rooms.GetState().(RoomsState).Rooms {
+				u, ok := s.Users.FindByRemoteAddress(hr.RemoteAddr)
+				if ok {
+					actionDispatcher.UserSignOut(u.Username)
+				}
+
+				rstate := s.Rooms.GetState().(RoomsState)
+				for rn, r := range rstate.Rooms {
 					if uid, ok := r.Connections[hr.RemoteAddr]; ok {
 						actionDispatcher.RemovePlayer(rn, uid)
 						break
@@ -114,16 +144,11 @@ func wsHandler(rooms *RoomsStore) func(http.ResponseWriter, *http.Request) {
 			}
 
 			switch msg.Type {
-			case action.JoinRoom:
-				// Fist we action JoinRoom
+			case action.UserSignIn:
+				// We need to append this extra information to the Action
+				msg.UserSignIn.Websocket = ws
+				msg.UserSignIn.RemoteAddr = hr.RemoteAddr
 				actionDispatcher.Dispatch(&msg)
-
-				// Then we have to add the Player
-				sid := uuid.Must(uuid.NewV4())
-				nextID := rooms.GetNextID(msg.JoinRoom.Room)
-				aap := action.NewAddPlayer(msg.JoinRoom.Room, sid.String(), msg.JoinRoom.Name, nextID, ws, hr.RemoteAddr)
-				aap.Room = msg.JoinRoom.Room
-				actionDispatcher.Dispatch(aap)
 			default:
 				actionDispatcher.Dispatch(&msg)
 			}
@@ -131,24 +156,31 @@ func wsHandler(rooms *RoomsStore) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func startRoomsLoop(ctx context.Context, rooms *RoomsStore) {
+func startLoop(ctx context.Context, s *Store) {
 	stateTicker := time.NewTicker(time.Second / 4)
 	incomeTicker := time.NewTicker(time.Second)
 	// The default TPS on of Ebiten client if 60 so to
 	// emulate that we trigger the move action every TPS
 	moveTicker := time.NewTicker(time.Second / 60)
+	usersTicker := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case <-stateTicker.C:
 			// TODO: Send state
-			actionDispatcher.UpdateState(rooms)
+			actionDispatcher.UpdateState(s.Rooms)
 		case <-incomeTicker.C:
-			actionDispatcher.IncomeTick(rooms)
+			actionDispatcher.IncomeTick(s.Rooms)
+			actionDispatcher.WaitRoomCountdownTick()
+			actionDispatcher.SyncWaitingRoom(s.Rooms)
 		case <-moveTicker.C:
-			actionDispatcher.TPS(rooms)
+			actionDispatcher.TPS(s.Rooms)
+		case <-usersTicker.C:
+			actionDispatcher.UpdateUsers(s.Users)
 		case <-ctx.Done():
 			stateTicker.Stop()
 			incomeTicker.Stop()
+			moveTicker.Stop()
+			usersTicker.Stop()
 			goto FINISH
 		}
 	}

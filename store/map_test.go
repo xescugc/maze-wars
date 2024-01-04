@@ -38,7 +38,7 @@ func Test_GetNextLineID(t *testing.T) {
 	s.Dispatch(action.NewPlayerReady(p1.ID))
 	s.Dispatch(action.NewPlayerReady(p2.ID))
 	s.Dispatch(action.NewPlayerReady(p3.ID))
-	s.Dispatch(action.NewStartGame())
+	s.Dispatch(action.NewStartGame("room"))
 
 	sms := s.Map.GetState().(store.MapState)
 	assert.Equal(t, 3, sms.Players)

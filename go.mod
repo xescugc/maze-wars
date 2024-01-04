@@ -3,6 +3,7 @@ module github.com/xescugc/maze-wars
 go 1.21
 
 require (
+	github.com/ebitenui/ebitenui v0.5.5
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/handlers v1.5.2
@@ -40,7 +41,7 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/exp/shiny v0.0.0-20231206192017-f3f8817b8deb // indirect
-	golang.org/x/mobile v0.0.0-20230301163155-e0f57694e12c // indirect
+	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

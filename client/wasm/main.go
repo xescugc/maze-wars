@@ -21,20 +21,23 @@ func main() {
 
 func NewClient() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
-		if len(args) != 3 || (args[0].String() == "" || args[1].String() == "" || args[2].String() == "") {
-			return fmt.Errorf("requires 3 parameters: host, room and name")
+		if len(args) != 1 || (args[0].String() == "") {
+			return fmt.Errorf("requires 1 parameter: host")
 		}
 		var (
 			err     error
 			hostURL = args[0].String()
-			room    = args[1].String()
-			name    = args[2].String()
 			screenW = 288
 			screenH = 240
+			opt     = client.Options{
+				HostURL: hostURL,
+				ScreenW: screenW,
+				ScreenH: screenH,
+			}
 		)
 
 		d := flux.NewDispatcher()
-		ad := client.NewActionDispatcher(d)
+		ad := client.NewActionDispatcher(d, opt)
 
 		s := store.NewStore(d)
 
@@ -62,23 +65,28 @@ func NewClient() js.Func {
 			return fmt.Errorf("failed to initialize HUDStore: %w", err)
 		}
 
-		l, err := client.NewLobbyStore(d, i, s, cs)
+		us := client.NewUserStore(d)
+		cls := client.NewStore(s, us)
+
+		l, err := client.NewLobbyStore(d, i, cls)
 		if err != nil {
 			return fmt.Errorf("failed to initialize LobbyStore: %w", err)
 		}
-		rs := client.NewRouterStore(d, g, l)
+
+		u, err := client.NewSignUpStore(d, i, s)
+		if err != nil {
+			return fmt.Errorf("failed to initial SignUpStore: %w", err)
+		}
+
+		wr := client.NewWaitingRoomStore(d, cls)
+
+		rs := client.NewRouterStore(d, u, l, wr, g)
 
 		ctx := context.Background()
 		// We need to run this in a goroutine so when it's compiled to WASM
 		// it does not block the main thread https://github.com/golang/go/issues/41310
 		go func() {
-			err = client.New(ctx, ad, rs, client.Options{
-				HostURL: hostURL,
-				Room:    room,
-				Name:    name,
-				ScreenW: screenW,
-				ScreenH: screenH,
-			})
+			err = client.New(ctx, ad, rs, opt)
 			if err != nil {
 				log.Fatal(err)
 			}

@@ -1,122 +1,59 @@
 package client
 
 import (
-	"bytes"
-	"image"
+	"fmt"
 	"image/color"
-	"sort"
 
+	"github.com/ebitenui/ebitenui"
+	"github.com/ebitenui/ebitenui/image"
+	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/inputer"
-	"github.com/xescugc/maze-wars/store"
-	"github.com/xescugc/maze-wars/utils"
+)
+
+var (
+	buttonImageL, _ = loadButtonImageL()
 )
 
 type LobbyStore struct {
 	*flux.ReduceStore
 
-	Store *store.Store
-
-	Camera *CameraStore
-	YesBtn image.Image
+	Store *Store
 
 	input inputer.Inputer
+
+	ui           *ebitenui.UI
+	textPlayersW *widget.Text
 }
 
 type LobbyState struct {
-	YesBtn utils.Object
+	TotalUsers int
 }
 
-func NewLobbyStore(d *flux.Dispatcher, i inputer.Inputer, s *store.Store, cs *CameraStore) (*LobbyStore, error) {
-	bi, _, err := image.Decode(bytes.NewReader(assets.YesButton_png))
-	if err != nil {
-		return nil, err
-	}
-
+func NewLobbyStore(d *flux.Dispatcher, i inputer.Inputer, s *Store) (*LobbyStore, error) {
 	ls := &LobbyStore{
-		Store:  s,
-		Camera: cs,
-
-		YesBtn: ebiten.NewImageFromImage(bi),
+		Store: s,
 
 		input: i,
 	}
-	cst := cs.GetState().(CameraState)
-	ls.ReduceStore = flux.NewReduceStore(d, ls.Reduce, LobbyState{
-		YesBtn: utils.Object{
-			X: float64(cst.W - float64(ls.YesBtn.Bounds().Dx())),
-			Y: float64(cst.H - float64(ls.YesBtn.Bounds().Dy())),
-			W: float64(ls.YesBtn.Bounds().Dx()),
-			H: float64(ls.YesBtn.Bounds().Dy()),
-		},
-	})
+	ls.ReduceStore = flux.NewReduceStore(d, ls.Reduce, LobbyState{})
+
+	ls.buildUI()
+
 	return ls, nil
 }
 
 func (ls *LobbyStore) Update() error {
-	ls.Camera.Update()
-	x, y := ls.input.CursorPosition()
-	lst := ls.GetState().(LobbyState)
-	// TODO: Fix all this so it's not calculated each time but stored
-	// the button position
-	if ls.input.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		obj := utils.Object{
-			X: float64(x),
-			Y: float64(y),
-			W: 1, H: 1,
-		}
-		if lst.YesBtn.IsColliding(obj) {
-			cp := ls.Store.Players.FindCurrent()
-			actionDispatcher.PlayerReady(cp.ID)
-		}
-	}
-
-	players := ls.Store.Players.List()
-	if len(players) > 1 {
-		allReady := true
-		for _, p := range players {
-			if !p.Ready {
-				allReady = false
-				break
-			}
-		}
-		if allReady {
-			actionDispatcher.NavigateTo(GameRoute)
-			actionDispatcher.StartGame()
-			actionDispatcher.GoHome()
-		}
-	}
-
+	ls.ui.Update()
 	return nil
 }
 
 func (ls *LobbyStore) Draw(screen *ebiten.Image) {
-	cs := ls.Camera.GetState().(CameraState)
-	ps := ls.Store.Players.List()
-	lst := ls.GetState().(LobbyState)
-	text.Draw(screen, "LOBBY", normalFont, int(cs.W/2), int(cs.H/2), color.White)
-	var pcount = 1
-	var sortedPlayers = make([]*store.Player, 0, 0)
-	for _, p := range ps {
-		sortedPlayers = append(sortedPlayers, p)
-	}
-	sort.Slice(sortedPlayers, func(i, j int) bool { return sortedPlayers[i].LineID < sortedPlayers[j].LineID })
-	for _, p := range sortedPlayers {
-		var c color.Color = color.White
-		if p.Ready {
-			c = green
-		}
-		text.Draw(screen, p.Name, normalFont, int(cs.W/2), int(cs.H/2)+(24*pcount), c)
-		pcount++
-	}
-
-	ybop := &ebiten.DrawImageOptions{}
-	ybop.GeoM.Translate(lst.YesBtn.X, lst.YesBtn.Y)
-	screen.DrawImage(ls.YesBtn.(*ebiten.Image), ybop)
+	lstate := ls.GetState().(LobbyState)
+	ls.textPlayersW.Label = fmt.Sprintf("Users online: %d", lstate.TotalUsers)
+	ls.ui.Draw(screen)
 }
 
 func (ls *LobbyStore) Reduce(state, a interface{}) interface{} {
@@ -131,16 +68,112 @@ func (ls *LobbyStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	switch act.Type {
-	case action.WindowResizing:
-		ls.GetDispatcher().WaitFor(ls.Camera.GetDispatcherToken())
-		cs := ls.Camera.GetState().(CameraState)
-		lstate.YesBtn = utils.Object{
-			X: float64(cs.W - float64(ls.YesBtn.Bounds().Dx())),
-			Y: float64(cs.H - float64(ls.YesBtn.Bounds().Dy())),
-			W: float64(ls.YesBtn.Bounds().Dx()),
-			H: float64(ls.YesBtn.Bounds().Dy()),
-		}
+	case action.UpdateUsers:
+		lstate.TotalUsers = act.UpdateUsers.TotalUsers
 	}
 
 	return lstate
+}
+
+func (ls *LobbyStore) buildUI() {
+	rootContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	titleInputC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(20)),
+			widget.RowLayoutOpts.Spacing(20),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionCenter,
+				StretchHorizontal:  true,
+				StretchVertical:    false,
+			}),
+		),
+	)
+
+	ls.ui = &ebitenui.UI{
+		Container: rootContainer,
+	}
+
+	titleW := widget.NewText(
+		widget.TextOpts.Text("Maze Wars", normalFont, color.White),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+			widget.WidgetOpts.MinSize(100, 100),
+		),
+	)
+
+	textPlayersW := widget.NewText(
+		widget.TextOpts.Text("", smallFont, color.White),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+		),
+	)
+
+	buttonW := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  false,
+			}),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(buttonImageL),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("Play", smallFont, &widget.ButtonTextColor{
+			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+		}),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   30,
+			Right:  30,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			actionDispatcher.JoinWaitingRoom(ls.Store.Users.Username())
+		}),
+	)
+
+	ls.textPlayersW = textPlayersW
+
+	titleInputC.AddChild(titleW)
+	titleInputC.AddChild(textPlayersW)
+	titleInputC.AddChild(buttonW)
+
+	rootContainer.AddChild(titleInputC)
+
+}
+
+func loadButtonImageL() (*widget.ButtonImage, error) {
+	idle := image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 180, A: 255})
+
+	hover := image.NewNineSliceColor(color.NRGBA{R: 130, G: 130, B: 150, A: 255})
+
+	pressed := image.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 120, A: 255})
+
+	return &widget.ButtonImage{
+		Idle:    idle,
+		Hover:   hover,
+		Pressed: pressed,
+	}, nil
 }
