@@ -2,10 +2,28 @@ version: "3"
 services:
   nginx-proxy:
     image: nginxproxy/nginx-proxy:0.9.1
+    container_name: nginx-proxy
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - letsencrypt-certs:/etc/nginx/certs
+      - letsencrypt-vhost-d:/etc/nginx/vhost.d
+      - letsencrypt-html:/usr/share/nginx/html
+    networks:
+      maze-wars:
+
+  letsencrypt-proxy:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt-certs:/etc/nginx/certs
+      - letsencrypt-vhost-d:/etc/nginx/vhost.d
+      - letsencrypt-html:/usr/share/nginx/html
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
     networks:
       maze-wars:
 
@@ -18,4 +36,11 @@ services:
     environment:
       - PORT=3000
       - VIRTUAL_HOST=maze-wars.com,www.maze-wars.com
+      - LETSENCRYPT_HOST=maze-wars.com,www.maze-wars.com
+      - LETSENCRYPT_EMAIL=xescugil@gmail.com
     restart: on-failure
+
+volumes:
+  letsencrypt-certs:
+  letsencrypt-vhost-d:
+  letsencrypt-html:
