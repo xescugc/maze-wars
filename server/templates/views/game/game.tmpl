@@ -32,7 +32,8 @@
     var currentUrl = new URL(document.referrer);
     const urlParams = new URLSearchParams(currentUrl.search);
 
-    const host = currentUrl.host
+    // Origin includes the schema
+    const host = currentUrl.origin
     const err = new_client(host);
     if (err != null) {
       console.log("error",err)
