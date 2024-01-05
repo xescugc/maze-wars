@@ -190,7 +190,8 @@ func (ac *ActionDispatcher) ChangeUnitLine(uid string) {
 }
 
 func (ac *ActionDispatcher) SignUpSubmit(un string) {
-	httpu := url.URL{Scheme: "http", Host: ac.opt.HostURL, Path: "/users"}
+	httpu, _ := url.Parse(ac.opt.HostURL)
+	httpu.Path = "/users"
 	resp, err := http.Post(httpu.String(), "application/json", bytes.NewBuffer([]byte(fmt.Sprintf(`{"username":"%s"}`, un))))
 	if err != nil {
 		ac.dispatcher.Dispatch(action.NewSignUpError(err.Error()))
@@ -213,8 +214,14 @@ func (ac *ActionDispatcher) SignUpSubmit(un string) {
 
 	ctx := context.Background()
 
-	// Establish connection
-	wsu := url.URL{Scheme: "ws", Host: ac.opt.HostURL, Path: "/ws"}
+	// We manually clone it to then change it for the WS
+	chttpu := *httpu
+	wsu := &chttpu
+	wsu.Scheme = "ws"
+	if httpu.Scheme == "https" {
+		wsu.Scheme = "wss"
+	}
+	wsu.Path = "/ws"
 
 	wsc, _, err = websocket.Dial(ctx, wsu.String(), nil)
 	if err != nil {
