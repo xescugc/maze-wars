@@ -130,11 +130,11 @@ func (ac *ActionDispatcher) UnitKilled(pid, ut string) {
 	ac.dispatcher.Dispatch(uk)
 }
 
-// PlayerReady marks the player as ready to start the game
-func (ac *ActionDispatcher) PlayerReady(pid string) {
-	pr := action.NewPlayerReady(pid)
-	wsSend(pr)
-	ac.dispatcher.Dispatch(pr)
+func (ac *ActionDispatcher) RemovePlayer(pid string) {
+	rpa := action.NewRemovePlayer(pid)
+	wsSend(rpa)
+	ac.dispatcher.Dispatch(rpa)
+	ac.dispatcher.Dispatch(action.NewNavigateTo(LobbyRoute))
 }
 
 // WindowResizing new sizes of the window
@@ -147,14 +147,6 @@ func (ac *ActionDispatcher) WindowResizing(w, h int) {
 func (ac *ActionDispatcher) NavigateTo(route string) {
 	nt := action.NewNavigateTo(route)
 	ac.dispatcher.Dispatch(nt)
-}
-
-// StartGame notifies that the game will start,
-// used to update any store before that
-func (ac *ActionDispatcher) StartGame(r string) {
-	sg := action.NewStartGame(r)
-	wsSend(sg)
-	ac.dispatcher.Dispatch(sg)
 }
 
 // OpenTowerMenu when a tower is clicked and the menu of
@@ -255,4 +247,10 @@ func (ac *ActionDispatcher) ExitWaitingRoom(un string) {
 	wsSend(ewra)
 
 	ac.dispatcher.Dispatch(action.NewNavigateTo(LobbyRoute))
+}
+
+func (ac *ActionDispatcher) ToggleStats() {
+	tsa := action.NewToggleStats()
+
+	ac.dispatcher.Dispatch(tsa)
 }

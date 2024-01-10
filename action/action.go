@@ -22,11 +22,11 @@ type Action struct {
 	TowerAttack          *TowerAttackPayload          `json:"tower_attack,omitempty"`
 	UnitKilled           *UnitKilledPayload           `json:"unit_killed,omitempty"`
 	WindowResizing       *WindowResizingPayload       `json:"window_resizing,omitempty"`
-	PlayerReady          *PlayerReadyPayload          `json:"player_ready, omitempty"`
 	NavigateTo           *NavigateToPayload           `json:"navigate_to, omitempty"`
 	StartGame            *StartGamePayload            `json:"start_game, omitempty"`
 	GoHome               *GoHomePayload               `json:"go_home, omitempty"`
 	CheckedPath          *CheckedPathPayload          `json:"checked_path,omitempty"`
+	ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
 
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu, omitempty"`
 	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu, omitempty"`
@@ -284,28 +284,13 @@ func NewAddPlayer(id, name string, lid int) *Action {
 }
 
 type RemovePlayerPayload struct {
-	ID   string
-	Room string
-}
-
-func NewRemovePlayer(r, id string) *Action {
-	return &Action{
-		Type: RemovePlayer,
-		RemovePlayer: &RemovePlayerPayload{
-			ID:   id,
-			Room: r,
-		},
-	}
-}
-
-type PlayerReadyPayload struct {
 	ID string
 }
 
-func NewPlayerReady(id string) *Action {
+func NewRemovePlayer(id string) *Action {
 	return &Action{
-		Type: PlayerReady,
-		PlayerReady: &PlayerReadyPayload{
+		Type: RemovePlayer,
+		RemovePlayer: &RemovePlayerPayload{
 			ID: id,
 		},
 	}
@@ -325,15 +310,12 @@ func NewNavigateTo(route string) *Action {
 }
 
 type StartGamePayload struct {
-	Room string
 }
 
-func NewStartGame(r string) *Action {
+func NewStartGame() *Action {
 	return &Action{
-		Type: StartGame,
-		StartGame: &StartGamePayload{
-			Room: r,
-		},
+		Type:      StartGame,
+		StartGame: &StartGamePayload{},
 	}
 }
 
@@ -378,6 +360,16 @@ func NewCheckedPath(cp bool) *Action {
 		CheckedPath: &CheckedPathPayload{
 			Checked: cp,
 		},
+	}
+}
+
+type ToggleStatsPayload struct {
+}
+
+func NewToggleStats() *Action {
+	return &Action{
+		Type:        ToggleStats,
+		ToggleStats: &ToggleStatsPayload{},
 	}
 }
 
@@ -500,7 +492,6 @@ type UpdateStatePlayerPayload struct {
 	Gold    int
 	Current bool
 	Winner  bool
-	Ready   bool
 }
 
 type UpdateStateTowersPayload struct {

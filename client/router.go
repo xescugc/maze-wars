@@ -36,6 +36,7 @@ func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, l *LobbyStore, wr *Wait
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RouterState{
 		Route: SignUpRoute,
+		//Route: GameRoute,
 	})
 
 	return rs

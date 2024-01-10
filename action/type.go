@@ -35,6 +35,7 @@ const (
 	UserSignOut
 	JoinWaitingRoom
 	ExitWaitingRoom
+	ToggleStats
 
 	// Specific to WS
 	AddPlayer

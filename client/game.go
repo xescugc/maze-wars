@@ -1,9 +1,8 @@
 package client
 
 import (
-	"image"
-
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 )
 
@@ -19,35 +18,31 @@ type Game struct {
 	Units  *Units
 	Towers *Towers
 
-	SessionID string
+	Map *Map
 }
 
 func (g *Game) Update() error {
+	g.Map.Update()
 	g.Camera.Update()
 	g.HUD.Update()
 	g.Units.Update()
 	g.Towers.Update()
 
+	if len(g.Store.Players.List()) == 0 {
+		actionDispatcher.Dispatch(action.NewAddPlayer("1", "test1", 0))
+		actionDispatcher.Dispatch(action.NewAddPlayer("2", "test2", 1))
+		actionDispatcher.Dispatch(action.NewAddPlayer("3", "test3", 2))
+		actionDispatcher.Dispatch(action.NewAddPlayer("4", "test4", 3))
+		actionDispatcher.Dispatch(action.NewAddPlayer("5", "test5", 4))
+		actionDispatcher.Dispatch(action.NewAddPlayer("6", "test6", 5))
+	}
 	actionDispatcher.TPS()
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-
-	// Draw will draw just a partial image of the map based on the viewport, so it does not render everything but just the
-	// part that it's seen by the user
-	// If we want to render everything and just move the viewport around we need o render the full image and change the
-	// opt.GeoM.Transport to the Map.X/Y and change the Update function to do the opposite in terms of -+
-	//
-	// TODO: Maybe create a self Map entity with Update/Draw
-	op := &ebiten.DrawImageOptions{}
-	s := g.Camera.GetState().(CameraState)
-	op.GeoM.Scale(s.Zoom, s.Zoom)
-	inverseZoom := maxZoom - s.Zoom + zoomScale
-	mi := ebiten.NewImageFromImage(g.Store.Map.GetState().(store.MapState).Image)
-	screen.DrawImage(mi.SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
-
+	g.Map.Draw(screen)
 	g.Camera.Draw(screen)
 	g.HUD.Draw(screen)
 	g.Units.Draw(screen)

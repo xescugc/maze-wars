@@ -1,13 +1,15 @@
 package client
 
 import (
+	"image"
 	"image/color"
 
 	"github.com/ebitenui/ebitenui"
-	"github.com/ebitenui/ebitenui/image"
+	euiimage "github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/inputer"
@@ -134,8 +136,8 @@ func (su *SignUpStore) buildUI() {
 		//If the NineSlice image has a minimum size, the widget will sue that or
 		// widget.WidgetOpts.MinSize; whichever is greater
 		widget.TextInputOpts.Image(&widget.TextInputImage{
-			Idle:     image.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 100, A: 255}),
-			Disabled: image.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 100, A: 255}),
+			Idle:     euiimage.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 100, A: 255}),
+			Disabled: euiimage.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 100, A: 255}),
 		}),
 
 		//Set the font face and size for the widget
@@ -223,15 +225,33 @@ func (su *SignUpStore) buildUI() {
 }
 
 func loadButtonImage() (*widget.ButtonImage, error) {
-	idle := image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 180, A: 255})
+	idle := euiimage.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 180, A: 255})
 
-	hover := image.NewNineSliceColor(color.NRGBA{R: 130, G: 130, B: 150, A: 255})
+	hover := euiimage.NewNineSliceColor(color.NRGBA{R: 130, G: 130, B: 150, A: 255})
 
-	pressed := image.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 120, A: 255})
+	pressed := euiimage.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 120, A: 255})
 
 	return &widget.ButtonImage{
 		Idle:    idle,
 		Hover:   hover,
 		Pressed: pressed,
 	}, nil
+}
+
+func buttonImageFromImage(i image.Image) *widget.ButtonImage {
+	ei := ebiten.NewImageFromImage(i)
+	nsi := euiimage.NewNineSliceSimple(ei, i.Bounds().Dx(), i.Bounds().Dy())
+
+	dest := i
+	cm := colorm.ColorM{}
+	cm.Scale(2, 0.5, 0.5, 0.9)
+	edest := ebiten.NewImageFromImage(dest)
+	colorm.DrawImage(edest, ei, cm, nil)
+	dsi := euiimage.NewNineSliceSimple(edest, dest.Bounds().Dx(), dest.Bounds().Dy())
+	return &widget.ButtonImage{
+		Idle:     nsi,
+		Hover:    nsi,
+		Pressed:  nsi,
+		Disabled: dsi,
+	}
 }

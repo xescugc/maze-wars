@@ -48,9 +48,6 @@ func (wr *WaitingRoomStore) Draw(screen *ebiten.Image) {
 	wr.textPlayersW.Label = fmt.Sprintf("%d/%d", wrstate.TotalPlayers, wrstate.Size)
 	wr.textColdownW.Label = fmt.Sprintf("(%ds to reduce the size, minimum is 2)", wrstate.Countdown)
 	wr.ui.Draw(screen)
-	// TODO:
-	// Missing the EXIT
-	// Missing the START_GAME
 }
 
 func (wr *WaitingRoomStore) Reduce(state, a interface{}) interface{} {

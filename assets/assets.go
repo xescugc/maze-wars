@@ -75,9 +75,6 @@ var TilesetHouse_png []byte
 //go:embed TilesetLogic.png
 var TilesetLogic_png []byte
 
-//go:embed TilesetElement.png
-var TilesetElement_png []byte
-
 //go:embed maps/2.png
 var Map_2_png []byte
 
