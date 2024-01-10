@@ -1,20 +1,19 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
-	"image"
 	"image/color"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/ebitenui/ebitenui"
+	"github.com/ebitenui/ebitenui/image"
+	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/inputer"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
@@ -29,33 +28,26 @@ type HUDStore struct {
 
 	game *Game
 
-	houseIcon image.Image
+	ui *ebitenui.UI
 
 	input inputer.Inputer
+
+	statsListW   *widget.List
+	incomeTextW  *widget.Text
+	winLoseTextW *widget.Text
+	unitsC       *widget.Container
+	towersC      *widget.Container
 }
 
 // HUDState stores the HUD state
 type HUDState struct {
-	Units  []unitFacesetButton
-	Towers []towerFacesetButton
-
-	HouseButton utils.Object
-
 	SelectedTower   *SelectedTower
 	TowerOpenMenuID string
 
 	LastCursorPosition utils.Object
 	CheckedPath        bool
-}
 
-type unitFacesetButton struct {
-	Unit   *unit.Unit
-	Object utils.Object
-}
-
-type towerFacesetButton struct {
-	Tower  *tower.Tower
-	Object utils.Object
+	ShowStats bool
 }
 
 type SelectedTower struct {
@@ -66,45 +58,23 @@ type SelectedTower struct {
 
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
 func NewHUDStore(d *flux.Dispatcher, i inputer.Inputer, g *Game) (*HUDStore, error) {
-	us := make([]*unit.Unit, 0, 0)
-	for _, u := range unit.Units {
-		us = append(us, u)
-	}
-	sort.Slice(us, func(i, j int) bool {
-		return us[i].Gold < us[j].Gold
-	})
-
-	cs := g.Camera.GetState().(CameraState)
-
-	ubs := calculateHUDUnitButtons(cs)
-	tbs := calculateHUDTowerButtons(cs)
-	hi, _, err := image.Decode(bytes.NewReader(assets.TilesetElement_png))
-	if err != nil {
-		return nil, err
-	}
-
 	hs := &HUDStore{
 		game: g,
-
-		houseIcon: ebiten.NewImageFromImage(hi).SubImage(image.Rect(12*16, 0*16, 12*16+16, 0*16+16)),
 
 		input: i,
 	}
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
-		Units:  ubs,
-		Towers: tbs,
-		HouseButton: utils.Object{
-			X: float64(cs.W - 16),
-			Y: 0,
-			W: float64(16),
-			H: float64(16),
-		},
+		ShowStats: true,
 	})
+
+	hs.buildUI()
 
 	return hs, nil
 }
 
 func (hs *HUDStore) Update() error {
+	hs.ui.Update()
+
 	cs := hs.game.Camera.GetState().(CameraState)
 	hst := hs.GetState().(HUDState)
 	x, y := hs.input.CursorPosition()
@@ -121,32 +91,10 @@ func (hs *HUDStore) Update() error {
 		return nil
 	}
 	if hs.input.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		click := utils.Object{
-			X: float64(x),
-			Y: float64(y),
-			W: 1, H: 1,
-		}
 		clickAbsolute := utils.Object{
 			X: float64(x) + cs.X,
 			Y: float64(y) + cs.Y,
 			W: 1, H: 1,
-		}
-		// Check what the user has just clicked
-		for _, u := range hst.Units {
-			if cp.CanSummonUnit(u.Unit.Type.String()) && u.Object.IsColliding(click) {
-				actionDispatcher.SummonUnit(u.Unit.Type.String(), cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
-				return nil
-			}
-		}
-		for _, t := range hst.Towers {
-			if cp.CanPlaceTower(t.Tower.Type.String()) && t.Object.IsColliding(click) {
-				actionDispatcher.SelectTower(t.Tower.Type.String(), x, y)
-				return nil
-			}
-		}
-		if hst.HouseButton.IsColliding(click) {
-			actionDispatcher.GoHome()
-			return nil
 		}
 
 		if hst.SelectedTower != nil && !hst.SelectedTower.Invalid {
@@ -276,45 +224,73 @@ func (hs *HUDStore) Update() error {
 }
 
 func (hs *HUDStore) Draw(screen *ebiten.Image) {
+
 	hst := hs.GetState().(HUDState)
 	cs := hs.game.Camera.GetState().(CameraState)
 	cp := hs.game.Store.Players.FindCurrent()
 
+	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
+	entries := make([]any, 0, 0)
+	entries = append(entries,
+		fmt.Sprintf("%s %s %s",
+			fillIn("Name", 10),
+			fillIn("Lives", 8),
+			fillIn("Income", 8)),
+	)
+
+	var sortedPlayers = make([]*store.Player, 0, 0)
+	for _, p := range hs.game.Store.Players.List() {
+		sortedPlayers = append(sortedPlayers, p)
+	}
+	sort.Slice(sortedPlayers, func(i, j int) bool {
+		ii := sortedPlayers[i]
+		jj := sortedPlayers[j]
+		if ii.Income != jj.Income {
+			return ii.Income > jj.Income
+		}
+		return ii.LineID < jj.LineID
+	})
+	for _, p := range sortedPlayers {
+		entries = append(entries,
+			fmt.Sprintf("%s %s %s",
+				fillIn(p.Name, 10),
+				fillIn(strconv.Itoa(p.Lives), 8),
+				fillIn(strconv.Itoa(p.Income), 8)),
+		)
+	}
+	hs.statsListW.SetEntries(entries)
+
+	visibility := widget.Visibility_Show
+	if !hst.ShowStats {
+		visibility = widget.Visibility_Hide_Blocking
+	}
+	hs.statsListW.GetWidget().Visibility = visibility
+	hs.incomeTextW.Label = fmt.Sprintf("Gold: %s Income Timer: %ds", fillIn(strconv.Itoa(cp.Gold), 5), psit)
+
+	wuts := hs.unitsC.Children()
+	for i, u := range sortedUnits() {
+		wuts[i].GetWidget().Disabled = !cp.CanSummonUnit(u.Type.String())
+	}
+
+	wtws := hs.towersC.Children()
+	for i, t := range sortedTowers() {
+		wtws[i].GetWidget().Disabled = !cp.CanPlaceTower(t.Type.String())
+	}
+
 	if cp.Lives == 0 {
-		text.Draw(screen, "YOU LOST", smallFont, int(cs.W/2), int(cs.H/2), color.White)
+		hs.winLoseTextW.Label = "YOU LOST"
+		hs.winLoseTextW.GetWidget().Visibility = widget.Visibility_Show
 	}
 
 	if cp.Winner {
-		text.Draw(screen, "YOU WON!", smallFont, int(cs.W/2), int(cs.H/2), color.White)
+		hs.winLoseTextW.Label = "YOU WON!"
+		hs.winLoseTextW.GetWidget().Visibility = widget.Visibility_Show
 	}
 
-	for _, u := range hst.Units {
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.Object.X, u.Object.Y)
-		if !cp.CanSummonUnit(u.Unit.Type.String()) {
-			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
-		}
-		screen.DrawImage(ebiten.NewImageFromImage(u.Unit.Faceset), op)
-	}
-
-	for _, t := range hst.Towers {
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(t.Object.X, t.Object.Y)
-		if !cp.CanPlaceTower(t.Tower.Type.String()) {
-			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
-		} else if hst.SelectedTower != nil && hst.SelectedTower.Type == t.Tower.Type.String() {
-			// Once the tower is selected we gray it out
-			op.ColorM.Scale(0.5, 0.5, 0.5, 0.5)
-		}
-		screen.DrawImage(ebiten.NewImageFromImage(t.Tower.Faceset), op)
-	}
-
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(hst.HouseButton.X, hst.HouseButton.Y)
-	screen.DrawImage(hs.houseIcon.(*ebiten.Image), op)
+	hs.ui.Draw(screen)
 
 	if hst.SelectedTower != nil {
-		op = &ebiten.DrawImageOptions{}
+		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(hst.SelectedTower.X/cs.Zoom, hst.SelectedTower.Y/cs.Zoom)
 		op.GeoM.Scale(cs.Zoom, cs.Zoom)
 
@@ -324,46 +300,6 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 		screen.DrawImage(ebiten.NewImageFromImage(hst.SelectedTower.Faceset()), op)
 	}
-
-	// To make the table for the players more readable we are gonna make a table,
-	// the table will have headers and here I'm gonna put the characters each one
-	// will have from left to right:
-	// * -Space-: 2 "|\s"
-	// * Name: 20
-	// * -Space-: 3 "\s|\s"
-	// * Lives: 8
-	// * -Space-: 3 "\s|\s"
-	// * Gold: 8
-	// * -Space-: 3 "\s|\s"
-	// * Income: 8
-	// * -Space-: 2 "\s|"
-	// Total of 57
-	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
-	players := hs.game.Store.Players.List()
-	text.Draw(screen, fmt.Sprintf("Income Timer: %ds", psit), smallFont, 0, 16, color.White)
-	var pcount = 4
-	var sortedPlayers = make([]*store.Player, 0, 0)
-	for _, p := range players {
-		sortedPlayers = append(sortedPlayers, p)
-	}
-	sort.Slice(sortedPlayers, func(i, j int) bool { return sortedPlayers[i].LineID < sortedPlayers[j].LineID })
-	text.Draw(screen, "---------------------------------------------------------", smallFont, 0, 32, color.White)
-	text.Draw(screen, "| Name                 | Lives    | Gold     | Income   |", smallFont, 0, 48, color.White)
-	for _, p := range sortedPlayers {
-		var c color.Color = color.White
-		if p.ID == cp.ID {
-			c = green
-		}
-		text.Draw(screen, fmt.Sprintf(
-			"| %s | %s | %s | %s |",
-			fillIn(p.Name, 20),
-			fillIn(strconv.Itoa(p.Lives), 8),
-			fillIn(strconv.Itoa(p.Gold), 8),
-			fillIn(strconv.Itoa(p.Income), 8),
-		), smallFont, 0, 16*pcount, c)
-		pcount++
-	}
-	text.Draw(screen, "_________________________________________________________", smallFont, 0, 16*pcount, color.White)
 }
 
 func fillIn(s string, l int) string {
@@ -391,19 +327,6 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	switch act.Type {
-	case action.WindowResizing:
-		hs.GetDispatcher().WaitFor(hs.game.Camera.GetDispatcherToken())
-		cs := hs.game.Camera.GetState().(CameraState)
-
-		hstate.Units = calculateHUDUnitButtons(cs)
-		hstate.Towers = calculateHUDTowerButtons(cs)
-
-		hstate.HouseButton = utils.Object{
-			X: float64(cs.W - 16),
-			Y: 0,
-			W: 16,
-			H: 16,
-		}
 	case action.SelectTower:
 		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())
 		cp := hs.game.Store.Players.FindCurrent()
@@ -457,13 +380,15 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		hstate.TowerOpenMenuID = ""
 	case action.CheckedPath:
 		hstate.CheckedPath = act.CheckedPath.Checked
+	case action.ToggleStats:
+		hstate.ShowStats = !hstate.ShowStats
 	default:
 	}
 
 	return hstate
 }
 
-func calculateHUDUnitButtons(cs CameraState) []unitFacesetButton {
+func sortedUnits() []*unit.Unit {
 	us := make([]*unit.Unit, 0, 0)
 	for _, u := range unit.Units {
 		us = append(us, u)
@@ -471,29 +396,10 @@ func calculateHUDUnitButtons(cs CameraState) []unitFacesetButton {
 	sort.Slice(us, func(i, j int) bool {
 		return us[i].Gold < us[j].Gold
 	})
-
-	// We want to create rows of 5
-	fs := make([]unitFacesetButton, 0, 0)
-	nrows := len(us) / 5
-
-	// As all the Faceset are equal squares
-	// we just need to take one
-	fhw := float64(us[0].Faceset.Bounds().Dx())
-	for i, u := range us {
-		fs = append(fs, unitFacesetButton{
-			Unit: u,
-			Object: utils.Object{
-				X: cs.W - (fhw * float64(5-(i%5))),
-				Y: cs.H - (fhw * float64(nrows-(i/5))),
-				W: fhw,
-				H: fhw,
-			},
-		})
-	}
-	return fs
+	return us
 }
 
-func calculateHUDTowerButtons(cs CameraState) []towerFacesetButton {
+func sortedTowers() []*tower.Tower {
 	ts := make([]*tower.Tower, 0, 0)
 	for _, t := range tower.Towers {
 		ts = append(ts, t)
@@ -501,26 +407,7 @@ func calculateHUDTowerButtons(cs CameraState) []towerFacesetButton {
 	sort.Slice(ts, func(i, j int) bool {
 		return ts[i].Type > ts[j].Type
 	})
-
-	// We want to create rows of 5
-	fs := make([]towerFacesetButton, 0, 0)
-	nrows := (len(ts) / 5) + 1
-
-	// As all the Faceset are equal squares
-	// we just need to take one
-	fhw := float64(ts[0].Faceset.Bounds().Dx())
-	for i, t := range ts {
-		fs = append(fs, towerFacesetButton{
-			Tower: t,
-			Object: utils.Object{
-				X: 0 + (fhw * float64(i%5)),
-				Y: cs.H - (fhw * float64(nrows-(i/5))),
-				W: fhw,
-				H: fhw,
-			},
-		})
-	}
-	return fs
+	return ts
 }
 
 // closestMultiple finds the coses multiple of 'b' for the number 'a'
@@ -528,4 +415,353 @@ func closestMultiple(a, b int) int {
 	a = a + b/2
 	a = a - (a % b)
 	return a
+}
+
+func (hs *HUDStore) buildUI() {
+	topRightContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	topRightVerticalRowC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(20),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionEnd,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+		),
+	)
+
+	topRightVerticalRowWraperC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Stretch: true,
+			}),
+		),
+	)
+
+	topRightHorizontalRowC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(20),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionEnd,
+			}),
+		),
+	)
+
+	homeBtnW := widget.NewButton(
+		widget.ButtonOpts.Image(buttonImage),
+
+		widget.ButtonOpts.Text("HOME", smallFont, &widget.ButtonTextColor{
+			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+		}),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   30,
+			Right:  30,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			actionDispatcher.GoHome()
+		}),
+	)
+
+	statsBtnW := widget.NewButton(
+		widget.ButtonOpts.Image(buttonImage),
+
+		widget.ButtonOpts.Text("STATS", smallFont, &widget.ButtonTextColor{
+			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+		}),
+
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   30,
+			Right:  30,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			actionDispatcher.ToggleStats()
+		}),
+	)
+
+	topRightStatsC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(20),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Stretch: true,
+			}),
+		),
+	)
+
+	entries := make([]any, 0, 0)
+	statsListW := widget.NewList(
+		// Set the entries in the list
+		widget.ListOpts.Entries(entries),
+		widget.ListOpts.ScrollContainerOpts(
+			// Set the background images/color for the list
+			widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
+				Idle:     image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
+				Disabled: image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
+				Mask:     image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
+			}),
+		),
+		widget.ListOpts.SliderOpts(
+			// Set the background images/color for the background of the slider track
+			widget.SliderOpts.Images(&widget.SliderTrackImage{
+				Idle:  image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
+				Hover: image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
+			}, buttonImage),
+			widget.SliderOpts.MinHandleSize(5),
+			// Set how wide the track should be
+			widget.SliderOpts.TrackPadding(widget.NewInsetsSimple(2)),
+		),
+		// Hide the horizontal slider
+		widget.ListOpts.HideHorizontalSlider(),
+		widget.ListOpts.HideVerticalSlider(),
+		// Set the font for the list options
+		widget.ListOpts.EntryFontFace(smallFont),
+		// Set the colors for the list
+		widget.ListOpts.EntryColor(&widget.ListEntryColor{
+			Selected:                   color.NRGBA{0, 255, 0, 255},                 // Foreground color for the unfocused selected entry
+			Unselected:                 color.NRGBA{254, 255, 255, 255},             // Foreground color for the unfocused unselected entry
+			SelectedBackground:         color.NRGBA{R: 130, G: 130, B: 200, A: 255}, // Background color for the unfocused selected entry
+			SelectedFocusedBackground:  color.NRGBA{R: 130, G: 130, B: 170, A: 255}, // Background color for the focused selected entry
+			FocusedBackground:          color.NRGBA{R: 170, G: 170, B: 180, A: 255}, // Background color for the focused unselected entry
+			DisabledUnselected:         color.NRGBA{100, 100, 100, 255},             // Foreground color for the disabled unselected entry
+			DisabledSelected:           color.NRGBA{100, 100, 100, 255},             // Foreground color for the disabled selected entry
+			DisabledSelectedBackground: color.NRGBA{100, 100, 100, 255},             // Background color for the disabled selected entry
+		}),
+		// This required function returns the string displayed in the list
+		widget.ListOpts.EntryLabelFunc(func(e interface{}) string {
+			return e.(string)
+		}),
+		// Padding for each entry
+		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(5)),
+		// Text position for each entry
+		widget.ListOpts.EntryTextPosition(widget.TextPositionStart, widget.TextPositionCenter),
+		// This handler defines what function to run when a list item is selected.
+		widget.ListOpts.EntrySelectedHandler(func(args *widget.ListEntrySelectedEventArgs) {
+			//entry := args.Entry.(ListEntry)
+			//fmt.Println("Entry Selected: ", entry)
+		}),
+	)
+
+	incomeTextW := widget.NewText(
+		widget.TextOpts.Text("Gold: 40     Income Timer: 15s", smallFont, color.White),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+	)
+
+	bottomRightContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	// Create the first tab
+	// A TabBookTab is a labelled container. The text here is what will show up in the tab button
+	tabUnits := widget.NewTabBookTab("UNITS",
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 120, A: 255})),
+	)
+
+	unitsC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(5),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(5, 5),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false, false, false, false, false}, []bool{false, false, false, false, false}),
+		)),
+	)
+	for _, u := range sortedUnits() {
+		ubtn := widget.NewButton(
+			// set general widget options
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					MaxWidth:  38,
+					MaxHeight: 38,
+					//Position: widget.RowLayoutPositionCenter,
+					//Stretch:  false,
+				}),
+			),
+
+			// specify the images to sue
+			widget.ButtonOpts.Image(buttonImageFromImage(u.Faceset)),
+
+			// add a handler that reacts to clicking the button
+			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
+				return func(args *widget.ButtonClickedEventArgs) {
+					cp := hs.game.Store.Players.FindCurrent()
+					actionDispatcher.SummonUnit(u.Type.String(), cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
+				}
+			}(u)),
+		)
+		unitsC.AddChild(ubtn)
+	}
+	hs.unitsC = unitsC
+	tabUnits.AddChild(unitsC)
+
+	tabTowers := widget.NewTabBookTab("TOWERS",
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 120, A: 255})),
+	)
+	towersC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(1),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(5, 5),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false, false, false, false, false}, []bool{false, false, false, false, false}),
+		)),
+	)
+	for _, t := range sortedTowers() {
+		tbtn := widget.NewButton(
+			// set general widget options
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					MaxWidth:  38,
+					MaxHeight: 38,
+					//Position: widget.RowLayoutPositionCenter,
+					//Stretch:  false,
+				}),
+			),
+
+			// specify the images to sue
+			widget.ButtonOpts.Image(buttonImageFromImage(t.Faceset)),
+
+			// add a handler that reacts to clicking the button
+			widget.ButtonOpts.ClickedHandler(func(t *tower.Tower) func(args *widget.ButtonClickedEventArgs) {
+				return func(args *widget.ButtonClickedEventArgs) {
+					hst := hs.GetState().(HUDState)
+					actionDispatcher.SelectTower(t.Type.String(), int(hst.LastCursorPosition.X), int(hst.LastCursorPosition.Y))
+				}
+			}(t)),
+		)
+		towersC.AddChild(tbtn)
+	}
+	hs.towersC = towersC
+	tabTowers.AddChild(towersC)
+
+	tabBook := widget.NewTabBook(
+		widget.TabBookOpts.TabButtonImage(buttonImage),
+		widget.TabBookOpts.TabButtonText(smallFont, &widget.ButtonTextColor{Idle: color.White, Disabled: color.White}),
+		widget.TabBookOpts.TabButtonSpacing(0),
+		widget.TabBookOpts.ContainerOpts(
+			widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionEnd,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+			})),
+		),
+		widget.TabBookOpts.TabButtonOpts(
+			widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(5)),
+			widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.MinSize(98, 0)),
+		),
+		widget.TabBookOpts.Tabs(tabUnits, tabTowers),
+	)
+	bottomRightContainer.AddChild(tabBook)
+
+	hs.incomeTextW = incomeTextW
+	hs.statsListW = statsListW
+
+	topRightStatsC.AddChild(incomeTextW)
+	topRightStatsC.AddChild(statsListW)
+
+	topRightHorizontalRowC.AddChild(statsBtnW)
+	topRightHorizontalRowC.AddChild(homeBtnW)
+	topRightVerticalRowWraperC.AddChild(topRightHorizontalRowC)
+	topRightVerticalRowC.AddChild(topRightVerticalRowWraperC)
+	topRightVerticalRowC.AddChild(topRightStatsC)
+	topRightContainer.AddChild(topRightVerticalRowC)
+
+	topLeftBtnContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	leaveBtnW := widget.NewButton(
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionStart,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+		),
+
+		widget.ButtonOpts.Image(buttonImage),
+
+		widget.ButtonOpts.Text("LEAVE", smallFont, &widget.ButtonTextColor{
+			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+		}),
+
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   30,
+			Right:  30,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			u := hs.game.Store.Players.FindCurrent()
+			actionDispatcher.RemovePlayer(u.ID)
+		}),
+	)
+	topLeftBtnContainer.AddChild(leaveBtnW)
+
+	centerTextContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	winLoseTextW := widget.NewText(
+		widget.TextOpts.Text("", smallFont, color.White),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionCenter,
+			}),
+		),
+	)
+	centerTextContainer.AddChild(winLoseTextW)
+	winLoseTextW.GetWidget().Visibility = widget.Visibility_Hide
+	hs.winLoseTextW = winLoseTextW
+
+	rootContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewStackedLayout(widget.StackedLayoutOpts.Padding(widget.NewInsetsSimple(25)))),
+	)
+
+	rootContainer.AddChild(topRightContainer)
+	rootContainer.AddChild(topLeftBtnContainer)
+	rootContainer.AddChild(bottomRightContainer)
+	rootContainer.AddChild(centerTextContainer)
+
+	hs.ui = &ebitenui.UI{
+		Container: rootContainer,
+	}
 }

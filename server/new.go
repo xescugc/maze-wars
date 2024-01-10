@@ -108,6 +108,12 @@ func usersCreateHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
+		if _, ok := s.Users.FindByRemoteAddress(r.RemoteAddr); ok {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(errorResponse{Error: "A session already exists from this computer"})
+			return
+		}
+
 		actionDispatcher.UserSignUp(ucr.Username)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -126,22 +132,21 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 			// we kick the user
 			err := wsjson.Read(hr.Context(), ws, &msg)
 			if err != nil {
+				// We cannot move this 'u' call outside as the Read
+				// block until a new message is received so it may have
+				// a wrong value stored inside
+				u, _ := s.Users.FindByRemoteAddress(hr.RemoteAddr)
 				fmt.Printf("Error when reading the WS message: %s\n", err)
 
-				u, ok := s.Users.FindByRemoteAddress(hr.RemoteAddr)
-				if ok {
-					actionDispatcher.UserSignOut(u.Username)
-				}
-
-				rstate := s.Rooms.GetState().(RoomsState)
-				for rn, r := range rstate.Rooms {
-					if uid, ok := r.Connections[hr.RemoteAddr]; ok {
-						actionDispatcher.RemovePlayer(rn, uid)
-						break
-					}
-				}
+				actionDispatcher.UserSignOut(u.Username)
 				break
 			}
+
+			u, _ := s.Users.FindByRemoteAddress(hr.RemoteAddr)
+
+			// If the User is in a Room we set it directly on the
+			// action from the handler
+			msg.Room = u.CurrentRoomID
 
 			switch msg.Type {
 			case action.UserSignIn:

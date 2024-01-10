@@ -19,7 +19,7 @@ var (
 			d := flux.NewDispatcher()
 			ad := server.NewActionDispatcher(d, ss)
 			rooms := server.NewRoomsStore(d, ss)
-			users := server.NewUsersStore(d)
+			users := server.NewUsersStore(d, ss)
 
 			ss.Rooms = rooms
 			ss.Users = users

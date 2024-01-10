@@ -27,10 +27,14 @@ type User struct {
 
 	Conn       *websocket.Conn
 	RemoteAddr string
+
+	CurrentRoomID string
 }
 
-func NewUsersStore(d *flux.Dispatcher) *UsersStore {
-	us := &UsersStore{}
+func NewUsersStore(d *flux.Dispatcher, s *Store) *UsersStore {
+	us := &UsersStore{
+		Store: s,
+	}
 
 	us.ReduceStore = flux.NewReduceStore(d, us.Reduce, UsersState{
 		Users: make(map[string]*User),
@@ -105,10 +109,37 @@ func (us *UsersStore) Reduce(state, a interface{}) interface{} {
 			u.RemoteAddr = act.UserSignIn.RemoteAddr
 		}
 	case action.UserSignOut:
+		us.GetDispatcher().WaitFor(us.Store.Rooms.GetDispatcherToken())
+
 		us.mxUsers.Lock()
 		defer us.mxUsers.Unlock()
 
 		delete(ustate.Users, act.UserSignOut.Username)
+	case action.StartGame:
+		us.mxUsers.Lock()
+		defer us.mxUsers.Unlock()
+
+		r := us.Store.Rooms.FindCurrentWaitingRoom()
+		if r != nil {
+			for pid := range r.Players {
+				for _, u := range ustate.Users {
+					if u.ID == pid {
+						u.CurrentRoomID = r.Name
+					}
+				}
+			}
+		}
+
+	case action.RemovePlayer:
+		us.mxUsers.Lock()
+		defer us.mxUsers.Unlock()
+
+		for _, u := range ustate.Users {
+			if u.ID == act.RemovePlayer.ID {
+				u.CurrentRoomID = ""
+				break
+			}
+		}
 	}
 
 	return ustate

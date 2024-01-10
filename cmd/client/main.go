@@ -60,6 +60,8 @@ var (
 				return fmt.Errorf("failed to initialize HUDStore: %w", err)
 			}
 
+			g.Map = client.NewMap(g)
+
 			us := client.NewUserStore(d)
 			cls := client.NewStore(s, us)
 
@@ -85,7 +87,7 @@ var (
 )
 
 func init() {
-	clientCmd.Flags().StringVar(&hostURL, "port", "localhost:5555", "The URL of the server")
+	clientCmd.Flags().StringVar(&hostURL, "port", "http://localhost:5555", "The URL of the server")
 	clientCmd.Flags().IntVar(&screenW, "screenw", 288, "The default width of the screen when not full screen")
 	clientCmd.Flags().IntVar(&screenH, "screenh", 240, "The default height of the screen when not full screen")
 	clientCmd.Flags().BoolVar(&verbose, "verbose", false, "Logs information of the running client")

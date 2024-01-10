@@ -65,6 +65,8 @@ func NewClient() js.Func {
 			return fmt.Errorf("failed to initialize HUDStore: %w", err)
 		}
 
+		g.Map = client.NewMap(g)
+
 		us := client.NewUserStore(d)
 		cls := client.NewStore(s, us)
 

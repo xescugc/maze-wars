@@ -37,7 +37,6 @@ type Player struct {
 	Gold    int
 	Current bool
 	Winner  bool
-	Ready   bool
 }
 
 func (p Player) CanSummonUnit(ut string) bool {
@@ -144,6 +143,14 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		defer ps.mxPlayers.Unlock()
 
 		delete(pstate.Players, act.RemovePlayer.ID)
+
+		if len(pstate.Players) == 1 {
+			for _, p := range pstate.Players {
+				// As there is only 1 we can do it this way
+				p.Winner = true
+			}
+		}
+
 	case action.StealLive:
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
@@ -213,11 +220,6 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		defer ps.mxPlayers.Unlock()
 
 		pstate.Players[act.RemoveTower.PlayerID].Gold += tower.Towers[act.RemoveTower.TowerType].Gold / 2
-	case action.PlayerReady:
-		ps.mxPlayers.Lock()
-		defer ps.mxPlayers.Unlock()
-
-		pstate.Players[act.PlayerReady.ID].Ready = true
 	case action.UnitKilled:
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()

@@ -31,41 +31,32 @@ func NewActionDispatcher(d *flux.Dispatcher, s *Store) *ActionDispatcher {
 func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	switch a.Type {
 	case action.JoinWaitingRoom:
-		rstate := ac.store.Rooms.GetState().(RoomsState)
-		oldwr := rstate.CurrentWaitingRoom
-
 		ac.dispatcher.Dispatch(a)
 
-		rstate = ac.store.Rooms.GetState().(RoomsState)
-		// The only possibility for the CWR to be "" is that it has
-		// reached the full size, so we need to start the game
-		if rstate.CurrentWaitingRoom == "" && oldwr != "" {
-			ac.startGame(oldwr)
-		}
+		ac.startGame()
 	default:
 		ac.dispatcher.Dispatch(a)
 	}
 }
 
-func (ac *ActionDispatcher) startGame(oldwr string) {
+func (ac *ActionDispatcher) startGame() {
+	wr := ac.store.Rooms.FindCurrentWaitingRoom()
+	if wr == nil || (len(wr.Players) != wr.Size) {
+		return
+	}
+
 	rstate := ac.store.Rooms.GetState().(RoomsState)
-	sga := action.NewStartGame(oldwr)
+	sga := action.NewStartGame()
 
 	ac.dispatcher.Dispatch(sga)
 	ac.UpdateState(ac.store.Rooms)
 
-	for _, p := range rstate.Rooms[oldwr].Players {
+	for _, p := range rstate.Rooms[wr.Name].Players {
 		err := wsjson.Write(context.Background(), p.Conn, sga)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-}
-
-func (ac *ActionDispatcher) RemovePlayer(rn, sid string) {
-	rpa := action.NewRemovePlayer(rn, sid)
-	rpa.Room = rn
-	ac.dispatcher.Dispatch(rpa)
 }
 
 func (ac *ActionDispatcher) IncomeTick(rooms *RoomsStore) {
@@ -74,18 +65,10 @@ func (ac *ActionDispatcher) IncomeTick(rooms *RoomsStore) {
 }
 
 func (ac *ActionDispatcher) WaitRoomCountdownTick() {
-	rstate := ac.store.Rooms.GetState().(RoomsState)
-	oldwr := rstate.CurrentWaitingRoom
-
 	wrcta := action.NewWaitRoomCountdownTick()
 	ac.dispatcher.Dispatch(wrcta)
 
-	rstate = ac.store.Rooms.GetState().(RoomsState)
-	// The only possibility for the CWR to be "" is that it has
-	// reached the full size, so we need to start the game
-	if rstate.CurrentWaitingRoom == "" && oldwr != "" {
-		ac.startGame(oldwr)
-	}
+	ac.startGame()
 }
 
 func (ac *ActionDispatcher) TPS(rooms *RoomsStore) {

@@ -166,27 +166,10 @@ func (m *Map) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.StartGame:
-		players := m.store.Players.List()
-		if len(players) > 1 {
-			allReady := true
-			for _, p := range players {
-				if !p.Ready {
-					allReady = false
-					break
-				}
-			}
-			// TODO: This action could be done from the NavigateTo from the
-			// lobby but we need the server to do the same logic and it does
-			// not make sense to send NavigateTo events to the server.
-			//
-			// If all players are ready then the map must be set
-			if allReady {
-				mstate.Players = len(players)
-				mstate.Image, ok = mapImages[mstate.Players]
-				if !ok {
-					log.Fatalf("The map for the number of players %d is not available", mstate.Players)
-				}
-			}
+		mstate.Players = len(m.store.Players.List())
+		mstate.Image, ok = mapImages[mstate.Players]
+		if !ok {
+			log.Fatalf("The map for the number of players %d is not available", mstate.Players)
 		}
 	}
 
