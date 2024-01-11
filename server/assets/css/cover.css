@@ -30,6 +30,10 @@ body {
  * Header
  */
 
+.logo{
+  height: 40px;
+}
+
 .nav-masthead .nav-link {
   color: rgba(255, 255, 255, .5);
   border-bottom: .25rem solid transparent;
