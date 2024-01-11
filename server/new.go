@@ -48,6 +48,7 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	hmux.Handle("/css/", http.FileServer(http.FS(assets.Assets)))
 	hmux.Handle("/js/", http.FileServer(http.FS(assets.Assets)))
 	hmux.Handle("/wasm/", http.FileServer(http.FS(assets.Assets)))
+	hmux.Handle("/images/", http.FileServer(http.FS(assets.Assets)))
 
 	svr := &http.Server{
 		Addr:    fmt.Sprintf(":%s", opt.Port),
