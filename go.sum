@@ -84,6 +84,8 @@ github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
 github.com/xescugc/go-flux v1.0.1 h1:YVCv2MMRKWkIZvc1XmD2Pi+As3UfLs5eLfksWcZZf54=
 github.com/xescugc/go-flux v1.0.1/go.mod h1:3EN6Oi/yQya6yOAVRWwRK0AHugZTzjBXIYkiwa2nlf4=
+github.com/xescugc/go-flux v1.0.2 h1:KkRoRi2Gm/bVTkFUVqrZAFR/xfdwzhu3Te0E4wyr0p4=
+github.com/xescugc/go-flux v1.0.2/go.mod h1:3EN6Oi/yQya6yOAVRWwRK0AHugZTzjBXIYkiwa2nlf4=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=
