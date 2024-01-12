@@ -12,7 +12,7 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.1
 	github.com/stretchr/testify v1.8.4
-	github.com/xescugc/go-flux v1.0.1
+	github.com/xescugc/go-flux v1.0.2
 	golang.org/x/image v0.10.0
 	nhooyr.io/websocket v1.8.10
 )
