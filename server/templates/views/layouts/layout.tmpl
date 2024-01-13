@@ -1,6 +1,6 @@
 {{define "main"}}
   <!DOCTYPE html>
-  <html class="h-100" lang="en">
+  <html lang="en">
     <head>
       <title>
         {{ template "title" . }}
@@ -19,18 +19,19 @@
           gtag('config', 'G-8W1NGJ7X95');
     </script>
 
-    <body class="d-flex h-100 text-center text-bg-dark">
-      <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+    <body class="d-flex text-center text-bg-dark">
+      <div class="cover-container d-flex w-100 p-3 mx-auto flex-column">
         <header class="mb-auto" >
           <div>
             <h3 class="float-md-start mb-0">
               <a class="text-decoration-none text-reset" href="/">
                 <img class="img-fluid logo" src="images/logo.png"/>
               </a>
-						</h3>
+            </h3>
             <nav class="nav nav-masthead justify-content-center float-md-end">
-              <a class="nav-link fw-bold py-1 px-0 active" href="/">Home</a>
-              <a class="nav-link fw-bold py-1 px-0">Docs</a>
+              <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "home"}}active{{end}}" href="/">Home</a>
+              <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "game"}}active{{end}}" href="/play">Game</a>
+              <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "docs"}}active{{end}}" href="/docs">Docs</a>
             </nav>
           </div>
         </header>

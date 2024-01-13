@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"image"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/maze-wars/assets"
@@ -86,9 +85,11 @@ func (us *Units) Draw(screen *ebiten.Image) {
 
 func (us *Units) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	cs := c.GetState().(CameraState)
-	for _, s := range u.Path {
-		screen.Set(int(s.X-cs.X), int(s.Y-cs.Y), color.Black)
-	}
+	// This is to display the full unit calculated path as a line
+	// used for testing visually the path
+	//for _, s := range u.Path {
+	//screen.Set(int(s.X-cs.X), int(s.Y-cs.Y), color.Black)
+	//}
 	if !u.IsColliding(cs.Object) {
 		return
 	}

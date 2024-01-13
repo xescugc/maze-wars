@@ -1,0 +1,94 @@
+{{template "main" .}}
+{{define "title" }}
+  Maze Wars - Docs
+{{ end }}
+{{define "content"}}
+  <div>
+    <h1>Documentation</h1>
+    <p class="lead">
+      This section will explain the Game interface and how to play the game
+    </p>
+    </br>
+    <div class="px-3">
+      <img src="/images/game_sample.png" class="img-fluid">
+    </div>
+    </br>
+    <div style="text-align: justify">
+      <div class="px-3">
+        <h2>Abstract</h2>
+        <p class ="lead">
+          The purpose of the game is to <strong>steal the enemies lives</strong> by sending <strong>units</strong> that will traverse the enemy maze and when they reach the end of the enemy line a live would be taken from the enemy and gain by owner of the unit. The units that achieve to pass through and reach the end then they'll continue to the next enemy, this will continue until the unit dies or goes back to your line.
+        </p>
+        <p class ="lead">
+          To protect against the enemy units you have to build a maze using towers to slow the units path and kill them before they reach the end of your line.
+        </p>
+      </div>
+      <div class="px-3">
+        <h3>Lobby</h3>
+        <div class="text-center px-3">
+          <img src="/images/sign_up.png" class="img-fluid">
+        </div>
+        <p class ="lead">
+          When you first enter the game it'll ask for a <strong>username</strong> to identify yourself. For now there is no Sign Up so every time you'll have to enter the name you want to be seen as
+        </p>
+        <div class="text-center px-3">
+          <img src="/images/lobby.png" class="img-fluid">
+        </div>
+        <p class ="lead">
+          After that you enter the Lobby, where you can see the <strong>total number of players online</strong> and where you can also start to <strong>Play</strong> the Game.
+        </p>
+        <div class="text-center px-3">
+          <img src="/images/waiting_room.png" class="img-fluid">
+        </div>
+        <p class ="lead">
+          Once you click <strong>Play</strong> you enter a waiting room. This room is intended to match you with other players that also want to play the Game, as the player population is really low it also has a <strong>countdown</strong> where every <strong>10s</strong> it'll <strong>reduce the size</strong> from 6 to minimum of 2 as the game can be played by a maximum of 6 players or a minimum of 2.
+        </p>
+      </div>
+      <div class="px-3">
+        <h3>Units</h3>
+        <div class="text-center px-3">
+          <img src="/images/units.png" class="img-fluid">
+        </div>
+        <p class ="lead">
+          The Units that you can summon can be found on the bottom right of the screen on the tab Units. Every unit has a <strong>gold cost</strong> to summon and it provides an <strong>increase on the income</strong> of the player. And when killed they give gold to the player that killed it equal to the income they give when summoned.
+        </p>
+        <p class ="lead">
+          Units get <strong>summoned</strong> in a random place on the <strong>top gray section</strong> of the line and <strong>steal the live</strong> when they arrive at the <strong>bottom</strong> of the line, on the other <strong>gray area</strong>
+        </p>
+      </div>
+      <div class="px-3">
+        <h3>Towers</h3>
+        <div class="text-center px-3">
+          <img src="/images/towers.png" class="img-fluid">
+        </div>
+        <p class ="lead">
+          The Towers that you can build can be found on the bottom right of the screen on the tab Towers. Every tower has a gold cost to build. As of now there are 2 types of towers, range and melee.
+        </p>
+        <p class ="lead">
+          When building the towers you should try to extend the path that enemy units have to do to reach the end of your line by creating a maze that they have to traverse. I f you want to <strong>remove a build tower</strong> click on it and a cross will appear, click on it again and the tower will be removed and 50% of the gold will be given back to the player.
+        </p>
+      </div>
+      <div class="px-3">
+        <h3>Stats</h3>
+        <div class="text-center px-3">
+          <img src="/images/stats.png" class="img-fluid">
+        </div>
+        <p class ="lead">
+          This gives a general view of all the players in the Game, which are their lives and income.
+        </p>
+      </div>
+      <div class="px-3">
+        <h4>Income</h4>
+        <p class ="lead">
+          Every 15s you'll receive Gold equal to the income you have, to increase the income summon more units.
+        </p>
+      </div>
+      <div class="px-3">
+        <h4>Gold</h3>
+        <p class ="lead">
+          Gold is used to build towers and summon units, to get more gold kill enemy units or summon more units to increase the income
+        </p>
+      </div>
+    </div>
+  </div>
+{{ end}}

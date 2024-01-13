@@ -39,6 +39,7 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 
 	r.HandleFunc("/play", playHandler).Methods(http.MethodGet)
 	r.HandleFunc("/game", gameHandler).Methods(http.MethodGet)
+	r.HandleFunc("/docs", docsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
 
 	r.HandleFunc("/users", usersCreateHandler(s)).Methods(http.MethodPost).Headers("Content-Type", "application/json")
@@ -63,19 +64,28 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	return nil
 }
 
+type templateData struct {
+	Tab string
+}
+
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := templates.Templates["views/home/index.tmpl"]
-	t.Execute(w, nil)
+	t.Execute(w, templateData{"home"})
 }
 
 func playHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := templates.Templates["views/game/play.tmpl"]
-	t.Execute(w, nil)
+	t.Execute(w, templateData{"game"})
 }
 
 func gameHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := templates.Templates["views/game/game.tmpl"]
 	t.Execute(w, nil)
+}
+
+func docsHandler(w http.ResponseWriter, r *http.Request) {
+	t, _ := templates.Templates["views/docs/index.tmpl"]
+	t.Execute(w, templateData{"docs"})
 }
 
 type usersCreateRequest struct {
