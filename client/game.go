@@ -2,7 +2,6 @@ package client
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 )
 
@@ -24,18 +23,10 @@ type Game struct {
 func (g *Game) Update() error {
 	g.Map.Update()
 	g.Camera.Update()
-	g.HUD.Update()
 	g.Units.Update()
 	g.Towers.Update()
+	g.HUD.Update()
 
-	if len(g.Store.Players.List()) == 0 {
-		actionDispatcher.Dispatch(action.NewAddPlayer("1", "test1", 0))
-		actionDispatcher.Dispatch(action.NewAddPlayer("2", "test2", 1))
-		actionDispatcher.Dispatch(action.NewAddPlayer("3", "test3", 2))
-		actionDispatcher.Dispatch(action.NewAddPlayer("4", "test4", 3))
-		actionDispatcher.Dispatch(action.NewAddPlayer("5", "test5", 4))
-		actionDispatcher.Dispatch(action.NewAddPlayer("6", "test6", 5))
-	}
 	actionDispatcher.TPS()
 
 	return nil
