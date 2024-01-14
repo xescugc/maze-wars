@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	stdimage "image"
 	"image/color"
 	"math"
 	"sort"
@@ -598,15 +599,38 @@ func (hs *HUDStore) buildUI() {
 		)),
 	)
 	for _, u := range sortedUnits() {
+		tooltipContainer := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+			widget.ContainerOpts.AutoDisableChildren(),
+			widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+		)
+
+		toolTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nHP: %.0f\nIncome: %d ", u.Gold, u.Health, u.Income), smallFont, color.White),
+			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+		)
+		tooltipContainer.AddChild(toolTxt)
+
 		ubtn := widget.NewButton(
 			// set general widget options
 			widget.ButtonOpts.WidgetOpts(
 				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
 					MaxWidth:  38,
 					MaxHeight: 38,
-					//Position: widget.RowLayoutPositionCenter,
-					//Stretch:  false,
 				}),
+				widget.WidgetOpts.ToolTip(widget.NewToolTip(
+					widget.ToolTipOpts.Content(tooltipContainer),
+					//widget.WidgetToolTipOpts.Delay(1*time.Second),
+					widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+					widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+					//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+					//They will default to what you see below if you do not provide them
+					widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+				)),
 			),
 
 			// specify the images to sue
@@ -644,15 +668,37 @@ func (hs *HUDStore) buildUI() {
 		)),
 	)
 	for _, t := range sortedTowers() {
+		tooltipContainer := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+			widget.ContainerOpts.AutoDisableChildren(),
+			widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+		)
+
+		toolTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nRange: %.0f\nDamage: %.0f", t.Gold, t.Range, t.Damage), smallFont, color.White),
+			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+		)
+		tooltipContainer.AddChild(toolTxt)
 		tbtn := widget.NewButton(
 			// set general widget options
 			widget.ButtonOpts.WidgetOpts(
 				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
 					MaxWidth:  38,
 					MaxHeight: 38,
-					//Position: widget.RowLayoutPositionCenter,
-					//Stretch:  false,
 				}),
+				widget.WidgetOpts.ToolTip(widget.NewToolTip(
+					widget.ToolTipOpts.Content(tooltipContainer),
+					//widget.WidgetToolTipOpts.Delay(1*time.Second),
+					widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+					widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+					//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+					//They will default to what you see below if you do not provide them
+					widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+				)),
 			),
 
 			// specify the images to sue
