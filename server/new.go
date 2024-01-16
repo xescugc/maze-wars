@@ -182,7 +182,6 @@ func startLoop(ctx context.Context, s *Store) {
 	for {
 		select {
 		case <-stateTicker.C:
-			// TODO: Send state
 			actionDispatcher.UpdateState(s.Rooms)
 		case <-incomeTicker.C:
 			actionDispatcher.IncomeTick(s.Rooms)
