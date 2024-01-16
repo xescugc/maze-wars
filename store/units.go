@@ -85,6 +85,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.SummonUnit:
+		// We wait for the towers store as we need to interact with it
 		us.GetDispatcher().WaitFor(
 			us.store.Towers.GetDispatcherToken(),
 		)
@@ -95,7 +96,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		if !p.CanSummonUnit(act.SummonUnit.Type) {
 			break
 		}
-		// We wait for the towers store as we need to interact with it
+
 		var w, h float64 = 16, 16
 		var x, y float64 = us.store.Map.GetRandomSpawnCoordinatesForLineID(act.SummonUnit.CurrentLineID)
 		uid := uuid.Must(uuid.NewV4())
@@ -247,16 +248,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		for id, u := range act.UpdateState.Units.Units {
 			delete(uids, id)
 			nu := Unit(*u)
-			ou, ok := ustate.Units[id]
 
-			if ok {
-				if ou.HashPath == nu.HashPath {
-					nu.Path = ou.Path
-				}
-			}
-
-			// If the path is the same we set it. This cannot be done directly
-			// as the Unit on the client may be faster than the Unit on the server
 			ustate.Units[id] = &nu
 		}
 		for id := range uids {
