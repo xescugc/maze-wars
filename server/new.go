@@ -182,7 +182,7 @@ func startLoop(ctx context.Context, s *Store) {
 	for {
 		select {
 		case <-stateTicker.C:
-			actionDispatcher.UpdateState(s.Rooms)
+			actionDispatcher.SyncState(s.Rooms)
 		case <-incomeTicker.C:
 			actionDispatcher.IncomeTick(s.Rooms)
 			actionDispatcher.WaitRoomCountdownTick()
@@ -190,7 +190,7 @@ func startLoop(ctx context.Context, s *Store) {
 		case <-moveTicker.C:
 			actionDispatcher.TPS(s.Rooms)
 		case <-usersTicker.C:
-			actionDispatcher.UpdateUsers(s.Users)
+			actionDispatcher.SyncUsers(s.Users)
 		case <-ctx.Done():
 			stateTicker.Stop()
 			incomeTicker.Stop()

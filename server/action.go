@@ -49,7 +49,7 @@ func (ac *ActionDispatcher) startGame() {
 	sga := action.NewStartGame()
 
 	ac.dispatcher.Dispatch(sga)
-	ac.UpdateState(ac.store.Rooms)
+	ac.SyncState(ac.store.Rooms)
 
 	for _, p := range rstate.Rooms[wr.Name].Players {
 		err := wsjson.Write(context.Background(), p.Conn, sga)
@@ -88,7 +88,7 @@ func (ac *ActionDispatcher) UserSignOut(un string) {
 	ac.dispatcher.Dispatch(action.NewUserSignOut(un))
 }
 
-func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
+func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 	rstate := rooms.GetState().(RoomsState)
 	for _, r := range rstate.Rooms {
 		if r.Name == rstate.CurrentWaitingRoom {
@@ -96,10 +96,10 @@ func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 		}
 		for id, pc := range r.Players {
 			// Players
-			players := make(map[string]*action.UpdateStatePlayerPayload)
+			players := make(map[string]*action.SyncStatePlayerPayload)
 			ps := r.Game.Players.GetState().(store.PlayersState)
 			for idp, p := range ps.Players {
-				uspp := action.UpdateStatePlayerPayload(*p)
+				uspp := action.SyncStatePlayerPayload(*p)
 				if id == idp {
 					uspp.Current = true
 				}
@@ -107,30 +107,30 @@ func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 			}
 
 			// Towers
-			towers := make(map[string]*action.UpdateStateTowerPayload)
+			towers := make(map[string]*action.SyncStateTowerPayload)
 			ts := r.Game.Towers.List()
 			for _, t := range ts {
-				ustp := action.UpdateStateTowerPayload(*t)
+				ustp := action.SyncStateTowerPayload(*t)
 				towers[t.ID] = &ustp
 			}
 
 			// Units
-			units := make(map[string]*action.UpdateStateUnitPayload)
+			units := make(map[string]*action.SyncStateUnitPayload)
 			us := r.Game.Units.List()
 			for _, u := range us {
-				usup := action.UpdateStateUnitPayload(*u)
+				usup := action.SyncStateUnitPayload(*u)
 				units[u.ID] = &usup
 			}
 
-			aus := action.NewUpdateState(
-				&action.UpdateStatePlayersPayload{
+			aus := action.NewSyncState(
+				&action.SyncStatePlayersPayload{
 					Players:     players,
 					IncomeTimer: ps.IncomeTimer,
 				},
-				&action.UpdateStateTowersPayload{
+				&action.SyncStateTowersPayload{
 					Towers: towers,
 				},
-				&action.UpdateStateUnitsPayload{
+				&action.SyncStateUnitsPayload{
 					Units: units,
 				},
 			)
@@ -142,11 +142,11 @@ func (ac *ActionDispatcher) UpdateState(rooms *RoomsStore) {
 	}
 }
 
-func (ac *ActionDispatcher) UpdateUsers(users *UsersStore) {
+func (ac *ActionDispatcher) SyncUsers(users *UsersStore) {
 	for _, u := range users.List() {
 		// This will carry more information on the future
 		// potentially more customized to the current user
-		auu := action.NewUpdateUsers(
+		auu := action.NewSyncUsers(
 			len(users.List()),
 		)
 		err := wsjson.Write(context.Background(), u.Conn, auu)

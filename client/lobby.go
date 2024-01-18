@@ -68,8 +68,8 @@ func (ls *LobbyStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	switch act.Type {
-	case action.UpdateUsers:
-		lstate.TotalUsers = act.UpdateUsers.TotalUsers
+	case action.SyncUsers:
+		lstate.TotalUsers = act.SyncUsers.TotalUsers
 	}
 
 	return lstate

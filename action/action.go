@@ -40,8 +40,8 @@ type Action struct {
 	RemovePlayer    *RemovePlayerPayload    `json:"remove_player, omitempty"`
 	JoinWaitingRoom *JoinWaitingRoomPayload `json:"join_waiting_room, omitempty"`
 	ExitWaitingRoom *ExitWaitingRoomPayload `json:"exit_waiting_room, omitempty"`
-	UpdateState     *UpdateStatePayload     `json:"update_state, omitempty"`
-	UpdateUsers     *UpdateUsersPayload     `json:"update_users, omitempty"`
+	SyncState       *SyncStatePayload       `json:"sync_state, omitempty"`
+	SyncUsers       *SyncUsersPayload       `json:"sync_users, omitempty"`
 	SyncWaitingRoom *SyncWaitingRoomPayload `json:"sync_waiting_room, omitempty"`
 }
 
@@ -472,18 +472,18 @@ func NewSyncWaitingRoom(tp, s, cd int) *Action {
 	}
 }
 
-type UpdateStatePayload struct {
-	Players *UpdateStatePlayersPayload
-	Towers  *UpdateStateTowersPayload
-	Units   *UpdateStateUnitsPayload
+type SyncStatePayload struct {
+	Players *SyncStatePlayersPayload
+	Towers  *SyncStateTowersPayload
+	Units   *SyncStateUnitsPayload
 }
 
-type UpdateStatePlayersPayload struct {
-	Players     map[string]*UpdateStatePlayerPayload
+type SyncStatePlayersPayload struct {
+	Players     map[string]*SyncStatePlayerPayload
 	IncomeTimer int
 }
 
-type UpdateStatePlayerPayload struct {
+type SyncStatePlayerPayload struct {
 	ID      string
 	Name    string
 	Lives   int
@@ -494,11 +494,11 @@ type UpdateStatePlayerPayload struct {
 	Winner  bool
 }
 
-type UpdateStateTowersPayload struct {
-	Towers map[string]*UpdateStateTowerPayload
+type SyncStateTowersPayload struct {
+	Towers map[string]*SyncStateTowerPayload
 }
 
-type UpdateStateTowerPayload struct {
+type SyncStateTowerPayload struct {
 	utils.Object
 
 	ID       string
@@ -507,11 +507,11 @@ type UpdateStateTowerPayload struct {
 	PlayerID string
 }
 
-type UpdateStateUnitsPayload struct {
-	Units map[string]*UpdateStateUnitPayload
+type SyncStateUnitsPayload struct {
+	Units map[string]*SyncStateUnitPayload
 }
 
-type UpdateStateUnitPayload struct {
+type SyncStateUnitPayload struct {
 	utils.MovingObject
 
 	ID            string
@@ -527,10 +527,10 @@ type UpdateStateUnitPayload struct {
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated
-func NewUpdateState(players *UpdateStatePlayersPayload, towers *UpdateStateTowersPayload, units *UpdateStateUnitsPayload) *Action {
+func NewSyncState(players *SyncStatePlayersPayload, towers *SyncStateTowersPayload, units *SyncStateUnitsPayload) *Action {
 	return &Action{
-		Type: UpdateState,
-		UpdateState: &UpdateStatePayload{
+		Type: SyncState,
+		SyncState: &SyncStatePayload{
 			Players: players,
 			Towers:  towers,
 			Units:   units,
@@ -538,14 +538,14 @@ func NewUpdateState(players *UpdateStatePlayersPayload, towers *UpdateStateTower
 	}
 }
 
-type UpdateUsersPayload struct {
+type SyncUsersPayload struct {
 	TotalUsers int
 }
 
-func NewUpdateUsers(totalUsers int) *Action {
+func NewSyncUsers(totalUsers int) *Action {
 	return &Action{
-		Type: UpdateUsers,
-		UpdateUsers: &UpdateUsersPayload{
+		Type: SyncUsers,
+		SyncUsers: &SyncUsersPayload{
 			TotalUsers: totalUsers,
 		},
 	}

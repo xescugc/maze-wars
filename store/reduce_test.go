@@ -1,6 +1,10 @@
 package store_test
 
 import (
+	"fmt"
+	"os"
+	"sort"
+	"sync"
 	"testing"
 
 	"github.com/gofrs/uuid"
@@ -40,10 +44,65 @@ var (
 			Units: make(map[string]*store.Unit),
 		}
 	}
+
+	mapInitialState = func() store.MapState {
+		return store.MapState{
+			Players: 2,
+			Image:   store.MapImages[2],
+		}
+	}
+
+	muActionsTested sync.Mutex
+	actionsTested   = map[string]struct{}{
+		// This are all the actions not involved on the Store
+		action.CameraZoom.String():            {},
+		action.CheckedPath.String():           {},
+		action.CloseTowerMenu.String():        {},
+		action.CursorMove.String():            {},
+		action.DeselectTower.String():         {},
+		action.GoHome.String():                {},
+		action.NavigateTo.String():            {},
+		action.OpenTowerMenu.String():         {},
+		action.SelectTower.String():           {},
+		action.SelectedTower.String():         {},
+		action.SelectedTowerInvalid.String():  {},
+		action.SignUpError.String():           {},
+		action.ToggleStats.String():           {},
+		action.ToggleStats.String():           {},
+		action.ExitWaitingRoom.String():       {},
+		action.JoinWaitingRoom.String():       {},
+		action.UserSignIn.String():            {},
+		action.UserSignOut.String():           {},
+		action.UserSignUp.String():            {},
+		action.WaitRoomCountdownTick.String(): {},
+		action.WindowResizing.String():        {},
+		action.SyncWaitingRoom.String():       {},
+		action.SyncUsers.String():             {},
+	}
 )
 
-func TestActions(t *testing.T) {
-	assert.Len(t, action.TypeValues(), 28, "This is a hard check to remember that if a new action Type is added it should also have a test on this file")
+func addAction(a string) {
+	muActionsTested.Lock()
+	defer muActionsTested.Unlock()
+
+	actionsTested[a] = struct{}{}
+}
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+
+	ma := make([]string, 0, 0)
+	for _, a := range action.TypeValues() {
+		if _, ok := actionsTested[a.String()]; !ok {
+			ma = append(ma, a.String())
+		}
+	}
+	if len(ma) != 0 {
+		sort.Strings(ma)
+		fmt.Printf("This actions are not tested: %s", ma)
+		os.Exit(1)
+	}
+	os.Exit(code)
 }
 
 func TestEmpty(t *testing.T) {
@@ -52,6 +111,7 @@ func TestEmpty(t *testing.T) {
 }
 
 func TestSummonUnit(t *testing.T) {
+	addAction(action.SummonUnit.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
@@ -131,6 +191,7 @@ func TestSummonUnit(t *testing.T) {
 }
 
 func TestTPS(t *testing.T) {
+	addAction(action.TPS.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
@@ -151,6 +212,7 @@ func TestTPS(t *testing.T) {
 }
 
 func TestRemoveUnit(t *testing.T) {
+	addAction(action.RemoveUnit.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
@@ -166,6 +228,7 @@ func TestRemoveUnit(t *testing.T) {
 }
 
 func TestStealLive(t *testing.T) {
+	addAction(action.StealLive.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p1 := addPlayer(s)
@@ -207,6 +270,7 @@ func TestStealLive(t *testing.T) {
 }
 
 func TestPlaceTower(t *testing.T) {
+	addAction(action.PlaceTower.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
@@ -290,6 +354,7 @@ func TestPlaceTower(t *testing.T) {
 }
 
 func TestRemoveTower(t *testing.T) {
+	addAction(action.RemoveTower.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
@@ -307,6 +372,7 @@ func TestRemoveTower(t *testing.T) {
 }
 
 func TestIncomeTick(t *testing.T) {
+	addAction(action.IncomeTick.String())
 	t.Run("NormalTick", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
@@ -337,6 +403,7 @@ func TestIncomeTick(t *testing.T) {
 }
 
 func TestTowerAttack(t *testing.T) {
+	addAction(action.TowerAttack.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
@@ -360,6 +427,7 @@ func TestTowerAttack(t *testing.T) {
 }
 
 func TestUnitKilled(t *testing.T) {
+	addAction(action.UnitKilled.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
@@ -378,22 +446,8 @@ func TestUnitKilled(t *testing.T) {
 	})
 }
 
-func TestPlayerReady(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		s := initStore()
-		p := addPlayer(s)
-
-		s.Dispatch(action.NewPlayerReady(p.ID))
-		p.Ready = true
-
-		ps := playersInitialState()
-		ps.Players[p.ID] = &p
-
-		equalStore(t, s, ps)
-	})
-}
-
 func TestAddPlayer(t *testing.T) {
+	addAction(action.AddPlayer.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		id := uuid.Must(uuid.NewV4())
@@ -441,19 +495,43 @@ func TestAddPlayer(t *testing.T) {
 }
 
 func TestRemovePlayer(t *testing.T) {
+	addAction(action.RemovePlayer.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p := addPlayer(s)
 		p, _ = placeTower(s, p)
 		p, _ = summonUnit(s, p)
 
-		s.Dispatch(action.NewRemovePlayer("room", p.ID))
+		s.Dispatch(action.NewRemovePlayer(p.ID))
 
 		equalStore(t, s)
 	})
 }
 
+func TestStartGame(t *testing.T) {
+	addAction(action.StartGame.String())
+	t.Run("Success", func(t *testing.T) {
+		s := initStore()
+		p1 := addPlayer(s)
+		p2 := addPlayer(s)
+		p3 := addPlayer(s)
+
+		s.Dispatch(action.NewStartGame())
+		ms := mapInitialState()
+		ms.Players = 3
+		ms.Image = store.MapImages[3]
+
+		ps := playersInitialState()
+		ps.Players[p1.ID] = &p1
+		ps.Players[p2.ID] = &p2
+		ps.Players[p3.ID] = &p3
+
+		equalStore(t, s, ps, ms)
+	})
+}
+
 func TestChangeUnitLine(t *testing.T) {
+	addAction(action.ChangeUnitLine.String())
 	t.Run("Success", func(t *testing.T) {
 		s := initStore()
 		p1 := addPlayer(s)
@@ -461,13 +539,13 @@ func TestChangeUnitLine(t *testing.T) {
 		p3 := addPlayer(s)
 		p1, u1 := summonUnit(s, p1)
 
-		s.Dispatch(action.NewPlayerReady(p1.ID))
-		s.Dispatch(action.NewPlayerReady(p2.ID))
-		s.Dispatch(action.NewPlayerReady(p3.ID))
-		s.Dispatch(action.NewStartGame("room"))
+		s.Dispatch(action.NewStartGame())
 		s.Dispatch(action.NewChangeUnitLine(u1.ID))
 
-		p1.Ready, p2.Ready, p3.Ready = true, true, true
+		s.Dispatch(action.NewStartGame())
+		ms := mapInitialState()
+		ms.Players = 3
+		ms.Image = store.MapImages[3]
 
 		ps := playersInitialState()
 		ps.Players[p1.ID] = &p1
@@ -487,7 +565,92 @@ func TestChangeUnitLine(t *testing.T) {
 		us := unitsInitialState()
 		us.Units[u1.ID] = &u1
 
-		equalStore(t, s, us, ps)
+		equalStore(t, s, us, ps, ms)
+	})
+}
+
+func TestSyncState(t *testing.T) {
+	addAction(action.SyncState.String())
+	t.Run("Success", func(t *testing.T) {
+		s := initStore()
+		ssa := &action.Action{
+			Type: action.SyncState,
+			SyncState: &action.SyncStatePayload{
+				Players: &action.SyncStatePlayersPayload{
+					Players: map[string]*action.SyncStatePlayerPayload{
+						"123": &action.SyncStatePlayerPayload{
+							ID:      "123",
+							Name:    "Player name",
+							Lives:   10,
+							LineID:  2,
+							Income:  3,
+							Gold:    10,
+							Current: true,
+							Winner:  false,
+						},
+					},
+					IncomeTimer: 5,
+				},
+				Towers: &action.SyncStateTowersPayload{
+					Towers: map[string]*action.SyncStateTowerPayload{
+						"456": &action.SyncStateTowerPayload{
+							Object: utils.Object{
+								X: 1, Y: 2, W: 3, H: 4,
+							},
+							ID:       "456",
+							Type:     "soldier",
+							PlayerID: "123",
+							LineID:   2,
+						},
+					},
+				},
+				Units: &action.SyncStateUnitsPayload{
+					Units: map[string]*action.SyncStateUnitPayload{
+						"789": &action.SyncStateUnitPayload{
+							ID:            "789",
+							Type:          "cyclope",
+							PlayerID:      "10",
+							PlayerLineID:  10,
+							CurrentLineID: 2,
+							Health:        2,
+						},
+					},
+				},
+			},
+		}
+		ps := playersInitialState()
+		ps.Players["123"] = &store.Player{
+			ID:      "123",
+			Name:    "Player name",
+			Lives:   10,
+			LineID:  2,
+			Income:  3,
+			Gold:    10,
+			Current: true,
+			Winner:  false,
+		}
+		ps.IncomeTimer = 5
+		ts := towersInitialState()
+		ts.Towers["456"] = &store.Tower{
+			Object: utils.Object{
+				X: 1, Y: 2, W: 3, H: 4,
+			},
+			ID:       "456",
+			Type:     "soldier",
+			PlayerID: "123",
+			LineID:   2,
+		}
+		us := unitsInitialState()
+		us.Units["789"] = &store.Unit{
+			ID:            "789",
+			Type:          "cyclope",
+			PlayerID:      "10",
+			PlayerLineID:  10,
+			CurrentLineID: 2,
+			Health:        2,
+		}
+		s.Dispatch(ssa)
+		equalStore(t, s, ps, ts, us)
 	})
 }
 
@@ -495,6 +658,7 @@ func equalStore(t *testing.T, sto *store.Store, states ...interface{}) {
 	pis := playersInitialState()
 	tis := towersInitialState()
 	uis := unitsInitialState()
+	mis := mapInitialState()
 	for _, st := range states {
 		switch s := st.(type) {
 		case store.PlayersState:
@@ -503,6 +667,8 @@ func equalStore(t *testing.T, sto *store.Store, states ...interface{}) {
 			tis = s
 		case store.UnitsState:
 			uis = s
+		case store.MapState:
+			mis = s
 		default:
 			t.Fatalf("State with type %T is unknown", st)
 		}
@@ -511,4 +677,5 @@ func equalStore(t *testing.T, sto *store.Store, states ...interface{}) {
 	assert.Equal(t, pis, sto.Players.GetState().(store.PlayersState))
 	assert.Equal(t, tis, sto.Towers.GetState().(store.TowersState))
 	assert.Equal(t, uis, sto.Units.GetState().(store.UnitsState))
+	assert.Equal(t, mis, sto.Map.GetState().(store.MapState))
 }

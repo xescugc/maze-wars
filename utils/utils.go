@@ -63,7 +63,7 @@ type Step struct {
 }
 
 func (s Step) String() string {
-	return fmt.Sprintf("X:%f, Y:%f, W:%f, H:%f, F:%s", s.X, s.Y, s.W, s.H, s.Facing.String())
+	return fmt.Sprintf("X:%.0f, Y:%.0f, W:%.0f, H:%.0f, F:%s", s.X, s.Y, s.W, s.H, s.Facing.String())
 }
 
 // NeighborSteps returns all the possible steps around the o
