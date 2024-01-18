@@ -21,7 +21,6 @@ const (
 	TowerAttack
 	UnitKilled
 	WindowResizing
-	PlayerReady
 	NavigateTo
 	StartGame
 	OpenTowerMenu
@@ -40,8 +39,8 @@ const (
 	// Specific to WS
 	AddPlayer
 	RemovePlayer
-	UpdateState
-	UpdateUsers
+	SyncState
+	SyncUsers
 	WaitRoomCountdownTick
 	SyncWaitingRoom
 )

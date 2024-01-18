@@ -225,7 +225,7 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		defer ps.mxPlayers.Unlock()
 
 		pstate.Players[act.UnitKilled.PlayerID].Gold += unit.Units[act.UnitKilled.UnitType].Income
-	case action.UpdateState:
+	case action.SyncState:
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
 
@@ -233,7 +233,7 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		for id := range pstate.Players {
 			pids[id] = struct{}{}
 		}
-		for id, p := range act.UpdateState.Players.Players {
+		for id, p := range act.SyncState.Players.Players {
 			delete(pids, id)
 			np := Player(*p)
 			pstate.Players[id] = &np
@@ -241,7 +241,7 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		for id := range pids {
 			delete(pstate.Players, id)
 		}
-		pstate.IncomeTimer = act.UpdateState.Players.IncomeTimer
+		pstate.IncomeTimer = act.SyncState.Players.IncomeTimer
 	}
 
 	return pstate

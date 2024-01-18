@@ -95,7 +95,7 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 			LineID:   p.LineID,
 			PlayerID: p.ID,
 		}
-	case action.UpdateState:
+	case action.SyncState:
 		ts.mxTowers.Lock()
 		defer ts.mxTowers.Unlock()
 
@@ -103,7 +103,7 @@ func (ts *Towers) Reduce(state, a interface{}) interface{} {
 		for id := range tstate.Towers {
 			tids[id] = struct{}{}
 		}
-		for id, t := range act.UpdateState.Towers.Towers {
+		for id, t := range act.SyncState.Towers.Towers {
 			delete(tids, id)
 			nt := Tower(*t)
 			tstate.Towers[id] = &nt

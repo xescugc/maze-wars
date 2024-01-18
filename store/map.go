@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	mapImages = map[int]image.Image{}
+	MapImages = map[int]image.Image{}
 )
 
 func init() {
@@ -37,11 +37,11 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	mapImages[2] = m2
-	mapImages[3] = m3
-	mapImages[4] = m4
-	mapImages[5] = m5
-	mapImages[6] = m6
+	MapImages[2] = m2
+	MapImages[3] = m3
+	MapImages[4] = m4
+	MapImages[5] = m5
+	MapImages[6] = m6
 }
 
 // Map is a struct that holds all the information of the current map
@@ -63,7 +63,7 @@ func NewMap(d *flux.Dispatcher, s *Store) *Map {
 	}
 	m.ReduceStore = flux.NewReduceStore(d, m.Reduce, MapState{
 		Players: 2,
-		Image:   mapImages[2],
+		Image:   MapImages[2],
 	})
 
 	return m
@@ -167,7 +167,7 @@ func (m *Map) Reduce(state, a interface{}) interface{} {
 	switch act.Type {
 	case action.StartGame:
 		mstate.Players = len(m.store.Players.List())
-		mstate.Image, ok = mapImages[mstate.Players]
+		mstate.Image, ok = MapImages[mstate.Players]
 		if !ok {
 			log.Fatalf("The map for the number of players %d is not available", mstate.Players)
 		}

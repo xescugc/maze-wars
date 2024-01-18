@@ -237,7 +237,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		}
 		u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
 		u.HashPath = utils.HashSteps(u.Path)
-	case action.UpdateState:
+	case action.SyncState:
 		us.mxUnits.Lock()
 		defer us.mxUnits.Unlock()
 
@@ -245,7 +245,7 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		for id := range ustate.Units {
 			uids[id] = struct{}{}
 		}
-		for id, u := range act.UpdateState.Units.Units {
+		for id, u := range act.SyncState.Units.Units {
 			delete(uids, id)
 			nu := Unit(*u)
 

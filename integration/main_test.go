@@ -47,7 +47,7 @@ func TestRun(t *testing.T) {
 	sd := flux.NewDispatcher()
 	sad := server.NewActionDispatcher(sd, ss)
 	rooms := server.NewRoomsStore(sd, ss)
-	users := server.NewUsersStore(sd)
+	users := server.NewUsersStore(sd, ss)
 
 	ss.Rooms = rooms
 	ss.Users = users

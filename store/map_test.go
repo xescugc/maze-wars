@@ -31,14 +31,11 @@ func TestNewMap(t *testing.T) {
 
 func Test_GetNextLineID(t *testing.T) {
 	s := initStore()
-	p1 := addPlayer(s)
-	p2 := addPlayer(s)
-	p3 := addPlayer(s)
+	_ = addPlayer(s)
+	_ = addPlayer(s)
+	_ = addPlayer(s)
 
-	s.Dispatch(action.NewPlayerReady(p1.ID))
-	s.Dispatch(action.NewPlayerReady(p2.ID))
-	s.Dispatch(action.NewPlayerReady(p3.ID))
-	s.Dispatch(action.NewStartGame("room"))
+	s.Dispatch(action.NewStartGame())
 
 	sms := s.Map.GetState().(store.MapState)
 	assert.Equal(t, 3, sms.Players)
