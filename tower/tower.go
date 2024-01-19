@@ -16,6 +16,8 @@ type Tower struct {
 	Damage float64 `json:"damage"`
 	Gold   int     `json:"gold"`
 
+	Keybind string
+
 	Faceset image.Image
 }
 

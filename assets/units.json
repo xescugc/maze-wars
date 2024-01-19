@@ -2,51 +2,61 @@
   "spirit":{
     "health": 100,
     "income": 1,
-    "gold": 10
+    "gold": 10,
+    "keybind":"1"
   },
   "spirit2":{
     "health": 200,
     "income": 2,
-    "gold": 20
+    "gold": 20,
+    "keybind":"2"
   },
   "flam2":{
     "health": 300,
     "income": 3,
-    "gold": 30
+    "gold": 30,
+    "keybind":"3"
   },
   "flam":{
     "health": 400,
     "income": 4,
-    "gold": 40
+    "gold": 40,
+    "keybind":"4"
   },
   "octopus":{
     "health": 500,
     "income": 5,
-    "gold": 50
+    "gold": 50,
+    "keybind":"5"
   },
   "octopus2":{
     "health": 600,
     "income": 6,
-    "gold": 60
+    "gold": 60,
+    "keybind":"6"
   },
   "raccon":{
     "health": 700,
     "income": 7,
-    "gold": 70
+    "gold": 70,
+    "keybind":"7"
   },
   "gold_racoon":{
     "health": 800,
     "income": 8,
-    "gold": 80
+    "gold": 80,
+    "keybind":"8"
   },
   "cyclope2":{
     "health": 900,
     "income": 9,
-    "gold": 90
+    "gold": 90,
+    "keybind":"9"
   },
   "cyclope":{
     "health": 1000,
     "income":10,
-    "gold": 100
+    "gold": 100,
+    "keybind":"0"
   }
 }

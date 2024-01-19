@@ -13,6 +13,7 @@ import (
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/inputer"
@@ -55,6 +56,32 @@ type SelectedTower struct {
 	store.Tower
 
 	Invalid bool
+}
+
+var (
+	// The key value of this maps is the TYPE of the Unit|Tower
+	unitKeybinds  = make(map[string]ebiten.Key)
+	towerKeybinds = make(map[string]ebiten.Key)
+)
+
+func init() {
+	for _, u := range unit.Units {
+		var k ebiten.Key
+		err := k.UnmarshalText([]byte(u.Keybind))
+		if err != nil {
+			panic(err)
+		}
+		unitKeybinds[u.Type.String()] = k
+	}
+
+	for _, t := range tower.Towers {
+		var k ebiten.Key
+		err := k.UnmarshalText([]byte(t.Keybind))
+		if err != nil {
+			panic(err)
+		}
+		towerKeybinds[t.Type.String()] = k
+	}
 }
 
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
@@ -150,11 +177,18 @@ func (hs *HUDStore) Update() error {
 		}
 	}
 
-	// TODO: https://github.com/xescugc/maze-wars/issues/60
-	//if cp.Gold >= tower.Towers[tower.Soldier.String()].Gold && hs.input.IsKeyJustPressed(ebiten.KeyT) {
-	//actionDispatcher.SelectTower(tower.Soldier.String(), x, y)
-	//return nil
-	//}
+	for ut, kb := range unitKeybinds {
+		if inpututil.IsKeyJustPressed(kb) {
+			actionDispatcher.SummonUnit(ut, cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
+			return nil
+		}
+	}
+	for tt, kb := range towerKeybinds {
+		if inpututil.IsKeyJustPressed(kb) {
+			actionDispatcher.SelectTower(tt, x, y)
+			return nil
+		}
+	}
 	if hst.TowerOpenMenuID != "" {
 		if hs.input.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.CloseTowerMenu()
@@ -607,7 +641,7 @@ func (hs *HUDStore) buildUI() {
 
 		toolTxt := widget.NewText(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nHP: %.0f\nIncome: %d ", u.Gold, u.Health, u.Income), smallFont, color.White),
+			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nHP: %.0f\nIncome: %d\nKeybind: %s", u.Gold, u.Health, u.Income, u.Keybind), smallFont, color.White),
 			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 		)
 		tooltipContainer.AddChild(toolTxt)
@@ -676,7 +710,7 @@ func (hs *HUDStore) buildUI() {
 
 		toolTxt := widget.NewText(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nRange: %.0f\nDamage: %.0f", t.Gold, t.Range, t.Damage), smallFont, color.White),
+			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nRange: %.0f\nDamage: %.0f\nKeybind: %s", t.Gold, t.Range, t.Damage, t.Keybind), smallFont, color.White),
 			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 		)
 		tooltipContainer.AddChild(toolTxt)

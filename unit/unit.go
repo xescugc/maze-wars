@@ -16,6 +16,8 @@ type Unit struct {
 	Income int     `json:"income"`
 	Gold   int     `json:"gold"`
 
+	Keybind string
+
 	Faceset image.Image
 	Sprite  image.Image
 }
