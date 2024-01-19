@@ -4,7 +4,6 @@ import (
 	"fmt"
 	stdimage "image"
 	"image/color"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -178,13 +177,13 @@ func (hs *HUDStore) Update() error {
 	}
 
 	for ut, kb := range unitKeybinds {
-		if inpututil.IsKeyJustPressed(kb) {
+		if cp.CanSummonUnit(ut) && inpututil.IsKeyJustPressed(kb) {
 			actionDispatcher.SummonUnit(ut, cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
 			return nil
 		}
 	}
 	for tt, kb := range towerKeybinds {
-		if inpututil.IsKeyJustPressed(kb) {
+		if cp.CanPlaceTower(tt) && inpututil.IsKeyJustPressed(kb) {
 			actionDispatcher.SelectTower(tt, x, y)
 			return nil
 		}
@@ -231,23 +230,23 @@ func (hs *HUDStore) Update() error {
 			// TODO: We can improve this by storing this result (if blocking or not) so we only validate
 			// this once and not when the mouse is static with a selected tower
 			if !invalid && (hst.LastCursorPosition.X == float64(x) && hst.LastCursorPosition.Y == float64(y) && !hst.CheckedPath) {
-				var fakex, fakey float64 = hs.game.Store.Map.GetRandomSpawnCoordinatesForLineID(cp.LineID)
-				utws = append(utws, utils.Object{
-					X: hst.SelectedTower.X + cs.X,
-					Y: hst.SelectedTower.Y + cs.Y,
-					H: hst.SelectedTower.H, W: hst.SelectedTower.W,
-				})
-				steps := hs.game.Store.Units.Astar(hs.game.Store.Map, cp.LineID, utils.MovingObject{
-					Object: utils.Object{
-						X: fakex,
-						Y: fakey,
-						W: 1, H: 1,
-					},
-				}, utws)
-				if len(steps) == 0 {
-					invalid = true
-				}
-				actionDispatcher.CheckedPath(true)
+				//var fakex, fakey float64 = hs.game.Store.Map.GetRandomSpawnCoordinatesForLineID(cp.LineID)
+				//utws = append(utws, utils.Object{
+				//X: hst.SelectedTower.X + cs.X,
+				//Y: hst.SelectedTower.Y + cs.Y,
+				//H: hst.SelectedTower.H, W: hst.SelectedTower.W,
+				//})
+				//steps := hs.game.Store.Units.Astar(hs.game.Store.Map, cp.LineID, utils.MovingObject{
+				//Object: utils.Object{
+				//X: fakex,
+				//Y: fakey,
+				//W: 1, H: 1,
+				//},
+				//}, utws)
+				//if len(steps) == 0 {
+				//invalid = true
+				//}
+				//actionDispatcher.CheckedPath(true)
 			}
 			if invalid != hst.SelectedTower.Invalid {
 				actionDispatcher.SelectedTowerInvalid(invalid)
@@ -365,12 +364,14 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 	case action.SelectTower:
 		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())
 		cp := hs.game.Store.Players.FindCurrent()
+		cs := hs.game.Camera.GetState().(CameraState)
+		x, y := fixPosition(cs, float64(act.SelectTower.X), float64(act.SelectTower.Y))
 		hstate.SelectedTower = &SelectedTower{
 			Tower: store.Tower{
 				Object: utils.Object{
 					// The Buttons have 16*2 so we want to place it on the middle so just 16
-					X: float64(act.SelectTower.X) - 16,
-					Y: float64(act.SelectTower.Y) - 16,
+					X: x,
+					Y: y,
 					W: 32,
 					H: 32,
 				},
@@ -389,23 +390,7 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		if hstate.SelectedTower != nil {
 			cs := hs.game.Camera.GetState().(CameraState)
 
-			absnx := nx + cs.X
-			absny := ny + cs.Y
-			// We find the closes multiple in case the cursor moves too fast, between FPS reloads,
-			// and lands in a position not 'multiple' which means the position of the SelectedTower
-			// is not updated and the result is the cursor far away from the Drawing of the SelectedTower
-			// as it has stayed on the previous position
-			var multiple int = 8
-			if int(absnx)%multiple == 0 {
-				hstate.SelectedTower.X = nx - 16
-			} else if math.Abs(nx-hstate.SelectedTower.X) > float64(multiple) {
-				hstate.SelectedTower.X = float64(closestMultiple(int(absnx), multiple)) - 16 - cs.X
-			}
-			if int(absny)%multiple == 0 {
-				hstate.SelectedTower.Y = ny - 16
-			} else if math.Abs(ny-hstate.SelectedTower.Y) > float64(multiple) {
-				hstate.SelectedTower.Y = float64(closestMultiple(int(absny), multiple)) - 16 - cs.Y
-			}
+			hstate.SelectedTower.X, hstate.SelectedTower.Y = fixPosition(cs, nx, ny)
 		}
 		// If it has moved we set the CheckedPath as not checked as it's only checked
 		// when the Cursor has not moved
@@ -428,6 +413,30 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	return hstate
+}
+
+func fixPosition(cs CameraState, x, y float64) (float64, float64) {
+	//cs := hs.game.Camera.GetState().(CameraState)
+
+	absnx := x + cs.X
+	absny := y + cs.Y
+	// We find the closes multiple in case the cursor moves too fast, between FPS reloads,
+	// and lands in a position not 'multiple' which means the position of the SelectedTower
+	// is not updated and the result is the cursor far away from the Drawing of the SelectedTower
+	// as it has stayed on the previous position
+	var multiple int = 16
+	if int(absnx)%multiple == 0 {
+		x -= 16
+	} else {
+		x = float64(closestMultiple(int(absnx), multiple)) - 16 - cs.X
+	}
+	if int(absny)%multiple == 0 {
+		y -= 16
+	} else {
+		y = float64(closestMultiple(int(absny), multiple)) - 16 - cs.Y
+	}
+
+	return x, y
 }
 
 func sortedUnits() []*unit.Unit {
