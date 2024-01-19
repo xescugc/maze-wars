@@ -380,24 +380,31 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		}
 	case action.CursorMove:
 		// We update the last seen cursor position to not resend unnecessary events
-		hstate.LastCursorPosition.X = float64(act.CursorMove.X)
-		hstate.LastCursorPosition.Y = float64(act.CursorMove.Y)
+		nx := float64(act.CursorMove.X)
+		ny := float64(act.CursorMove.Y)
+
+		hstate.LastCursorPosition.X = nx
+		hstate.LastCursorPosition.Y = ny
 
 		if hstate.SelectedTower != nil {
+			cs := hs.game.Camera.GetState().(CameraState)
+
+			absnx := nx + cs.X
+			absny := ny + cs.Y
 			// We find the closes multiple in case the cursor moves too fast, between FPS reloads,
 			// and lands in a position not 'multiple' which means the position of the SelectedTower
 			// is not updated and the result is the cursor far away from the Drawing of the SelectedTower
 			// as it has stayed on the previous position
 			var multiple int = 8
-			if act.CursorMove.X%multiple == 0 {
-				hstate.SelectedTower.X = float64(act.CursorMove.X) - 16
-			} else if math.Abs(float64(act.CursorMove.X)-hstate.SelectedTower.X) > float64(multiple) {
-				hstate.SelectedTower.X = float64(closestMultiple(act.CursorMove.X, multiple)) - 16
+			if int(absnx)%multiple == 0 {
+				hstate.SelectedTower.X = nx - 16
+			} else if math.Abs(nx-hstate.SelectedTower.X) > float64(multiple) {
+				hstate.SelectedTower.X = float64(closestMultiple(int(absnx), multiple)) - 16 - cs.X
 			}
-			if act.CursorMove.Y%multiple == 0 {
-				hstate.SelectedTower.Y = float64(act.CursorMove.Y) - 16
-			} else if math.Abs(float64(act.CursorMove.Y)-hstate.SelectedTower.Y) > float64(multiple) {
-				hstate.SelectedTower.Y = float64(closestMultiple(act.CursorMove.Y, multiple)) - 16
+			if int(absny)%multiple == 0 {
+				hstate.SelectedTower.Y = ny - 16
+			} else if math.Abs(ny-hstate.SelectedTower.Y) > float64(multiple) {
+				hstate.SelectedTower.Y = float64(closestMultiple(int(absny), multiple)) - 16 - cs.Y
 			}
 		}
 		// If it has moved we set the CheckedPath as not checked as it's only checked
