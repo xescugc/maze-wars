@@ -2,7 +2,7 @@ package store
 
 import (
 	"container/heap"
-	"fmt"
+	"strconv"
 
 	"github.com/xescugc/maze-wars/utils"
 )
@@ -121,7 +121,7 @@ func straightPathToEnd(m *Map, lid int, s utils.Step) utils.Object {
 }
 
 func calculateObjectKey(o utils.Object) string {
-	return fmt.Sprintf("%.0f%.0f", o.X, o.Y)
+	return strconv.FormatFloat(o.X, 'x', -1, 64) + strconv.FormatFloat(o.Y, 'x', -1, 64)
 }
 
 type queueItem struct {

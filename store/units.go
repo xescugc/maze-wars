@@ -248,8 +248,19 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		for id, u := range act.SyncState.Units.Units {
 			delete(uids, id)
 			nu := Unit(*u)
+			ou, ok := ustate.Units[id]
 
+			if ok {
+				//If the unit already exists and have the same Hash then ignore the server
+				//coordinates and path
+				if ou.HashPath == nu.HashPath {
+					nu.Path = ou.Path
+					nu.X = ou.X
+					nu.Y = ou.Y
+				}
+			}
 			ustate.Units[id] = &nu
+
 		}
 		for id := range uids {
 			delete(ustate.Units, id)

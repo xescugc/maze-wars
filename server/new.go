@@ -173,28 +173,28 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 }
 
 func startLoop(ctx context.Context, s *Store) {
+	secondTicker := time.NewTicker(time.Second)
 	stateTicker := time.NewTicker(time.Second / 4)
-	incomeTicker := time.NewTicker(time.Second)
 	// The default TPS on of Ebiten client if 60 so to
 	// emulate that we trigger the move action every TPS
-	moveTicker := time.NewTicker(time.Second / 60)
+	tpsTicker := time.NewTicker(time.Second / 60)
 	usersTicker := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case <-stateTicker.C:
 			actionDispatcher.SyncState(s.Rooms)
-		case <-incomeTicker.C:
+		case <-secondTicker.C:
 			actionDispatcher.IncomeTick(s.Rooms)
 			actionDispatcher.WaitRoomCountdownTick()
 			actionDispatcher.SyncWaitingRoom(s.Rooms)
-		case <-moveTicker.C:
+		case <-tpsTicker.C:
 			actionDispatcher.TPS(s.Rooms)
 		case <-usersTicker.C:
 			actionDispatcher.SyncUsers(s.Users)
 		case <-ctx.Done():
 			stateTicker.Stop()
-			incomeTicker.Stop()
-			moveTicker.Stop()
+			secondTicker.Stop()
+			tpsTicker.Stop()
 			usersTicker.Stop()
 			goto FINISH
 		}

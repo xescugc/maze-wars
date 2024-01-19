@@ -179,15 +179,16 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
 
-		if r, ok := rstate.Rooms[act.Room]; ok {
-			r.Game.Dispatch(act)
-		}
 		// If no room means that is a broadcast
 		if act.Room == "" {
 			for _, r := range rstate.Rooms {
 				if r.Name != rstate.CurrentWaitingRoom {
-					r.Game.Dispatch(act)
+					go r.Game.Dispatch(act)
 				}
+			}
+		} else {
+			if r, ok := rstate.Rooms[act.Room]; ok {
+				go r.Game.Dispatch(act)
 			}
 		}
 	}
