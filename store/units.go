@@ -152,21 +152,26 @@ func (us *Units) Reduce(state, a interface{}) interface{} {
 		if !p.CanPlaceTower(act.PlaceTower.Type) {
 			break
 		}
+		tws := make([]utils.Object, 0, 0)
+		for _, t := range ts.Towers {
+			if t.LineID == p.LineID {
+				tws = append(tws, t.Object)
+			}
+		}
+		var wg sync.WaitGroup
 		for _, u := range ustate.Units {
 			// Only need to recalculate path for each unit when the placed tower
 			// is on the same LineID as the unit
 			if u.CurrentLineID == p.LineID {
-				tws := make([]utils.Object, 0, 0)
-				for _, t := range ts.Towers {
-					if t.LineID == u.CurrentLineID {
-						tws = append(tws, t.Object)
-					}
-				}
-
-				u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
-				u.HashPath = utils.HashSteps(u.Path)
+				wg.Add(1)
+				go func(u *Unit) {
+					u.Path = us.Astar(us.store.Map, u.CurrentLineID, u.MovingObject, tws)
+					u.HashPath = utils.HashSteps(u.Path)
+					wg.Done()
+				}(u)
 			}
 		}
+		wg.Wait()
 	case action.RemoveTower:
 		us.mxUnits.Lock()
 		defer us.mxUnits.Unlock()
