@@ -73,7 +73,7 @@ func (o Object) NeighborSteps() []Step {
 			Object: Object{
 				Y: o.Y - 1,
 				X: o.X,
-				W: 1, H: 1,
+				W: 16, H: 16,
 			},
 			Facing: Up,
 		},
@@ -82,7 +82,7 @@ func (o Object) NeighborSteps() []Step {
 			Object: Object{
 				Y: o.Y + 1,
 				X: o.X,
-				W: 1, H: 1,
+				W: 16, H: 16,
 			},
 			Facing: Down,
 		},
@@ -91,7 +91,7 @@ func (o Object) NeighborSteps() []Step {
 			Object: Object{
 				X: o.X - 1,
 				Y: o.Y,
-				W: 1, H: 1,
+				W: 16, H: 16,
 			},
 			Facing: Left,
 		},
@@ -100,7 +100,7 @@ func (o Object) NeighborSteps() []Step {
 			Object: Object{
 				X: o.X + 1,
 				Y: o.Y,
-				W: 1, H: 1,
+				W: 16, H: 16,
 			},
 			Facing: Right,
 		},

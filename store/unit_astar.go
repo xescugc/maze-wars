@@ -35,8 +35,7 @@ func (us *Units) Astar(m *Map, lid int, u utils.MovingObject, tws []utils.Object
 		Object: utils.Object{
 			Y: u.Y,
 			X: u.X,
-			// W and H need to be 1 or it can pass in between the towers
-			W: 1, H: 1,
+			W: 16, H: 16,
 		},
 		Facing: u.Facing,
 	}
