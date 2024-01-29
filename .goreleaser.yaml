@@ -1,0 +1,80 @@
+version: 1
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
+
+builds:
+  - gobinary: xgo
+    command: " "
+    flags:
+    gcflags: " "
+    ldflags: "-s -w -X main.defaultHost=https://maze-wars.com"
+    env: []
+    main: ./cmd/client/
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+    goamd64:
+      - v1
+    hooks:
+      post: ./scripts/post_goreleaser.sh {{ .Path }}
+    overrides:
+      - goos: darwin
+        goarch: amd64
+        goamd64: v1
+        goarm: ""
+        gomips: ""
+        flags:
+          - -go=go-1.20.8
+          - -out=maze-wars
+          - -hooksdir=.xgohooks/
+          - -targets=darwin/amd64
+      - goos: linux
+        goarch: amd64
+        goamd64: v1
+        goarm: ""
+        gomips: ""
+        flags:
+          - -go=go-1.20.8
+          - -out=maze-wars
+          - -hooksdir=.xgohooks/
+          - -targets=linux/amd64
+      - goos: windows
+        goarch: amd64
+        goamd64: v1
+        goarm: ""
+        gomips: ""
+        flags:
+          - -go=go-1.20.8
+          - -out=maze-wars
+          - -hooksdir=.xgohooks/
+          - -targets=windows/amd64
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
