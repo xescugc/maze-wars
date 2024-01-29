@@ -13,10 +13,11 @@ import (
 )
 
 var (
+	defaultHost = "http://localhost:5555"
+
 	hostURL string
 	screenW int
 	screenH int
-	verbose bool
 
 	clientCmd = &cobra.Command{
 		Use: "client",
@@ -29,9 +30,6 @@ var (
 			}
 
 			d := flux.NewDispatcher()
-			if verbose {
-				client.NewLoggerStore(d)
-			}
 			ad := client.NewActionDispatcher(d, opt)
 
 			s := store.NewStore(d)
@@ -87,10 +85,9 @@ var (
 )
 
 func init() {
-	clientCmd.Flags().StringVar(&hostURL, "port", "http://localhost:5555", "The URL of the server")
+	clientCmd.Flags().StringVar(&hostURL, "host", defaultHost, "The URL of the server")
 	clientCmd.Flags().IntVar(&screenW, "screenw", 288, "The default width of the screen when not full screen")
 	clientCmd.Flags().IntVar(&screenH, "screenh", 240, "The default height of the screen when not full screen")
-	clientCmd.Flags().BoolVar(&verbose, "verbose", false, "Logs information of the running client")
 }
 
 func main() {

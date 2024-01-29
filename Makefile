@@ -28,3 +28,11 @@ wa-copy: ## Copy the 'wasm_exec.js' to execute WebAssembly binary
 
 .PHONY: wasm
 wasm: wa-copy wa-build ## Runs all the WASM related commands to have the code ready to run
+
+.PHONY: local-goreleaser
+local-goreleaser:
+	./bins/goreleaser release --snapshot --clean
+
+.PHONY: release
+release:
+	./bins/goreleaser release --clean

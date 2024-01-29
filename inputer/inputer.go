@@ -5,7 +5,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-//go:generate mockgen -destination=../mock/inputer.go -package mock github.com/xescugc/maze-wars/inputer Inputer
+// go:generate mockgen -destination=../mock/inputer.go -package mock github.com/xescugc/maze-wars/inputer Inputer
 type Inputer interface {
 	CursorPosition() (int, int)
 
