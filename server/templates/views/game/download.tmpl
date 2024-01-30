@@ -1,0 +1,39 @@
+{{template "main" .}}
+{{define "title" }}
+  Maze Wars - Download
+{{ end }}
+{{define "content"}}
+  <div class="px-3">
+		<p class ="lead">
+      Maze Wars is playable in 3 platforms: Windows, OSX and Linux on amd64 architecture
+		</p>
+  </div>
+  </br>
+  <div class="px-3">
+    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+      <a href="https://github.com/xescugc/maze-wars/releases/latest/download/maze-wars_Windows_x86_64.zip"class="btn btn-lg btn-light fw-bold border-white bg-white" role="button">
+        <i class="fa fa-lg fa-windows"></i> Windows
+      </a>
+      <a href="https://github.com/xescugc/maze-wars/releases/latest/download/maze-wars_Darwin_x86_64.tar.gz"class="btn btn-lg btn-light fw-bold border-white bg-white" role="button">
+        <i class="fa fa-lg fa-apple"></i> Darwin
+      </a>
+      <a href="https://github.com/xescugc/maze-wars/releases/latest/download/maze-wars_Linux_x86_64.tar.gz"class="btn btn-lg btn-light fw-bold border-white bg-white" role="button">
+        <i class="fa fa-lg fa-linux"></i> Linux
+      </a>
+    </div>
+	</div>
+  </br>
+  </br>
+  <div class="px-3">
+		<p class ="lead">
+      Optionally you can also play it from the web, <strong>but it's really slow so play it at your own risk hehe</strong>
+		</p>
+	</div>
+  <div class="px-3">
+    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+      <a href="/play"class="btn btn-lg btn-light fw-bold border-white bg-white" role="button">
+        <i class="fa fa-lg fa-desktop"></i> Web
+      </a>
+    </div>
+	</div>
+{{ end}}

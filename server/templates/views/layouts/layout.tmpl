@@ -7,6 +7,7 @@
       </title>
       <link href="/css/bootstrap.min.css" rel="stylesheet" />
       <link href="/css/cover.css" rel="stylesheet" />
+      <link rel="stylesheet" href="/css/font-awesome/css/font-awesome.min.css">
       <link rel="icon" type="image/png" href="images/favicon.png" />
     </head>
     <!-- Google tag (gtag.js) -->
@@ -30,7 +31,10 @@
             </h3>
             <nav class="nav nav-masthead justify-content-center float-md-end">
               <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "home"}}active{{end}}" href="/">Home</a>
-              <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "game"}}active{{end}}" href="/play">Game</a>
+              <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "download"}}active{{end}}" href="/download">Download</a>
+              {{ if eq .Tab "game" }}
+                <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "game"}}active{{end}}" href="/play">Game</a>
+              {{ end }}
               <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "docs"}}active{{end}}" href="/docs">Docs</a>
             </nav>
           </div>
