@@ -30,9 +30,9 @@ var (
 			}
 
 			d := flux.NewDispatcher()
-			ad := client.NewActionDispatcher(d, opt)
-
 			s := store.NewStore(d)
+
+			ad := client.NewActionDispatcher(d, s, opt)
 
 			g := &client.Game{
 				Store: s,

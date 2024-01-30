@@ -10,6 +10,8 @@ import (
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/utils"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
@@ -19,14 +21,16 @@ import (
 type ActionDispatcher struct {
 	dispatcher *flux.Dispatcher
 	opt        Options
+	store      *store.Store
 }
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
-func NewActionDispatcher(d *flux.Dispatcher, opt Options) *ActionDispatcher {
+func NewActionDispatcher(d *flux.Dispatcher, s *store.Store, opt Options) *ActionDispatcher {
 	return &ActionDispatcher{
 		dispatcher: d,
 		opt:        opt,
+		store:      s,
 	}
 }
 
@@ -80,16 +84,27 @@ func (ac *ActionDispatcher) CameraZoom(d int) {
 
 // PlaceTower places the tower 't' on the position X and Y of the player pid
 func (ac *ActionDispatcher) PlaceTower(t, pid string, x, y int) {
-	pta := action.NewPlaceTower(t, pid, x, y)
-	wsSend(pta)
-	ac.dispatcher.Dispatch(pta)
+	units := ac.store.Units.List()
+	to := utils.Object{X: float64(x), Y: float64(y), H: 32, W: 32}
+	canPlace := true
+	for _, u := range units {
+		if u.IsColliding(to) {
+			canPlace = false
+			break
+		}
+	}
+	if canPlace {
+		pta := action.NewPlaceTower(t, pid, x, y)
+		wsSend(pta)
+	}
+	//ac.dispatcher.Dispatch(pta)
 }
 
 // RemoveTower removes the tower tid
 func (ac *ActionDispatcher) RemoveTower(pid, tid, tt string) {
 	rta := action.NewRemoveTower(pid, tid, tt)
 	wsSend(rta)
-	ac.dispatcher.Dispatch(rta)
+	//ac.dispatcher.Dispatch(rta)
 }
 
 // SelectTower selects the tower 't' on the position x, y
