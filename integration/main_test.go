@@ -19,10 +19,7 @@ import (
 	"github.com/xescugc/maze-wars/store"
 )
 
-//"github.com/stretchr/testify/assert"
-
 var (
-
 	// The actual one is 4
 	serverGameTick = time.Second / 2
 
@@ -66,9 +63,9 @@ func TestRun(t *testing.T) {
 		ScreenH: screenH,
 	}
 	cd := flux.NewDispatcher()
-	cad := client.NewActionDispatcher(cd, copt)
-
 	s := store.NewStore(cd)
+
+	cad := client.NewActionDispatcher(cd, s, copt)
 
 	g := &client.Game{
 		Store: s,

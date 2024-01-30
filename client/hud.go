@@ -226,6 +226,19 @@ func (hs *HUDStore) Update() error {
 				invalid = true
 			}
 
+			if !invalid {
+				units := hs.game.Store.Units.List()
+				for _, u := range units {
+					if u.PlayerID != cp.ID {
+						continue
+					}
+					if u.IsColliding(neo) {
+						invalid = true
+						break
+					}
+				}
+			}
+
 			// Only check if the line is blocked when is still valid position and it has not moved.
 			// TODO: We can improve this by storing this result (if blocking or not) so we only validate
 			// this once and not when the mouse is static with a selected tower
