@@ -101,15 +101,7 @@ func (m *Map) GetRandomSpawnCoordinatesForLineID(lid int) (float64, float64) {
 }
 
 func (m *Map) GetHomeCoordinates(lid int) (float64, float64) {
-	var y float64
-	if lid > 3 {
-		// 86 is the total length of the map including borders
-		// and 10 is the vertical separation between the maps
-		y = 86 + 10
-		lid = -3
-	}
-
-	return float64(lid * 16 * (16 + 1 + 10 + 1)), y
+	return float64(lid * 16 * (16 + 1 + 10 + 1)), 0
 }
 
 func (m *Map) EndZone(lid int) utils.Object {
