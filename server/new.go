@@ -38,6 +38,7 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	r.HandleFunc("/ws", wsHandler(s)).Methods(http.MethodGet)
 
 	r.HandleFunc("/play", playHandler).Methods(http.MethodGet)
+	r.HandleFunc("/download", downloadHandler).Methods(http.MethodGet)
 	r.HandleFunc("/game", gameHandler).Methods(http.MethodGet)
 	r.HandleFunc("/docs", docsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
@@ -76,6 +77,11 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 func playHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := templates.Templates["views/game/play.tmpl"]
 	t.Execute(w, templateData{"game"})
+}
+
+func downloadHandler(w http.ResponseWriter, r *http.Request) {
+	t, _ := templates.Templates["views/game/download.tmpl"]
+	t.Execute(w, templateData{"download"})
 }
 
 func gameHandler(w http.ResponseWriter, r *http.Request) {
