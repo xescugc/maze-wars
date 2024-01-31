@@ -94,20 +94,20 @@ func (m *Map) GetRandomSpawnCoordinatesForLineID(lid int) (float64, float64) {
 	// The area is of 112
 
 	p := rand.Intn(112)
-	yy := (p%7)*16 + 16
-	xx := ((p%16)*16 + 16) + (lid * 16 * (16 + 1 + 10 + 1))
+	yy := (43 * 16) + (p%7)*16 + 16
+	xx := (43 * 16) + ((p%16)*16 + 16) + (lid * 16 * (16 + 1 + 10 + 1))
 
 	return float64(xx), float64(yy)
 }
 
 func (m *Map) GetHomeCoordinates(lid int) (float64, float64) {
-	return float64(lid * 16 * (16 + 1 + 10 + 1)), 0
+	return float64(lid*16*(16+1+10+1) + (43 * 16)), (43 * 16)
 }
 
 func (m *Map) EndZone(lid int) utils.Object {
 	return utils.Object{
-		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
-		Y: 82 * 16,
+		X: float64((43 * 16) + 16 + (lid * 16 * (16 + 1 + 10 + 1))),
+		Y: 82*16 + (43 * 16),
 		W: 16 * 16,
 		H: 3 * 16,
 	}
@@ -115,8 +115,8 @@ func (m *Map) EndZone(lid int) utils.Object {
 
 func (m *Map) BuildingZone(lid int) utils.Object {
 	return utils.Object{
-		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
-		Y: (7 * 16) + 16, // This +16 is for the border
+		X: float64((43 * 16) + 16 + (lid * 16 * (16 + 1 + 10 + 1))),
+		Y: (7 * 16) + 16 + (43 * 16), // This +16 is for the border
 		W: 16 * 16,
 		H: 74 * 16,
 	}
@@ -124,8 +124,8 @@ func (m *Map) BuildingZone(lid int) utils.Object {
 
 func (m *Map) UnitZone(lid int) utils.Object {
 	return utils.Object{
-		X: float64(16 + (lid * 16 * (16 + 1 + 10 + 1))),
-		Y: 16, // This +16 is for the border
+		X: float64((43 * 16) + 16 + (lid * 16 * (16 + 1 + 10 + 1))),
+		Y: 16 + (43 * 16), // This +16 is for the border
 		W: 16 * 16,
 		H: 81 * 16,
 	}
