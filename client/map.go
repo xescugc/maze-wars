@@ -28,8 +28,7 @@ func (m *Map) Draw(screen *ebiten.Image) {
 	// part that it's seen by the user
 	// If we want to render everything and just move the viewport around we need o render the full image and change the
 	// opt.GeoM.Transport to the Map.X/Y and change the Update function to do the opposite in terms of -+
-	//
-	// TODO: Maybe create a self Map entity with Update/Draw
+
 	op := &ebiten.DrawImageOptions{}
 	s := m.game.Camera.GetState().(CameraState)
 	op.GeoM.Scale(s.Zoom, s.Zoom)

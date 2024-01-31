@@ -82,11 +82,15 @@ func wsHandler(ctx context.Context) {
 		}
 
 		actionDispatcher.Dispatch(act)
+		// If the action is StartGame then we
+		// focus the user on it's own line
+		if act.Type == action.StartGame {
+			actionDispatcher.GoHome()
+		}
 	}
 }
 
 func wsSend(a *action.Action) {
-	// TODO: ADD THE ROOM
 	err := wsjson.Write(context.Background(), wsc, a)
 	if err != nil {
 		log.Fatal(err)
