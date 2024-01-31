@@ -121,7 +121,9 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 		cstate.H = float64(act.WindowResizing.Height)
 	case action.GoHome:
 		cp := cs.Store.Players.FindCurrent()
-		cstate.X, cstate.Y = cs.Store.Map.GetHomeCoordinates(cp.LineID)
+		x, y := cs.Store.Map.GetHomeCoordinates(cp.LineID)
+		x -= (cstate.W / 2) - ((18 * 16) / 2)
+		cstate.X, cstate.Y = x, y
 	}
 
 	return cstate
