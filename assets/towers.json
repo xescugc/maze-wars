@@ -1,6 +1,6 @@
 {
     "soldier": {
-        "range": 16,
+        "range": 40,
         "damage": 5,
         "gold": 10,
         "keybind": "w"
