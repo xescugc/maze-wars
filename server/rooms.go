@@ -131,7 +131,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 				Players:     make(map[string]PlayerConn),
 				Connections: make(map[string]string),
 
-				Size:      2,
+				Size:      6,
 				Countdown: 10,
 			}
 			rstate.CurrentWaitingRoom = rid.String()

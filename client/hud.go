@@ -188,6 +188,9 @@ func (hs *HUDStore) Update() error {
 			return nil
 		}
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyF1) {
+		actionDispatcher.GoHome()
+	}
 	if hst.TowerOpenMenuID != "" {
 		if hs.input.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.CloseTowerMenu()
@@ -525,7 +528,7 @@ func (hs *HUDStore) buildUI() {
 	homeBtnW := widget.NewButton(
 		widget.ButtonOpts.Image(buttonImage),
 
-		widget.ButtonOpts.Text("HOME", smallFont, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text("HOME(F1)", smallFont, &widget.ButtonTextColor{
 			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
 		}),
 
