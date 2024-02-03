@@ -30,7 +30,7 @@ const (
 	zoomScale = 0.5
 	minZoom   = 0
 	maxZoom   = 2
-	leeway    = 50
+	leeway    = 25
 )
 
 // NewCameraStore creates a new CameraState linked to the Dispatcher d
