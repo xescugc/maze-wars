@@ -97,7 +97,7 @@ func (wr *WaitingRoomStore) buildUI() {
 	}
 
 	titleW := widget.NewText(
-		widget.TextOpts.Text("Waitig for players to join", normalFont, color.White),
+		widget.TextOpts.Text("Waiting for players to join", normalFont, color.White),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
