@@ -77,7 +77,6 @@ func wsHandler(ctx context.Context) {
 		var act *action.Action
 		err := wsjson.Read(ctx, wsc, &act)
 		if err != nil {
-			// TODO remove from the Room
 			log.Fatal(err)
 		}
 
