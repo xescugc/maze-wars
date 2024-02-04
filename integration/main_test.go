@@ -9,12 +9,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
-	"github.com/xescugc/maze-wars/mock"
 	"github.com/xescugc/maze-wars/server"
 	"github.com/xescugc/maze-wars/store"
 )
@@ -71,8 +68,6 @@ func TestRun(t *testing.T) {
 		Store: s,
 	}
 
-	i := mock.NewMockInputer(ctrl)
-
 	cs := client.NewCameraStore(cd, s, screenW, screenH)
 	g.Camera = cs
 	g.Units, err = client.NewUnits(g)
@@ -81,18 +76,18 @@ func TestRun(t *testing.T) {
 	g.Towers, err = client.NewTowers(g)
 	require.NoError(t, err)
 
-	g.HUD, err = client.NewHUDStore(cd, i, g)
+	g.HUD, err = client.NewHUDStore(cd, g)
 	require.NoError(t, err)
 
 	us := client.NewUserStore(cd)
 	cls := client.NewStore(s, us)
 
-	l, err := client.NewLobbyStore(cd, i, cls)
+	l, err := client.NewLobbyStore(cd, cls)
 	require.NoError(t, err)
 
 	wr := client.NewWaitingRoomStore(cd, cls)
 
-	su, err := client.NewSignUpStore(cd, i, s)
+	su, err := client.NewSignUpStore(cd, s)
 	require.NoError(t, err)
 
 	rs := client.NewRouterStore(cd, su, l, wr, g)
@@ -105,15 +100,15 @@ func TestRun(t *testing.T) {
 	// be able to change the content of the expectations.
 	// That's where this parameters help, they can change the content
 	// of the expectation and what they return
-	var (
-		x, y int
+	//var (
+	//x, y int
 
-		mouseButtonJustPressed       ebiten.MouseButton
-		returnMouseButtonJustPressed bool
+	//mouseButtonJustPressed       ebiten.MouseButton
+	//returnMouseButtonJustPressed bool
 
-		keyJustPressed       ebiten.Key
-		returnKeyJustPressed bool
-	)
+	//keyJustPressed       ebiten.Key
+	//returnKeyJustPressed bool
+	//)
 	//resetDefault := func() {
 	//x, y = 0, 0
 	//mouseButtonJustPressed = 0
@@ -122,21 +117,21 @@ func TestRun(t *testing.T) {
 	//keyJustPressed = 0
 	//returnKeyJustPressed = false
 	//}
-	i.EXPECT().CursorPosition().DoAndReturn(func() (int, int) {
-		return x, y
-	}).AnyTimes()
-	i.EXPECT().IsMouseButtonJustPressed(gomock.Any()).DoAndReturn(func(button ebiten.MouseButton) bool {
-		if returnMouseButtonJustPressed {
-			assert.Equal(t, mouseButtonJustPressed, button)
-		}
-		return returnMouseButtonJustPressed
-	}).AnyTimes()
-	i.EXPECT().IsKeyJustPressed(gomock.Any()).DoAndReturn(func(key ebiten.Key) bool {
-		if returnKeyJustPressed {
-			assert.Equal(t, keyJustPressed, key)
-		}
-		return returnKeyJustPressed
-	}).AnyTimes()
+	//i.EXPECT().CursorPosition().DoAndReturn(func() (int, int) {
+	//return x, y
+	//}).AnyTimes()
+	//i.EXPECT().IsMouseButtonJustPressed(gomock.Any()).DoAndReturn(func(button ebiten.MouseButton) bool {
+	//if returnMouseButtonJustPressed {
+	//assert.Equal(t, mouseButtonJustPressed, button)
+	//}
+	//return returnMouseButtonJustPressed
+	//}).AnyTimes()
+	//i.EXPECT().IsKeyJustPressed(gomock.Any()).DoAndReturn(func(key ebiten.Key) bool {
+	//if returnKeyJustPressed {
+	//assert.Equal(t, keyJustPressed, key)
+	//}
+	//return returnKeyJustPressed
+	//}).AnyTimes()
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)

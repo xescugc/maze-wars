@@ -10,7 +10,6 @@ import (
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
-	"github.com/xescugc/maze-wars/inputer"
 	"github.com/xescugc/maze-wars/store"
 )
 
@@ -45,8 +44,6 @@ func NewClient() js.Func {
 			Store: s,
 		}
 
-		i := inputer.NewEbiten()
-
 		// TODO: Change this to pass the specific store needed instead of all the game object
 		cs := client.NewCameraStore(d, s, screenW, screenH)
 		g.Camera = cs
@@ -60,7 +57,7 @@ func NewClient() js.Func {
 			return fmt.Errorf("failed to initialize Towers: %w", err)
 		}
 
-		g.HUD, err = client.NewHUDStore(d, i, g)
+		g.HUD, err = client.NewHUDStore(d, g)
 		if err != nil {
 			return fmt.Errorf("failed to initialize HUDStore: %w", err)
 		}
@@ -70,12 +67,12 @@ func NewClient() js.Func {
 		us := client.NewUserStore(d)
 		cls := client.NewStore(s, us)
 
-		l, err := client.NewLobbyStore(d, i, cls)
+		l, err := client.NewLobbyStore(d, cls)
 		if err != nil {
 			return fmt.Errorf("failed to initialize LobbyStore: %w", err)
 		}
 
-		u, err := client.NewSignUpStore(d, i, s)
+		u, err := client.NewSignUpStore(d, s)
 		if err != nil {
 			return fmt.Errorf("failed to initial SignUpStore: %w", err)
 		}

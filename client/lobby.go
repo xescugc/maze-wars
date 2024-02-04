@@ -10,7 +10,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	"github.com/xescugc/maze-wars/inputer"
 )
 
 var (
@@ -22,8 +21,6 @@ type LobbyStore struct {
 
 	Store *Store
 
-	input inputer.Inputer
-
 	ui           *ebitenui.UI
 	textPlayersW *widget.Text
 }
@@ -32,11 +29,9 @@ type LobbyState struct {
 	TotalUsers int
 }
 
-func NewLobbyStore(d *flux.Dispatcher, i inputer.Inputer, s *Store) (*LobbyStore, error) {
+func NewLobbyStore(d *flux.Dispatcher, s *Store) (*LobbyStore, error) {
 	ls := &LobbyStore{
 		Store: s,
-
-		input: i,
 	}
 	ls.ReduceStore = flux.NewReduceStore(d, ls.Reduce, LobbyState{})
 
