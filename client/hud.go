@@ -353,9 +353,16 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 }
 
 func fillIn(s string, l int) string {
+	tl := len(s) > l
 	ss := make([]string, l, l)
 	for i, v := range s {
-		ss[i] = string(v)
+		if i >= l {
+			break
+		} else if i > 6 && tl {
+			ss[i] = "."
+		} else {
+			ss[i] = string(v)
+		}
 	}
 	for i, v := range ss {
 		if string(v) == "" {
