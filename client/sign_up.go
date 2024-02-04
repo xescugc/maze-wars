@@ -12,7 +12,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	"github.com/xescugc/maze-wars/inputer"
 	"github.com/xescugc/maze-wars/store"
 )
 
@@ -27,8 +26,6 @@ type SignUpStore struct {
 
 	Camera *CameraStore
 
-	input inputer.Inputer
-
 	ui          *ebitenui.UI
 	inputErrorW *widget.Text
 }
@@ -37,11 +34,9 @@ type SignUpState struct {
 	Error string
 }
 
-func NewSignUpStore(d *flux.Dispatcher, i inputer.Inputer, s *store.Store) (*SignUpStore, error) {
+func NewSignUpStore(d *flux.Dispatcher, s *store.Store) (*SignUpStore, error) {
 	su := &SignUpStore{
 		Store: s,
-
-		input: i,
 	}
 	su.ReduceStore = flux.NewReduceStore(d, su.Reduce, SignUpState{})
 

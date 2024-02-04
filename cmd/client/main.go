@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
-	"github.com/xescugc/maze-wars/inputer"
 	"github.com/xescugc/maze-wars/store"
 )
 
@@ -38,8 +37,6 @@ var (
 				Store: s,
 			}
 
-			i := inputer.NewEbiten()
-
 			// TODO: Change this to pass the specific store needed instead of all the game object
 			cs := client.NewCameraStore(d, s, screenW, screenH)
 			g.Camera = cs
@@ -53,7 +50,7 @@ var (
 				return fmt.Errorf("failed to initialize Towers: %w", err)
 			}
 
-			g.HUD, err = client.NewHUDStore(d, i, g)
+			g.HUD, err = client.NewHUDStore(d, g)
 			if err != nil {
 				return fmt.Errorf("failed to initialize HUDStore: %w", err)
 			}
@@ -63,12 +60,12 @@ var (
 			us := client.NewUserStore(d)
 			cls := client.NewStore(s, us)
 
-			l, err := client.NewLobbyStore(d, i, cls)
+			l, err := client.NewLobbyStore(d, cls)
 			if err != nil {
 				return fmt.Errorf("failed to initialize LobbyStore: %w", err)
 			}
 
-			su, err := client.NewSignUpStore(d, i, s)
+			su, err := client.NewSignUpStore(d, s)
 			if err != nil {
 				return fmt.Errorf("failed to initial SignUpStore: %w", err)
 			}

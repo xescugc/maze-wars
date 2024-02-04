@@ -15,7 +15,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	"github.com/xescugc/maze-wars/inputer"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
@@ -30,8 +29,6 @@ type HUDStore struct {
 	game *Game
 
 	ui *ebitenui.UI
-
-	input inputer.Inputer
 
 	statsListW   *widget.List
 	incomeTextW  *widget.Text
@@ -84,11 +81,9 @@ func init() {
 }
 
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
-func NewHUDStore(d *flux.Dispatcher, i inputer.Inputer, g *Game) (*HUDStore, error) {
+func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 	hs := &HUDStore{
 		game: g,
-
-		input: i,
 	}
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
 		ShowStats: true,
@@ -104,7 +99,7 @@ func (hs *HUDStore) Update() error {
 
 	cs := hs.game.Camera.GetState().(CameraState)
 	hst := hs.GetState().(HUDState)
-	x, y := hs.input.CursorPosition()
+	x, y := ebiten.CursorPosition()
 	cp := hs.game.Store.Players.FindCurrent()
 	tws := hs.game.Store.Towers.List()
 	// Only send a CursorMove when the curso has actually moved
@@ -117,7 +112,7 @@ func (hs *HUDStore) Update() error {
 	if cp.Lives == 0 || cp.Winner {
 		return nil
 	}
-	if hs.input.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		clickAbsolute := utils.Object{
 			X: float64(x) + cs.X,
 			Y: float64(y) + cs.Y,
@@ -192,12 +187,12 @@ func (hs *HUDStore) Update() error {
 		actionDispatcher.GoHome()
 	}
 	if hst.TowerOpenMenuID != "" {
-		if hs.input.IsKeyJustPressed(ebiten.KeyEscape) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.CloseTowerMenu()
 		}
 	}
 	if hst.SelectedTower != nil {
-		if hs.input.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || hs.input.IsKeyJustPressed(ebiten.KeyEscape) {
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.DeselectTower(hst.SelectedTower.Type)
 		} else {
 			var invalid bool
