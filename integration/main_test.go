@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"io/ioutil"
+	"log/slog"
 	"os"
 	"os/exec"
 	"runtime"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/sagikazarmark/slog-shim"
 	"github.com/stretchr/testify/require"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"

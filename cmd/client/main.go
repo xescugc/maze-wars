@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 
 	"github.com/adrg/xdg"
-	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/cobra"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
