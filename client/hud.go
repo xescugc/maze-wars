@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
@@ -95,6 +96,9 @@ func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 }
 
 func (hs *HUDStore) Update() error {
+	b := time.Now()
+	defer utils.LogTime(hs.game.Logger, b, "hud update")
+
 	hs.ui.Update()
 
 	cs := hs.game.Camera.GetState().(CameraState)
@@ -269,6 +273,8 @@ func (hs *HUDStore) Update() error {
 }
 
 func (hs *HUDStore) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(hs.game.Logger, b, "hud draw")
 
 	hst := hs.GetState().(HUDState)
 	cs := hs.game.Camera.GetState().(CameraState)

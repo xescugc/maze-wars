@@ -37,18 +37,17 @@ func NewClient() js.Func {
 			}
 		)
 
-		d := flux.NewDispatcher()
-		s := store.NewStore(d)
-
 		l := slog.New(slog.NewTextHandler(ioutil.Discard, nil))
+
+		d := flux.NewDispatcher()
+		s := store.NewStore(d, l)
+
 		ad := client.NewActionDispatcher(d, s, l, opt)
 
-		g := &client.Game{
-			Store: s,
-		}
+		g := client.NewGame(s, l)
 
 		// TODO: Change this to pass the specific store needed instead of all the game object
-		cs := client.NewCameraStore(d, s, screenW, screenH)
+		cs := client.NewCameraStore(d, s, l, screenW, screenH)
 		g.Camera = cs
 		g.Units, err = client.NewUnits(g)
 		if err != nil {
@@ -70,19 +69,19 @@ func NewClient() js.Func {
 		us := client.NewUserStore(d)
 		cls := client.NewStore(s, us)
 
-		ls, err := client.NewLobbyStore(d, cls)
+		ls, err := client.NewLobbyStore(d, cls, l)
 		if err != nil {
 			return fmt.Errorf("failed to initialize LobbyStore: %w", err)
 		}
 
-		u, err := client.NewSignUpStore(d, s)
+		u, err := client.NewSignUpStore(d, s, l)
 		if err != nil {
 			return fmt.Errorf("failed to initial SignUpStore: %w", err)
 		}
 
-		wr := client.NewWaitingRoomStore(d, cls)
+		wr := client.NewWaitingRoomStore(d, cls, l)
 
-		rs := client.NewRouterStore(d, u, ls, wr, g)
+		rs := client.NewRouterStore(d, u, ls, wr, g, l)
 
 		ctx := context.Background()
 		// We need to run this in a goroutine so when it's compiled to WASM

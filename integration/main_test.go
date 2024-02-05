@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"log/slog"
 	"os"
@@ -35,6 +36,7 @@ func TestRun(t *testing.T) {
 		screenW = 288
 		screenH = 240
 		//players = make(map[string]*store.Player)
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -43,7 +45,7 @@ func TestRun(t *testing.T) {
 	sd := flux.NewDispatcher()
 	sl := slog.New(slog.NewTextHandler(ioutil.Discard, nil))
 	sad := server.NewActionDispatcher(sd, sl, ss)
-	rooms := server.NewRoomsStore(sd, ss)
+	rooms := server.NewRoomsStore(sd, ss, logger)
 	users := server.NewUsersStore(sd, ss)
 
 	ss.Rooms = rooms
@@ -63,7 +65,7 @@ func TestRun(t *testing.T) {
 		ScreenH: screenH,
 	}
 	cd := flux.NewDispatcher()
-	s := store.NewStore(cd)
+	s := store.NewStore(cd, logger)
 
 	cl := slog.New(slog.NewTextHandler(ioutil.Discard, nil))
 	cad := client.NewActionDispatcher(cd, s, cl, copt)
@@ -72,7 +74,7 @@ func TestRun(t *testing.T) {
 		Store: s,
 	}
 
-	cs := client.NewCameraStore(cd, s, screenW, screenH)
+	cs := client.NewCameraStore(cd, s, logger, screenW, screenH)
 	g.Camera = cs
 	g.Units, err = client.NewUnits(g)
 	require.NoError(t, err)
@@ -86,15 +88,15 @@ func TestRun(t *testing.T) {
 	us := client.NewUserStore(cd)
 	cls := client.NewStore(s, us)
 
-	ls, err := client.NewLobbyStore(cd, cls)
+	ls, err := client.NewLobbyStore(cd, cls, logger)
 	require.NoError(t, err)
 
-	wr := client.NewWaitingRoomStore(cd, cls)
+	wr := client.NewWaitingRoomStore(cd, cls, logger)
 
-	su, err := client.NewSignUpStore(cd, s)
+	su, err := client.NewSignUpStore(cd, s, logger)
 	require.NoError(t, err)
 
-	rs := client.NewRouterStore(cd, su, ls, wr, g)
+	rs := client.NewRouterStore(cd, su, ls, wr, g, logger)
 
 	// Before starting we give the server
 	// some time to start

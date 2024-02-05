@@ -42,7 +42,7 @@ var (
 				Level: lvl,
 			}))
 			ad := server.NewActionDispatcher(d, l, ss)
-			rooms := server.NewRoomsStore(d, ss)
+			rooms := server.NewRoomsStore(d, ss, l)
 			users := server.NewUsersStore(d, ss)
 
 			ss.Rooms = rooms

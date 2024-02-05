@@ -3,18 +3,22 @@ package client
 import (
 	"fmt"
 	"image/color"
+	"log/slog"
+	"time"
 
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type WaitingRoomStore struct {
 	*flux.ReduceStore
 
-	Store *Store
+	Store  *Store
+	Logger *slog.Logger
 
 	ui           *ebitenui.UI
 	textPlayersW *widget.Text
@@ -27,9 +31,10 @@ type WaitingRoomState struct {
 	Countdown    int
 }
 
-func NewWaitingRoomStore(d *flux.Dispatcher, s *Store) *WaitingRoomStore {
+func NewWaitingRoomStore(d *flux.Dispatcher, s *Store, l *slog.Logger) *WaitingRoomStore {
 	wr := &WaitingRoomStore{
-		Store: s,
+		Store:  s,
+		Logger: l,
 	}
 	wr.ReduceStore = flux.NewReduceStore(d, wr.Reduce, WaitingRoomState{})
 
@@ -39,11 +44,17 @@ func NewWaitingRoomStore(d *flux.Dispatcher, s *Store) *WaitingRoomStore {
 }
 
 func (wr *WaitingRoomStore) Update() error {
+	b := time.Now()
+	defer utils.LogTime(wr.Logger, b, "waiting_room update")
+
 	wr.ui.Update()
 	return nil
 }
 
 func (wr *WaitingRoomStore) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(wr.Logger, b, "waiting_room draw")
+
 	wrstate := wr.GetState().(WaitingRoomState)
 	wr.textPlayersW.Label = fmt.Sprintf("%d/%d", wrstate.TotalPlayers, wrstate.Size)
 	wr.textColdownW.Label = fmt.Sprintf("(%ds to reduce the size, minimum is 2)", wrstate.Countdown)

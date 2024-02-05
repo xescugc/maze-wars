@@ -2,8 +2,10 @@ package store_test
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/gofrs/uuid"
+	"github.com/sagikazarmark/slog-shim"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
@@ -11,9 +13,13 @@ import (
 	"github.com/xescugc/maze-wars/unit"
 )
 
+func newEmptyLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
 func initStore() *store.Store {
 	d := flux.NewDispatcher()
-	return store.NewStore(d)
+	return store.NewStore(d, newEmptyLogger())
 }
 
 func addPlayer(s *store.Store) store.Player {

@@ -42,12 +42,9 @@ func NewActionDispatcher(d *flux.Dispatcher, s *store.Store, l *slog.Logger, opt
 // This should only be used from the WS Handler to forward server actions directly
 func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	b := time.Now()
+	defer utils.LogTime(ac.logger, b, "action dispatched", "action", a.Type)
+
 	ac.dispatcher.Dispatch(a)
-	d := time.Now().Sub(b)
-	if d > time.Millisecond {
-		ac.logger.Info("action dispatched", "type", a.Type, "time", d)
-	}
-	ac.logger.Debug("action dispatched", "type", a.Type, "time", d)
 }
 
 // CursorMove dispatches an action of moving the Cursor

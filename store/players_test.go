@@ -11,7 +11,7 @@ import (
 
 func TestNewPlayers(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	ps := store.NewPlayers(d, st)
 	pstate := ps.GetState().(store.PlayersState)
 	epstate := store.PlayersState{
@@ -23,7 +23,7 @@ func TestNewPlayers(t *testing.T) {
 
 func TestPlayers_List(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	ps := store.NewPlayers(d, st)
 
 	id := "id"
@@ -49,7 +49,7 @@ func TestPlayers_List(t *testing.T) {
 
 func TestPlayers_FindCurrent(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	ps := store.NewPlayers(d, st)
 	id := "id"
 	name := "name"
@@ -83,7 +83,7 @@ func TestPlayers_FindCurrent(t *testing.T) {
 
 func TestPlayers_FindByID(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	ps := store.NewPlayers(d, st)
 	id := "id"
 	name := "name"
@@ -110,7 +110,7 @@ func TestPlayers_FindByID(t *testing.T) {
 
 func TestPlayers_FindByLineID(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	ps := store.NewPlayers(d, st)
 	id := "id"
 	name := "name"

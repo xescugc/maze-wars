@@ -2,9 +2,11 @@ package client
 
 import (
 	"image"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type Map struct {
@@ -20,10 +22,16 @@ func NewMap(g *Game) *Map {
 }
 
 func (m *Map) Update() error {
+	b := time.Now()
+	defer utils.LogTime(m.game.Logger, b, "map update")
+
 	return nil
 }
 
 func (m *Map) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(m.game.Logger, b, "map draw")
+
 	// Draw will draw just a partial image of the map based on the viewport, so it does not render everything but just the
 	// part that it's seen by the user
 	// If we want to render everything and just move the viewport around we need o render the full image and change the

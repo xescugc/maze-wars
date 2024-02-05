@@ -3,6 +3,8 @@ package client
 import (
 	"image"
 	"image/color"
+	"log/slog"
+	"time"
 
 	"github.com/ebitenui/ebitenui"
 	euiimage "github.com/ebitenui/ebitenui/image"
@@ -13,6 +15,7 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 var (
@@ -22,7 +25,8 @@ var (
 type SignUpStore struct {
 	*flux.ReduceStore
 
-	Store *store.Store
+	Store  *store.Store
+	Logger *slog.Logger
 
 	Camera *CameraStore
 
@@ -34,9 +38,10 @@ type SignUpState struct {
 	Error string
 }
 
-func NewSignUpStore(d *flux.Dispatcher, s *store.Store) (*SignUpStore, error) {
+func NewSignUpStore(d *flux.Dispatcher, s *store.Store, l *slog.Logger) (*SignUpStore, error) {
 	su := &SignUpStore{
-		Store: s,
+		Store:  s,
+		Logger: l,
 	}
 	su.ReduceStore = flux.NewReduceStore(d, su.Reduce, SignUpState{})
 
@@ -46,11 +51,17 @@ func NewSignUpStore(d *flux.Dispatcher, s *store.Store) (*SignUpStore, error) {
 }
 
 func (su *SignUpStore) Update() error {
+	b := time.Now()
+	defer utils.LogTime(su.Logger, b, "sign_up update")
+
 	su.ui.Update()
 	return nil
 }
 
 func (su *SignUpStore) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(su.Logger, b, "sign_up draw")
+
 	sutate := su.GetState().(SignUpState)
 	if sutate.Error != "" {
 		su.inputErrorW.GetWidget().Visibility = widget.Visibility_Show

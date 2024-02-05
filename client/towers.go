@@ -3,11 +3,13 @@ package client
 import (
 	"bytes"
 	"image"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type Towers struct {
@@ -31,6 +33,9 @@ func NewTowers(g *Game) (*Towers, error) {
 }
 
 func (ts *Towers) Update() error {
+	b := time.Now()
+	defer utils.LogTime(ts.game.Logger, b, "towers update")
+
 	uts := ts.game.Store.Units.List()
 	tws := ts.game.Store.Towers.List()
 	cp := ts.game.Store.Players.FindCurrent()
@@ -66,6 +71,9 @@ func (ts *Towers) Update() error {
 }
 
 func (ts *Towers) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(ts.game.Logger, b, "towers draw")
+
 	for _, t := range ts.game.Store.Towers.List() {
 		ts.DrawTower(screen, ts.game.Camera, t)
 	}
