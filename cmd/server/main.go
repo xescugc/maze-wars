@@ -20,7 +20,6 @@ var (
 	serverCmd = &cobra.Command{
 		Use: "server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ss := &server.Store{}
 			d := flux.NewDispatcher()
 			out := os.Stdout
 			lvl := slog.LevelInfo
@@ -41,12 +40,8 @@ var (
 			l := slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{
 				Level: lvl,
 			}))
+			ss := server.NewStore(d, l)
 			ad := server.NewActionDispatcher(d, l, ss)
-			rooms := server.NewRoomsStore(d, ss, l)
-			users := server.NewUsersStore(d, ss)
-
-			ss.Rooms = rooms
-			ss.Users = users
 
 			err := server.New(ad, ss, server.Options{
 				Port:    viper.GetString("port"),

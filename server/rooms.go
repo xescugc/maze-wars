@@ -171,6 +171,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 
 		us, _ := rs.Store.Users.FindByUsername(act.ExitWaitingRoom.Username)
 		delete(rstate.Rooms[rstate.CurrentWaitingRoom].Players, us.ID)
+		delete(rstate.Rooms[rstate.CurrentWaitingRoom].Connections, us.RemoteAddr)
 
 		// If there are no more players waiting remove the room
 		if len(rstate.Rooms[rstate.CurrentWaitingRoom].Players) == 0 {

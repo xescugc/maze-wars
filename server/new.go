@@ -167,10 +167,7 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 
 			switch msg.Type {
 			case action.UserSignIn:
-				// We need to append this extra information to the Action
-				msg.UserSignIn.Websocket = ws
-				msg.UserSignIn.RemoteAddr = hr.RemoteAddr
-				actionDispatcher.Dispatch(&msg)
+				actionDispatcher.UserSignIn(*&msg.UserSignIn.Username, hr.RemoteAddr, ws)
 			default:
 				actionDispatcher.Dispatch(&msg)
 			}
