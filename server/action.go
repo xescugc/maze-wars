@@ -9,6 +9,7 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/utils"
 	"nhooyr.io/websocket/wsjson"
 )
 
@@ -34,6 +35,8 @@ func NewActionDispatcher(d *flux.Dispatcher, l *slog.Logger, s *Store) *ActionDi
 // This should only be used from the WS Handler to forward server actions directly
 func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	b := time.Now()
+	defer utils.LogTime(ac.logger, b, "action dispatched", "action", a.Type)
+
 	switch a.Type {
 	case action.JoinWaitingRoom:
 		ac.dispatcher.Dispatch(a)
@@ -42,11 +45,6 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	default:
 		ac.dispatcher.Dispatch(a)
 	}
-	d := time.Now().Sub(b)
-	if d > time.Millisecond {
-		ac.logger.Info("action dispatched", "type", a.Type, "time", d)
-	}
-	ac.logger.Debug("action dispatched", "type", a.Type, "time", d)
 }
 
 func (ac *ActionDispatcher) startGame() {

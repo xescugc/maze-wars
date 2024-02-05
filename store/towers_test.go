@@ -13,7 +13,7 @@ import (
 
 func TestNewTowers(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	ts := store.NewTowers(d, st)
 	tstate := ts.GetState().(store.TowersState)
 	etstate := store.TowersState{
@@ -24,7 +24,7 @@ func TestNewTowers(t *testing.T) {
 
 func TestTowers_List(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	ts := store.NewTowers(d, st)
 
 	player := addPlayer(st)

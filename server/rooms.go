@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log/slog"
 	"sync"
 
 	"github.com/gofrs/uuid"
@@ -14,6 +15,7 @@ type RoomsStore struct {
 
 	Store *Store
 
+	logger  *slog.Logger
 	mxRooms sync.RWMutex
 }
 
@@ -40,9 +42,10 @@ type PlayerConn struct {
 	RemoteAddr string
 }
 
-func NewRoomsStore(d *flux.Dispatcher, s *Store) *RoomsStore {
+func NewRoomsStore(d *flux.Dispatcher, s *Store, l *slog.Logger) *RoomsStore {
 	rs := &RoomsStore{
-		Store: s,
+		Store:  s,
+		logger: l,
 	}
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RoomsState{
@@ -97,7 +100,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		rs.GetDispatcher().WaitFor(rs.Store.Users.GetDispatcherToken())
 
 		rd := flux.NewDispatcher()
-		g := NewGame(rd)
+		g := NewGame(rd, rs.logger)
 		rstate.Rooms[rstate.CurrentWaitingRoom].Game = g
 		pcount := 0
 		for pid, pc := range rstate.Rooms[rstate.CurrentWaitingRoom].Players {

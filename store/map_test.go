@@ -15,7 +15,7 @@ import (
 
 func TestNewMap(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	ms := store.NewMap(d, st)
 	mstate := ms.GetState().(store.MapState)
 	m2, _, err := image.Decode(bytes.NewReader(assets.Map_2_png))

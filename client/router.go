@@ -1,9 +1,13 @@
 package client
 
 import (
+	"log/slog"
+	"time"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 const (
@@ -20,18 +24,20 @@ type RouterStore struct {
 	lobby       *LobbyStore
 	signUp      *SignUpStore
 	waitingRoom *WaitingRoomStore
+	logger      *slog.Logger
 }
 
 type RouterState struct {
 	Route string
 }
 
-func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, l *LobbyStore, wr *WaitingRoomStore, g *Game) *RouterStore {
+func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ls *LobbyStore, wr *WaitingRoomStore, g *Game, l *slog.Logger) *RouterStore {
 	rs := &RouterStore{
 		game:        g,
-		lobby:       l,
+		lobby:       ls,
 		signUp:      su,
 		waitingRoom: wr,
+		logger:      l,
 	}
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RouterState{
@@ -43,6 +49,9 @@ func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, l *LobbyStore, wr *Wait
 }
 
 func (rs *RouterStore) Update() error {
+	b := time.Now()
+	defer utils.LogTime(rs.logger, b, "router update")
+
 	rstate := rs.GetState().(RouterState)
 	switch rstate.Route {
 	case SignUpRoute:
@@ -58,6 +67,9 @@ func (rs *RouterStore) Update() error {
 }
 
 func (rs *RouterStore) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(rs.logger, b, "router draw")
+
 	rstate := rs.GetState().(RouterState)
 	switch rstate.Route {
 	case SignUpRoute:

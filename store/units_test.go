@@ -13,7 +13,7 @@ import (
 
 func TestNewUnits(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	us := store.NewUnits(d, st)
 	ustate := us.GetState().(store.UnitsState)
 	eustate := store.UnitsState{
@@ -24,7 +24,7 @@ func TestNewUnits(t *testing.T) {
 
 func TestUnits_List(t *testing.T) {
 	d := flux.NewDispatcher()
-	st := store.NewStore(d)
+	st := store.NewStore(d, newEmptyLogger())
 	us := store.NewUnits(d, st)
 
 	player := addPlayer(st)

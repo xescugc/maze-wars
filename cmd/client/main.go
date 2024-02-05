@@ -34,7 +34,6 @@ var (
 			}
 
 			d := flux.NewDispatcher()
-			s := store.NewStore(d)
 
 			lvl := slog.LevelInfo
 			if verbose {
@@ -54,13 +53,13 @@ var (
 			l := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{
 				Level: lvl,
 			}))
+
+			s := store.NewStore(d, l)
 			ad := client.NewActionDispatcher(d, s, l, opt)
 
-			g := &client.Game{
-				Store: s,
-			}
+			g := client.NewGame(s, l)
 
-			cs := client.NewCameraStore(d, s, screenW, screenH)
+			cs := client.NewCameraStore(d, s, l, screenW, screenH)
 			g.Camera = cs
 			g.Units, err = client.NewUnits(g)
 			if err != nil {
@@ -82,18 +81,18 @@ var (
 			us := client.NewUserStore(d)
 			cls := client.NewStore(s, us)
 
-			ls, err := client.NewLobbyStore(d, cls)
+			ls, err := client.NewLobbyStore(d, cls, l)
 			if err != nil {
 				return fmt.Errorf("failed to initialize LobbyStore: %w", err)
 			}
 
-			su, err := client.NewSignUpStore(d, s)
+			su, err := client.NewSignUpStore(d, s, l)
 			if err != nil {
 				return fmt.Errorf("failed to initial SignUpStore: %w", err)
 			}
-			wr := client.NewWaitingRoomStore(d, cls)
+			wr := client.NewWaitingRoomStore(d, cls, l)
 
-			rs := client.NewRouterStore(d, su, ls, wr, g)
+			rs := client.NewRouterStore(d, su, ls, wr, g, l)
 			ctx := context.Background()
 
 			err = client.New(ctx, ad, rs, opt)

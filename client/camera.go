@@ -1,6 +1,9 @@
 package client
 
 import (
+	"log/slog"
+	"time"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
@@ -15,6 +18,8 @@ type CameraStore struct {
 	*flux.ReduceStore
 
 	Store *store.Store
+
+	logger *slog.Logger
 
 	cameraSpeed float64
 }
@@ -36,9 +41,10 @@ const (
 // NewCameraStore creates a new CameraState linked to the Dispatcher d
 // with the Game g and with width w and height h which is the size of
 // the viewport
-func NewCameraStore(d *flux.Dispatcher, s *store.Store, w, h int) *CameraStore {
+func NewCameraStore(d *flux.Dispatcher, s *store.Store, l *slog.Logger, w, h int) *CameraStore {
 	cs := &CameraStore{
 		Store:       s,
+		logger:      l,
 		cameraSpeed: 10,
 	}
 
@@ -54,6 +60,9 @@ func NewCameraStore(d *flux.Dispatcher, s *store.Store, w, h int) *CameraStore {
 }
 
 func (cs *CameraStore) Update() error {
+	b := time.Now()
+	defer utils.LogTime(cs.logger, b, "camera update")
+
 	// TODO: https://github.com/xescugc/maze-wars/issues/4
 	//s := cs.GetState().(CameraState)
 	//if _, wy := ebiten.Wheel(); wy != 0 {
@@ -66,7 +75,10 @@ func (cs *CameraStore) Update() error {
 	return nil
 }
 
-func (cs *CameraStore) Draw(screen *ebiten.Image) {}
+func (cs *CameraStore) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(cs.logger, b, "camera draw")
+}
 
 func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)

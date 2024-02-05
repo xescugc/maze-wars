@@ -3,6 +3,8 @@ package client
 import (
 	"fmt"
 	"image/color"
+	"log/slog"
+	"time"
 
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
@@ -10,6 +12,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 var (
@@ -19,7 +22,8 @@ var (
 type LobbyStore struct {
 	*flux.ReduceStore
 
-	Store *Store
+	Store  *Store
+	Logger *slog.Logger
 
 	ui           *ebitenui.UI
 	textPlayersW *widget.Text
@@ -29,9 +33,10 @@ type LobbyState struct {
 	TotalUsers int
 }
 
-func NewLobbyStore(d *flux.Dispatcher, s *Store) (*LobbyStore, error) {
+func NewLobbyStore(d *flux.Dispatcher, s *Store, l *slog.Logger) (*LobbyStore, error) {
 	ls := &LobbyStore{
-		Store: s,
+		Store:  s,
+		Logger: l,
 	}
 	ls.ReduceStore = flux.NewReduceStore(d, ls.Reduce, LobbyState{})
 
@@ -41,11 +46,17 @@ func NewLobbyStore(d *flux.Dispatcher, s *Store) (*LobbyStore, error) {
 }
 
 func (ls *LobbyStore) Update() error {
+	b := time.Now()
+	defer utils.LogTime(ls.Logger, b, "lobby update")
+
 	ls.ui.Update()
 	return nil
 }
 
 func (ls *LobbyStore) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(ls.Logger, b, "lobby draw")
+
 	lstate := ls.GetState().(LobbyState)
 	ls.textPlayersW.Label = fmt.Sprintf("Users online: %d", lstate.TotalUsers)
 	ls.ui.Draw(screen)

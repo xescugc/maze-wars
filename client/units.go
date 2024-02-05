@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"image"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/maze-wars/assets"
@@ -48,6 +49,9 @@ func NewUnits(g *Game) (*Units, error) {
 }
 
 func (us *Units) Update() error {
+	b := time.Now()
+	defer utils.LogTime(us.game.Logger, b, "units update")
+
 	cp := us.game.Store.Players.FindCurrent()
 
 	for _, u := range us.game.Store.Units.List() {
@@ -78,6 +82,9 @@ func (us *Units) Update() error {
 }
 
 func (us *Units) Draw(screen *ebiten.Image) {
+	b := time.Now()
+	defer utils.LogTime(us.game.Logger, b, "units draw")
+
 	for _, u := range us.game.Store.Units.List() {
 		us.DrawUnit(screen, us.game.Camera, u)
 	}
