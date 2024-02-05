@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
+	"github.com/adrg/xdg"
+	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xescugc/go-flux"
@@ -12,12 +15,33 @@ import (
 )
 
 var (
+	logFile = path.Join(xdg.CacheHome, "maze-wars", "server.log")
+
 	serverCmd = &cobra.Command{
 		Use: "server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ss := &server.Store{}
 			d := flux.NewDispatcher()
-			ad := server.NewActionDispatcher(d, ss)
+			out := os.Stdout
+			lvl := slog.LevelInfo
+			if viper.GetBool("verbose") {
+				lvl = slog.LevelDebug
+				err := os.MkdirAll(path.Dir(logFile), 0700)
+				if err != nil {
+					return err
+				}
+				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_TRUNC|os.O_RDWR|os.O_CREATE, 0644)
+				if err != nil {
+					return err
+				}
+				out = f
+
+				defer f.Close()
+			}
+			l := slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{
+				Level: lvl,
+			}))
+			ad := server.NewActionDispatcher(d, l, ss)
 			rooms := server.NewRoomsStore(d, ss)
 			users := server.NewUsersStore(d, ss)
 
@@ -25,7 +49,8 @@ var (
 			ss.Users = users
 
 			err := server.New(ad, ss, server.Options{
-				Port: viper.GetString("port"),
+				Port:    viper.GetString("port"),
+				Verbose: viper.GetBool("verbose"),
 			})
 			if err != nil {
 				return fmt.Errorf("server error: %w", err)
@@ -42,6 +67,9 @@ func init() {
 
 	serverCmd.Flags().String("port", "5555", "The port in which the sever is open")
 	viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
+
+	serverCmd.Flags().Bool("verbose", false, fmt.Sprintf("If all the logs are gonna be printed to %s", logFile))
+	viper.BindPFlag("verbose", serverCmd.Flags().Lookup("verbose"))
 }
 
 func main() {

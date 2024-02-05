@@ -5,9 +5,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"syscall/js"
 
+	"github.com/sagikazarmark/slog-shim"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
 	"github.com/xescugc/maze-wars/store"
@@ -38,7 +40,8 @@ func NewClient() js.Func {
 		d := flux.NewDispatcher()
 		s := store.NewStore(d)
 
-		ad := client.NewActionDispatcher(d, s, opt)
+		l := slog.New(slog.NewTextHandler(ioutil.Discard, nil))
+		ad := client.NewActionDispatcher(d, s, l, opt)
 
 		g := &client.Game{
 			Store: s,
@@ -67,7 +70,7 @@ func NewClient() js.Func {
 		us := client.NewUserStore(d)
 		cls := client.NewStore(s, us)
 
-		l, err := client.NewLobbyStore(d, cls)
+		ls, err := client.NewLobbyStore(d, cls)
 		if err != nil {
 			return fmt.Errorf("failed to initialize LobbyStore: %w", err)
 		}
@@ -79,7 +82,7 @@ func NewClient() js.Func {
 
 		wr := client.NewWaitingRoomStore(d, cls)
 
-		rs := client.NewRouterStore(d, u, l, wr, g)
+		rs := client.NewRouterStore(d, u, ls, wr, g)
 
 		ctx := context.Background()
 		// We need to run this in a goroutine so when it's compiled to WASM

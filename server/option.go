@@ -1,5 +1,6 @@
 package server
 
 type Options struct {
-	Port string
+	Port    string
+	Verbose bool
 }
