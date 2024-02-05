@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/adrg/xdg"
-	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xescugc/go-flux"

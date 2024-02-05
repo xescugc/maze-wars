@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/sagikazarmark/slog-shim"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"

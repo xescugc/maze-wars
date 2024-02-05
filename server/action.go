@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"log"
+	"log/slog"
 	"time"
 
-	"github.com/sagikazarmark/slog-shim"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"

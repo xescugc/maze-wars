@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"log/slog"
 	"syscall/js"
 
-	"github.com/sagikazarmark/slog-shim"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
 	"github.com/xescugc/maze-wars/store"
