@@ -10,6 +10,7 @@ import (
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
+	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
 
@@ -88,8 +89,12 @@ func (ac *ActionDispatcher) UserSignUp(un string) {
 	ac.Dispatch(action.NewUserSignUp(un))
 }
 
-func (ac *ActionDispatcher) UserSignIn(un string) {
-	ac.Dispatch(action.NewUserSignIn(un))
+func (ac *ActionDispatcher) UserSignIn(un, ra string, ws *websocket.Conn) {
+	a := action.NewUserSignIn(un)
+	a.UserSignIn.RemoteAddr = ra
+	a.UserSignIn.Websocket = ws
+	a.UserSignIn.Username = un
+	ac.Dispatch(a)
 }
 
 func (ac *ActionDispatcher) UserSignOut(un string) {

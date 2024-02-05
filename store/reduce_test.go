@@ -655,6 +655,8 @@ func TestSyncState(t *testing.T) {
 }
 
 func equalStore(t *testing.T, sto *store.Store, states ...interface{}) {
+	t.Helper()
+
 	pis := playersInitialState()
 	tis := towersInitialState()
 	uis := unitsInitialState()
