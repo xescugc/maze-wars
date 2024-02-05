@@ -10,6 +10,14 @@ build:
 test: wasm ## Run the tests
 	@xvfb-run go test ./...
 
+.PHONY: test
+ctest: wasm ## Run the tests
+	@xvfb-run go test ./... -coverprofile=cover.out
+
+.PHONY: test
+cover: ## Run the cover tool
+	@cover -html=cover.out
+
 .PHONY: dc-serve
 dc-serve: ## Starts the server using docker-compose
 	@docker-compose -f docker/docker-compose.yml -f docker/develop.yml up --build --no-deps maze-wars

@@ -12,17 +12,6 @@ on:
 jobs:
 
   build:
-    env:
-      # We overwrite this value to be 4 so
-      # the test can pass because if not the
-      # goroutines will not run in "parallel"
-      # and so the tests do not pass.
-      # 4 is because:
-      # * 1 Main run
-      # * 2 clients
-      # * 1 server
-      GOMAXPROCS: 4
-      IS_CI: true
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
