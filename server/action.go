@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"log"
+	"time"
 
+	"github.com/sagikazarmark/slog-shim"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
@@ -15,20 +17,23 @@ import (
 type ActionDispatcher struct {
 	dispatcher *flux.Dispatcher
 	store      *Store
+	logger     *slog.Logger
 }
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
-func NewActionDispatcher(d *flux.Dispatcher, s *Store) *ActionDispatcher {
+func NewActionDispatcher(d *flux.Dispatcher, l *slog.Logger, s *Store) *ActionDispatcher {
 	return &ActionDispatcher{
 		dispatcher: d,
 		store:      s,
+		logger:     l,
 	}
 }
 
 // Dispatch is a helper to access to the internal dispatch directly with an action.
 // This should only be used from the WS Handler to forward server actions directly
 func (ac *ActionDispatcher) Dispatch(a *action.Action) {
+	b := time.Now()
 	switch a.Type {
 	case action.JoinWaitingRoom:
 		ac.dispatcher.Dispatch(a)
@@ -37,6 +42,11 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	default:
 		ac.dispatcher.Dispatch(a)
 	}
+	d := time.Now().Sub(b)
+	if d > time.Millisecond {
+		ac.logger.Info("action dispatched", "type", a.Type, "time", d)
+	}
+	ac.logger.Debug("action dispatched", "type", a.Type, "time", d)
 }
 
 func (ac *ActionDispatcher) startGame() {
@@ -48,7 +58,7 @@ func (ac *ActionDispatcher) startGame() {
 	rstate := ac.store.Rooms.GetState().(RoomsState)
 	sga := action.NewStartGame()
 
-	ac.dispatcher.Dispatch(sga)
+	ac.Dispatch(sga)
 	ac.SyncState(ac.store.Rooms)
 
 	for _, p := range rstate.Rooms[wr.Name].Players {
@@ -61,31 +71,31 @@ func (ac *ActionDispatcher) startGame() {
 
 func (ac *ActionDispatcher) IncomeTick(rooms *RoomsStore) {
 	ita := action.NewIncomeTick()
-	ac.dispatcher.Dispatch(ita)
+	ac.Dispatch(ita)
 }
 
 func (ac *ActionDispatcher) WaitRoomCountdownTick() {
 	wrcta := action.NewWaitRoomCountdownTick()
-	ac.dispatcher.Dispatch(wrcta)
+	ac.Dispatch(wrcta)
 
 	ac.startGame()
 }
 
 func (ac *ActionDispatcher) TPS(rooms *RoomsStore) {
 	tpsa := action.NewTPS()
-	ac.dispatcher.Dispatch(tpsa)
+	ac.Dispatch(tpsa)
 }
 
 func (ac *ActionDispatcher) UserSignUp(un string) {
-	ac.dispatcher.Dispatch(action.NewUserSignUp(un))
+	ac.Dispatch(action.NewUserSignUp(un))
 }
 
 func (ac *ActionDispatcher) UserSignIn(un string) {
-	ac.dispatcher.Dispatch(action.NewUserSignIn(un))
+	ac.Dispatch(action.NewUserSignIn(un))
 }
 
 func (ac *ActionDispatcher) UserSignOut(un string) {
-	ac.dispatcher.Dispatch(action.NewUserSignOut(un))
+	ac.Dispatch(action.NewUserSignOut(un))
 }
 
 func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {

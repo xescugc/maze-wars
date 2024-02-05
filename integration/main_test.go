@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/sagikazarmark/slog-shim"
 	"github.com/stretchr/testify/require"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
@@ -39,7 +41,8 @@ func TestRun(t *testing.T) {
 
 	ss := &server.Store{}
 	sd := flux.NewDispatcher()
-	sad := server.NewActionDispatcher(sd, ss)
+	sl := slog.New(slog.NewTextHandler(ioutil.Discard, nil))
+	sad := server.NewActionDispatcher(sd, sl, ss)
 	rooms := server.NewRoomsStore(sd, ss)
 	users := server.NewUsersStore(sd, ss)
 
@@ -62,7 +65,8 @@ func TestRun(t *testing.T) {
 	cd := flux.NewDispatcher()
 	s := store.NewStore(cd)
 
-	cad := client.NewActionDispatcher(cd, s, copt)
+	cl := slog.New(slog.NewTextHandler(ioutil.Discard, nil))
+	cad := client.NewActionDispatcher(cd, s, cl, copt)
 
 	g := &client.Game{
 		Store: s,
@@ -82,7 +86,7 @@ func TestRun(t *testing.T) {
 	us := client.NewUserStore(cd)
 	cls := client.NewStore(s, us)
 
-	l, err := client.NewLobbyStore(cd, cls)
+	ls, err := client.NewLobbyStore(cd, cls)
 	require.NoError(t, err)
 
 	wr := client.NewWaitingRoomStore(cd, cls)
@@ -90,7 +94,7 @@ func TestRun(t *testing.T) {
 	su, err := client.NewSignUpStore(cd, s)
 	require.NoError(t, err)
 
-	rs := client.NewRouterStore(cd, su, l, wr, g)
+	rs := client.NewRouterStore(cd, su, ls, wr, g)
 
 	// Before starting we give the server
 	// some time to start
