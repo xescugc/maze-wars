@@ -2,6 +2,7 @@ package action
 
 import (
 	"github.com/xescugc/maze-wars/utils"
+	"github.com/xescugc/maze-wars/utils/graph"
 	"nhooyr.io/websocket"
 )
 
@@ -474,8 +475,16 @@ func NewSyncWaitingRoom(tp, s, cd int) *Action {
 
 type SyncStatePayload struct {
 	Players *SyncStatePlayersPayload
-	Towers  *SyncStateTowersPayload
-	Units   *SyncStateUnitsPayload
+	Lines   *SyncStateLinesPayload
+}
+
+type SyncStateLinesPayload struct {
+	Lines map[int]*SyncStateLinePayload
+}
+
+type SyncStateLinePayload struct {
+	Towers map[string]*SyncStateTowerPayload
+	Units  map[string]*SyncStateUnitPayload
 }
 
 type SyncStatePlayersPayload struct {
@@ -494,10 +503,6 @@ type SyncStatePlayerPayload struct {
 	Winner  bool
 }
 
-type SyncStateTowersPayload struct {
-	Towers map[string]*SyncStateTowerPayload
-}
-
 type SyncStateTowerPayload struct {
 	utils.Object
 
@@ -505,10 +510,6 @@ type SyncStateTowerPayload struct {
 	Type     string
 	LineID   int
 	PlayerID string
-}
-
-type SyncStateUnitsPayload struct {
-	Units map[string]*SyncStateUnitPayload
 }
 
 type SyncStateUnitPayload struct {
@@ -522,18 +523,17 @@ type SyncStateUnitPayload struct {
 
 	Health float64
 
-	Path     []utils.Step
+	Path     []graph.Step
 	HashPath string
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated
-func NewSyncState(players *SyncStatePlayersPayload, towers *SyncStateTowersPayload, units *SyncStateUnitsPayload) *Action {
+func NewSyncState(players *SyncStatePlayersPayload, lines *SyncStateLinesPayload) *Action {
 	return &Action{
 		Type: SyncState,
 		SyncState: &SyncStatePayload{
 			Players: players,
-			Towers:  towers,
-			Units:   units,
+			Lines:   lines,
 		},
 	}
 }

@@ -11,8 +11,7 @@ import (
 
 type Store struct {
 	Players *Players
-	Towers  *Towers
-	Units   *Units
+	Lines   *Lines
 	Map     *Map
 
 	dispatcher *flux.Dispatcher
@@ -26,8 +25,7 @@ func NewStore(d *flux.Dispatcher, l *slog.Logger) *Store {
 	}
 	s.Players = NewPlayers(d, s)
 	s.Map = NewMap(d, s)
-	s.Towers = NewTowers(d, s)
-	s.Units = NewUnits(d, s)
+	s.Lines = NewLines(d, s)
 
 	return s
 }

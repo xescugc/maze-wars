@@ -17,9 +17,7 @@ type Game struct {
 
 	Camera *CameraStore
 	HUD    *HUDStore
-
-	Units  *Units
-	Towers *Towers
+	Lines  *Lines
 
 	Map *Map
 
@@ -39,8 +37,7 @@ func (g *Game) Update() error {
 
 	g.Map.Update()
 	g.Camera.Update()
-	g.Units.Update()
-	g.Towers.Update()
+	g.Lines.Update()
 	g.HUD.Update()
 
 	actionDispatcher.TPS()
@@ -55,6 +52,5 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.Map.Draw(screen)
 	g.Camera.Draw(screen)
 	g.HUD.Draw(screen)
-	g.Units.Draw(screen)
-	g.Towers.Draw(screen)
+	g.Lines.Draw(screen)
 }

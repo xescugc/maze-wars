@@ -105,14 +105,14 @@ func (hs *HUDStore) Update() error {
 	hst := hs.GetState().(HUDState)
 	x, y := ebiten.CursorPosition()
 	cp := hs.game.Store.Players.FindCurrent()
-	tws := hs.game.Store.Towers.List()
+	cl := hs.game.Store.Lines.FindByID(cp.LineID)
+	tws := cl.Towers
 	// Only send a CursorMove when the curso has actually moved
 	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
 		actionDispatcher.CursorMove(x, y)
 	}
 	// If the Current player is dead or has no more lives there are no
 	// mo actions that can be done
-	// TODO Be able to move the camera when won or lose
 	if cp.Lives == 0 || cp.Winner {
 		return nil
 	}
@@ -124,32 +124,7 @@ func (hs *HUDStore) Update() error {
 		}
 
 		if hst.SelectedTower != nil && !hst.SelectedTower.Invalid {
-			// We double check that placing the tower would not block the path
-			utws := make([]utils.Object, 0, 0)
-			for _, t := range tws {
-				// If the tower does not belong to the current user then we can skip
-				// as it's outside the Players Building Zone
-				if t.PlayerID != cp.ID {
-					continue
-				}
-				utws = append(utws, t.Object)
-			}
-			var fakex, fakey float64 = hs.game.Store.Map.GetRandomSpawnCoordinatesForLineID(cp.LineID)
-			utws = append(utws, utils.Object{
-				X: hst.SelectedTower.X + cs.X,
-				Y: hst.SelectedTower.Y + cs.Y,
-				H: hst.SelectedTower.H, W: hst.SelectedTower.W,
-			})
-			steps := hs.game.Store.Units.Astar(hs.game.Store.Map, cp.LineID, utils.MovingObject{
-				Object: utils.Object{
-					X: fakex,
-					Y: fakey,
-					W: 1, H: 1,
-				},
-			}, utws)
-			if len(steps) != 0 {
-				actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y))
-			}
+			actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y))
 			return nil
 		}
 		for _, t := range tws {
@@ -200,40 +175,15 @@ func (hs *HUDStore) Update() error {
 			actionDispatcher.DeselectTower(hst.SelectedTower.Type)
 		} else {
 			var invalid bool
-			utws := make([]utils.Object, 0, 0)
-			// TODO: Check why the selected towers can be placed in top of other already palced towers
-			for _, t := range tws {
-				// If the tower does not belong to the current user then we can skip
-				// as it's outside the Players Building Zone
-				if t.PlayerID != cp.ID {
-					continue
-				}
-				utws = append(utws, t.Object)
-				// The t.Object has the X and Y relative to the map
-				// and the hst.SelectedTower has them relative to the
-				// screen so we need to port the t.Object to the same
-				// relative values
-				neo := t.Object
-				neo.X -= cs.X
-				neo.Y -= cs.Y
-				if hst.SelectedTower.IsColliding(neo) {
-					invalid = true
-					break
-				}
-			}
+
 			neo := hst.SelectedTower.Object
 			neo.X += cs.X
 			neo.Y += cs.Y
-			if !hs.game.Store.Map.IsInValidBuildingZone(neo, hst.SelectedTower.LineID) {
-				invalid = true
-			}
+
+			invalid = !cl.Graph.CanAddTower(int(neo.X), int(neo.Y), int(neo.W), int(neo.H))
 
 			if !invalid {
-				units := hs.game.Store.Units.List()
-				for _, u := range units {
-					if u.PlayerID != cp.ID {
-						continue
-					}
+				for _, u := range cl.Units {
 					if u.IsColliding(neo) {
 						invalid = true
 						break
@@ -241,28 +191,6 @@ func (hs *HUDStore) Update() error {
 				}
 			}
 
-			// Only check if the line is blocked when is still valid position and it has not moved.
-			// TODO: We can improve this by storing this result (if blocking or not) so we only validate
-			// this once and not when the mouse is static with a selected tower
-			if !invalid && (hst.LastCursorPosition.X == float64(x) && hst.LastCursorPosition.Y == float64(y) && !hst.CheckedPath) {
-				//var fakex, fakey float64 = hs.game.Store.Map.GetRandomSpawnCoordinatesForLineID(cp.LineID)
-				//utws = append(utws, utils.Object{
-				//X: hst.SelectedTower.X + cs.X,
-				//Y: hst.SelectedTower.Y + cs.Y,
-				//H: hst.SelectedTower.H, W: hst.SelectedTower.W,
-				//})
-				//steps := hs.game.Store.Units.Astar(hs.game.Store.Map, cp.LineID, utils.MovingObject{
-				//Object: utils.Object{
-				//X: fakex,
-				//Y: fakey,
-				//W: 1, H: 1,
-				//},
-				//}, utws)
-				//if len(steps) == 0 {
-				//invalid = true
-				//}
-				//actionDispatcher.CheckedPath(true)
-			}
 			if invalid != hst.SelectedTower.Invalid {
 				actionDispatcher.SelectedTowerInvalid(invalid)
 			}
@@ -440,8 +368,6 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 }
 
 func fixPosition(cs CameraState, x, y float64) (float64, float64) {
-	//cs := hs.game.Camera.GetState().(CameraState)
-
 	absnx := x + cs.X
 	absny := y + cs.Y
 	// We find the closes multiple in case the cursor moves too fast, between FPS reloads,
@@ -449,15 +375,17 @@ func fixPosition(cs CameraState, x, y float64) (float64, float64) {
 	// is not updated and the result is the cursor far away from the Drawing of the SelectedTower
 	// as it has stayed on the previous position
 	var multiple int = 16
+	// If it's == 0 means it's exact but as we want to center it we remove 16 (towers are 32)
+	// If it's !=0 then we find what's the remaning for
 	if int(absnx)%multiple == 0 {
 		x -= 16
 	} else {
-		x = float64(closestMultiple(int(absnx), multiple)) - 16 - cs.X
+		x = float64(utils.ClosestMultiple(int(absnx), multiple)) - 16 - cs.X
 	}
 	if int(absny)%multiple == 0 {
 		y -= 16
 	} else {
-		y = float64(closestMultiple(int(absny), multiple)) - 16 - cs.Y
+		y = float64(utils.ClosestMultiple(int(absny), multiple)) - 16 - cs.Y
 	}
 
 	return x, y
@@ -483,13 +411,6 @@ func sortedTowers() []*tower.Tower {
 		return ts[i].Type > ts[j].Type
 	})
 	return ts
-}
-
-// closestMultiple finds the coses multiple of 'b' for the number 'a'
-func closestMultiple(a, b int) int {
-	a = a + b/2
-	a = a - (a % b)
-	return a
 }
 
 func (hs *HUDStore) buildUI() {

@@ -62,6 +62,7 @@ func NewPlayers(d *flux.Dispatcher, s *Store) *Players {
 func (ps *Players) List() []*Player {
 	ps.mxPlayers.RLock()
 	defer ps.mxPlayers.RUnlock()
+
 	mplayers := ps.GetState().(PlayersState)
 	players := make([]*Player, 0, len(mplayers.Players))
 	for _, p := range mplayers.Players {
@@ -181,7 +182,7 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 	case action.SummonUnit:
 		// We need to wait for the units if not the units Store cannot check
 		// if the unit can be summoned if the Gold has already been removed
-		ps.GetDispatcher().WaitFor(ps.store.Units.GetDispatcherToken())
+		ps.GetDispatcher().WaitFor(ps.store.Lines.GetDispatcherToken())
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
 
@@ -203,8 +204,7 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		}
 	case action.PlaceTower:
 		ps.GetDispatcher().WaitFor(
-			ps.store.Towers.GetDispatcherToken(),
-			ps.store.Units.GetDispatcherToken(),
+			ps.store.Lines.GetDispatcherToken(),
 		)
 
 		ps.mxPlayers.Lock()

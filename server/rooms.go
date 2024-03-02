@@ -109,6 +109,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			pcount++
 		}
 		rstate.CurrentWaitingRoom = ""
+		g.Dispatch(action.NewStartGame())
 
 	case action.RemovePlayer:
 		rs.mxRooms.Lock()

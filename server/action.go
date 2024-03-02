@@ -119,20 +119,26 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 				players[idp] = &uspp
 			}
 
-			// Towers
-			towers := make(map[string]*action.SyncStateTowerPayload)
-			ts := r.Game.Towers.List()
-			for _, t := range ts {
-				ustp := action.SyncStateTowerPayload(*t)
-				towers[t.ID] = &ustp
-			}
+			// Lines
+			lines := make(map[int]*action.SyncStateLinePayload)
+			for i, l := range r.Game.Store.Lines.GetState().(store.LinesState).Lines {
+				// Towers
+				towers := make(map[string]*action.SyncStateTowerPayload)
+				for _, t := range l.Towers {
+					ustp := action.SyncStateTowerPayload(*t)
+					towers[t.ID] = &ustp
+				}
 
-			// Units
-			units := make(map[string]*action.SyncStateUnitPayload)
-			us := r.Game.Units.List()
-			for _, u := range us {
-				usup := action.SyncStateUnitPayload(*u)
-				units[u.ID] = &usup
+				// Units
+				units := make(map[string]*action.SyncStateUnitPayload)
+				for _, u := range l.Units {
+					usup := action.SyncStateUnitPayload(*u)
+					units[u.ID] = &usup
+				}
+				lines[i] = &action.SyncStateLinePayload{
+					Towers: towers,
+					Units:  units,
+				}
 			}
 
 			aus := action.NewSyncState(
@@ -140,11 +146,8 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 					Players:     players,
 					IncomeTimer: ps.IncomeTimer,
 				},
-				&action.SyncStateTowersPayload{
-					Towers: towers,
-				},
-				&action.SyncStateUnitsPayload{
-					Units: units,
+				&action.SyncStateLinesPayload{
+					Lines: lines,
 				},
 			)
 			err := wsjson.Write(context.Background(), pc.Conn, aus)

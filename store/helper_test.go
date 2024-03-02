@@ -3,14 +3,17 @@ package store_test
 import (
 	"fmt"
 	"io"
+	"testing"
 
 	"github.com/gofrs/uuid"
 	"github.com/sagikazarmark/slog-shim"
+	"github.com/stretchr/testify/require"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
+	"github.com/xescugc/maze-wars/utils/graph"
 )
 
 func newEmptyLogger() *slog.Logger {
@@ -31,23 +34,61 @@ func addPlayer(s *store.Store) store.Player {
 	return s.Players.FindByID(id.String())
 }
 
-func summonUnit(s *store.Store, p store.Player) (store.Player, store.Unit) {
-	s.Dispatch(action.NewSummonUnit(unit.Spirit.String(), p.ID, p.LineID, p.LineID))
+func startGame(t *testing.T, s *store.Store) (store.MapState, store.LinesState) {
+	t.Helper()
+
+	ms := mapInitialState()
+	ms.Players = len(s.Players.List())
+	ms.Image = store.MapImages[ms.Players]
+
+	ls := linesInitialState()
+	for _, p := range s.Players.List() {
+		x, y := s.Map.GetHomeCoordinates(p.LineID)
+		g, err := graph.New(int(x+16), int(y+16), 16, 84, 16, 7, 74, 3)
+		require.NoError(t, err)
+		ls.Lines[p.LineID] = &store.Line{
+			Towers: make(map[string]*store.Tower),
+			Units:  make(map[string]*store.Unit),
+			Graph:  g,
+		}
+	}
+
+	return ms, ls
+}
+
+func summonUnit(s *store.Store, fp, tp store.Player) (store.Player, store.Unit) {
+	s.Dispatch(action.NewSummonUnit(unit.Spirit.String(), fp.ID, fp.LineID, tp.LineID))
 
 	// We know the Summon does this and as 'p' is not a pointer
 	// we need to do it manually
-	p.Gold -= unit.Units[unit.Spirit.String()].Gold
-	p.Income += unit.Units[unit.Spirit.String()].Income
+	fp.Gold -= unit.Units[unit.Spirit.String()].Gold
+	fp.Income += unit.Units[unit.Spirit.String()].Income
 
-	return p, *s.Units.List()[0]
+	units := s.Lines.FindByID(tp.LineID).Units
+	var u *store.Unit
+	for _, un := range units {
+		u = un
+	}
+
+	return fp, *u
 }
 
 func placeTower(s *store.Store, p store.Player) (store.Player, store.Tower) {
-	s.Dispatch(action.NewPlaceTower(tower.Soldier.String(), p.ID, 10, 20))
+	l := s.Lines.FindByID(p.LineID)
+
+	s.Dispatch(action.NewPlaceTower(tower.Soldier.String(), p.ID, l.Graph.OffsetX, l.Graph.OffsetY+(l.Graph.Scale*l.Graph.SpawnZoneH)))
 
 	// We know the PlaceTower does this and as 'p' is not a pointer
 	// we need to do it manually
 	p.Gold -= tower.Towers[tower.Soldier.String()].Gold
 
-	return p, *s.Towers.List()[0]
+	// We cannot reuse the 'l' as the FindByID returns a copy
+	// so it's not updated when the NewPlaceTower is triggered
+	towers := s.Lines.FindByID(p.LineID).Towers
+	var tw *store.Tower
+	for _, tn := range towers {
+		tw = tn
+	}
+
+	return p, *tw
 }
