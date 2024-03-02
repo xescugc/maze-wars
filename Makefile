@@ -26,6 +26,10 @@ dc-serve: ## Starts the server using docker-compose
 serve: wasm ## Starts the server
 	@go run ./cmd/server
 
+.PHONY: client
+client: ## Runs a client
+	@go run ./cmd/client
+
 .PHONY: wa-build
 wa-build: ## Build the wasm Game
 	@env GOOS=js GOARCH=wasm go build -o ./server/assets/wasm/maze-wars.wasm ./client/wasm

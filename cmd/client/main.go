@@ -61,14 +61,9 @@ var (
 
 			cs := client.NewCameraStore(d, s, l, screenW, screenH)
 			g.Camera = cs
-			g.Units, err = client.NewUnits(g)
+			g.Lines, err = client.NewLines(g)
 			if err != nil {
-				return fmt.Errorf("failed to initialize Units: %w", err)
-			}
-
-			g.Towers, err = client.NewTowers(g)
-			if err != nil {
-				return fmt.Errorf("failed to initialize Towers: %w", err)
+				return fmt.Errorf("failed to initialize Lines: %w", err)
 			}
 
 			g.HUD, err = client.NewHUDStore(d, g)

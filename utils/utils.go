@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"math"
 )
@@ -59,6 +57,8 @@ func (o Object) MDistance(c Object) float64 {
 type Step struct {
 	Object
 
+	ID string
+
 	Facing Direction
 }
 
@@ -112,12 +112,4 @@ type MovingObject struct {
 
 	Facing      Direction
 	MovingCount int
-}
-
-func HashSteps(ss []Step) string {
-	var buffer bytes.Buffer
-	for _, s := range ss {
-		buffer.WriteString(s.String())
-	}
-	return fmt.Sprintf("%x", (sha256.Sum256([]byte(buffer.String()))))
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"image"
 	"log"
-	"math/rand"
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
@@ -84,20 +83,6 @@ func (m *Map) GetNextLineID(clid int) int {
 		clid = 0
 	}
 	return clid
-}
-
-// GetRandomSpawnCoordinatesForLineID returns from a lineID lid a random
-// spawn coordinate to summon the units, it returns the X and Y coordinates
-func (m *Map) GetRandomSpawnCoordinatesForLineID(lid int) (float64, float64) {
-	// Starts at x:16,y:16, add it goes x*16 and y*7
-	// then the next one is at x*10 and the same
-	// The area is of 112
-
-	p := rand.Intn(112)
-	yy := (43 * 16) + (p%7)*16 + 16
-	xx := (43 * 16) + ((p%16)*16 + 16) + (lid * 16 * (16 + 1 + 10 + 1))
-
-	return float64(xx), float64(yy)
 }
 
 func (m *Map) GetHomeCoordinates(lid int) (float64, float64) {

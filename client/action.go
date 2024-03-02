@@ -91,16 +91,9 @@ func (ac *ActionDispatcher) CameraZoom(d int) {
 
 // PlaceTower places the tower 't' on the position X and Y of the player pid
 func (ac *ActionDispatcher) PlaceTower(t, pid string, x, y int) {
-	units := ac.store.Units.List()
-	to := utils.Object{X: float64(x), Y: float64(y), H: 32, W: 32}
-	canPlace := true
-	for _, u := range units {
-		if u.IsColliding(to) {
-			canPlace = false
-			break
-		}
-	}
-	if canPlace {
+	// TODO: Add the LineID in the action
+	p := ac.store.Players.FindByID(pid)
+	if l := ac.store.Lines.FindByID(p.LineID); l != nil && l.Graph.CanAddTower(x, y, 32, 32) {
 		pta := action.NewPlaceTower(t, pid, x, y)
 		wsSend(pta)
 	}
@@ -126,7 +119,7 @@ func (ac *ActionDispatcher) SelectedTowerInvalid(i bool) {
 	ac.Dispatch(sta)
 }
 
-// DeelectTower cleans the current selected tower
+// DeselectTower cleans the current selected tower
 func (ac *ActionDispatcher) DeselectTower(t string) {
 	dsta := action.NewDeselectTower(t)
 	ac.Dispatch(dsta)

@@ -1,5 +1,9 @@
 ## Map
 
+A tail == 16px
+
+The maps are in an offset of 43 tails
+
 Each line 18t wide, 16t of those are usable and the other 2t are the left and right corners
 
 The spawn area is 7tx16t and the end area is 3tx16t the building area is 74tx16t
