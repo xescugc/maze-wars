@@ -4,9 +4,12 @@
 
 # Maze Wars
 
+[![](https://dcbadge.vercel.app/api/server/xXcpD3Fjt9)](https://discord.gg/xXcpD3Fjt9)
+
 **Bring your enemies lives to 0 by stealing them with your summoned units passing through their mazes, but be careful, they'll do the same to you!**
 
-To **play** the game go to [maze-wars.com/play](https://maze-wars.com/play) and for **documentation** on how to play the game go to [maze-wars.com/docs](https://maze-wars.com/docs)
+To **play** the game go to [maze-wars.com/download](https://maze-wars.com/download) and download the version that fits your computer, you can also play from
+the browser at [maze-wars.com/play](https://maze-wars.com/play) but it's still a bit laggy on the client side.
 
 <p align="center">
     <img src="server/assets/images/game_sample.png">
