@@ -17,21 +17,21 @@
     var btn = document.getElementById(fullscreen);
     var iframe = document.getElementById("iframe");
 
-    // Even if in fullscreen the button cannot be seen
-    // we'll keep the logic to make it add/remove the
-    // class
-    btn.onclick = function(event) {
-      if (iframe.classList.contains(fullscreen)) {
-        iframe.classList.remove(fullscreen)
+    function toggleFullscreen() {
+      let elem = document.querySelector("iframe");
+
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch((err) => {
+          alert(
+            `Error attempting to enable fullscreen mode: ${err.message} (${err.name})`,
+          );
+        });
       } else {
-        iframe.classList.add(fullscreen)
+        document.exitFullscreen();
       }
-    };
-    document.addEventListener("keydown", function (e) {
-      e = e || window.event;
-      if (e.key === "Escape") {
-        iframe.classList.remove(fullscreen)
-      }
-    });
+    }
+
+    btn.onclick = toggleFullscreen
+
   </script>
 {{ end}}

@@ -9,6 +9,8 @@ github.com/ebitengine/purego v0.6.0-alpha.3.0.20240118143548-886e3a0b044a h1:rNw
 github.com/ebitengine/purego v0.6.0-alpha.3.0.20240118143548-886e3a0b044a/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
 github.com/ebitenui/ebitenui v0.5.5 h1:L9UCWmiMlo4sG5TavQKmjfsnwMmYqkld2tXWZMmKkSA=
 github.com/ebitenui/ebitenui v0.5.5/go.mod h1:CkzAwu9Ks32P+NC/7+iypdLA85Wqnn93UztPFE+kAH4=
+github.com/ebitenui/ebitenui v0.5.6-0.20240228194824-a73d28dc4078 h1:IV5XaJRGp8c/dRpjzMFsibEtw4OEha1BwEXMz5atVdg=
+github.com/ebitenui/ebitenui v0.5.6-0.20240228194824-a73d28dc4078/go.mod h1:CkzAwu9Ks32P+NC/7+iypdLA85Wqnn93UztPFE+kAH4=
 github.com/felixge/httpsnoop v1.0.3 h1:s/nj+GCswXYzN5v2DpNMuMQYe+0DDwt5WVCU6CWBdXk=
 github.com/felixge/httpsnoop v1.0.3/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
