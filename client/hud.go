@@ -174,13 +174,15 @@ func (hs *HUDStore) Update() error {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.DeselectTower(hst.SelectedTower.Type)
 		} else {
-			var invalid bool
+			invalid := !cp.CanPlaceTower(hst.SelectedTower.Type)
 
 			neo := hst.SelectedTower.Object
 			neo.X += cs.X
 			neo.Y += cs.Y
 
-			invalid = !cl.Graph.CanAddTower(int(neo.X), int(neo.Y), int(neo.W), int(neo.H))
+			if !invalid {
+				invalid = !cl.Graph.CanAddTower(int(neo.X), int(neo.Y), int(neo.W), int(neo.H))
+			}
 
 			if !invalid {
 				for _, u := range cl.Units {
