@@ -1,7 +1,6 @@
 package store
 
 import (
-	"image"
 	"sync"
 
 	"github.com/gofrs/uuid"
@@ -44,9 +43,7 @@ type Tower struct {
 	PlayerID string
 }
 
-func (t *Tower) Faceset() image.Image {
-	return tower.Towers[t.Type].Faceset
-}
+func (t *Tower) FacetKey() string { return tower.Towers[t.Type].FacesetKey() }
 
 type Unit struct {
 	utils.MovingObject
@@ -64,13 +61,8 @@ type Unit struct {
 	HashPath string
 }
 
-func (u *Unit) Faceset() image.Image {
-	return unit.Units[u.Type].Faceset
-}
-
-func (u *Unit) Sprite() image.Image {
-	return unit.Units[u.Type].Sprite
-}
+func (u *Unit) FacesetKey() string { return unit.Units[u.Type].FacesetKey() }
+func (u *Unit) SpriteKey() string  { return unit.Units[u.Type].SpriteKey() }
 
 func NewLines(d *flux.Dispatcher, s *Store) *Lines {
 	l := &Lines{

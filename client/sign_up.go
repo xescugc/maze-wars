@@ -1,7 +1,6 @@
 package client
 
 import (
-	"image"
 	"image/color"
 	"log/slog"
 	"time"
@@ -244,16 +243,15 @@ func loadButtonImage() (*widget.ButtonImage, error) {
 	}, nil
 }
 
-func buttonImageFromImage(i image.Image) *widget.ButtonImage {
-	ei := ebiten.NewImageFromImage(i)
-	nsi := euiimage.NewNineSliceSimple(ei, i.Bounds().Dx(), i.Bounds().Dy())
+func buttonImageFromImage(i *ebiten.Image) *widget.ButtonImage {
+	nsi := euiimage.NewNineSliceSimple(i, i.Bounds().Dx(), i.Bounds().Dy())
 
-	dest := i
 	cm := colorm.ColorM{}
 	cm.Scale(2, 0.5, 0.5, 0.9)
-	edest := ebiten.NewImageFromImage(dest)
-	colorm.DrawImage(edest, ei, cm, nil)
-	dsi := euiimage.NewNineSliceSimple(edest, dest.Bounds().Dx(), dest.Bounds().Dy())
+
+	ni := ebiten.NewImage(i.Bounds().Dx(), i.Bounds().Dy())
+	colorm.DrawImage(ni, i, cm, nil)
+	dsi := euiimage.NewNineSliceSimple(ni, ni.Bounds().Dx(), ni.Bounds().Dy())
 	return &widget.ButtonImage{
 		Idle:     nsi,
 		Hover:    nsi,
