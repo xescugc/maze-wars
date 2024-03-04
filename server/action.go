@@ -36,7 +36,7 @@ func NewActionDispatcher(d *flux.Dispatcher, l *slog.Logger, s *Store) *ActionDi
 // This should only be used from the WS Handler to forward server actions directly
 func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	b := time.Now()
-	defer utils.LogTime(ac.logger, b, "action dispatched", "action", a.Type)
+	defer utils.LogTime(ac.logger, b, "action dispatch", "action", a.Type)
 
 	switch a.Type {
 	case action.JoinWaitingRoom:

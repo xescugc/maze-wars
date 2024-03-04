@@ -279,7 +279,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
 
-		screen.DrawImage(ebiten.NewImageFromImage(hst.SelectedTower.Faceset()), op)
+		screen.DrawImage(imagesCache.Get(hst.SelectedTower.FacetKey()), op)
 	}
 }
 
@@ -631,7 +631,7 @@ func (hs *HUDStore) buildUI() {
 			),
 
 			// specify the images to sue
-			widget.ButtonOpts.Image(buttonImageFromImage(u.Faceset)),
+			widget.ButtonOpts.Image(buttonImageFromImage(imagesCache.Get(u.FacesetKey()))),
 
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
@@ -699,7 +699,7 @@ func (hs *HUDStore) buildUI() {
 			),
 
 			// specify the images to sue
-			widget.ButtonOpts.Image(buttonImageFromImage(t.Faceset)),
+			widget.ButtonOpts.Image(buttonImageFromImage(imagesCache.Get(t.FacesetKey()))),
 
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(t *tower.Tower) func(args *widget.ButtonClickedEventArgs) {

@@ -133,7 +133,7 @@ func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(t.X-cs.X, t.Y-cs.Y)
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
-	screen.DrawImage(ebiten.NewImageFromImage(t.Faceset()), op)
+	screen.DrawImage(imagesCache.Get(t.FacetKey()), op)
 
 	if t.ID == hst.TowerOpenMenuID {
 		op := &ebiten.DrawImageOptions{}
@@ -159,7 +159,7 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	sx := directionToTile[u.Facing] * int(u.W)
 	i := (u.MovingCount / 5) % 4
 	sy := i * int(u.H)
-	screen.DrawImage(ebiten.NewImageFromImage(u.Sprite()).SubImage(image.Rect(sx, sy, sx+int(u.W), sy+int(u.H))).(*ebiten.Image), op)
+	screen.DrawImage(imagesCache.Get(u.SpriteKey()).SubImage(image.Rect(sx, sy, sx+int(u.W), sy+int(u.H))).(*ebiten.Image), op)
 
 	// Only draw the Health bar if the unit has been hit
 	h := unit.Units[u.Type].Health

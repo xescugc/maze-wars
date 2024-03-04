@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
 )
 
@@ -41,8 +40,7 @@ func (m *Map) Draw(screen *ebiten.Image) {
 	s := m.game.Camera.GetState().(CameraState)
 	op.GeoM.Scale(s.Zoom, s.Zoom)
 	inverseZoom := maxZoom - s.Zoom + zoomScale
-	mi := ebiten.NewImageFromImage(m.game.Store.Map.GetState().(store.MapState).Image)
-	screen.DrawImage(mi.SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
+	screen.DrawImage(imagesCache.Get(m.game.Store.Map.GetImageKey()).SubImage(image.Rect(int(s.X), int(s.Y), int((s.X+s.W)*inverseZoom), int((s.Y+s.H)*inverseZoom))).(*ebiten.Image), op)
 
 	cs := m.game.Camera.GetState().(CameraState)
 	cp := m.game.Store.Players.FindCurrent()

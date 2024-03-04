@@ -3,6 +3,7 @@ package tower
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image"
 	"log"
 
@@ -20,6 +21,8 @@ type Tower struct {
 
 	Faceset image.Image
 }
+
+func (t *Tower) FacesetKey() string { return fmt.Sprintf("t-f-%s", t.Type) }
 
 var (
 	Towers map[string]*Tower

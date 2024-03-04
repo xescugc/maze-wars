@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"log"
 
@@ -13,6 +14,8 @@ import (
 
 var (
 	MapImages = map[int]image.Image{}
+
+	MapImageKeyFmt = "m-%d"
 )
 
 func init() {
@@ -73,6 +76,12 @@ func (m *Map) GetX() int { return m.GetState().(MapState).Image.Bounds().Dx() }
 
 // GetY returns the max Y value of the map
 func (m *Map) GetY() int { return m.GetState().(MapState).Image.Bounds().Dy() }
+
+// GetY returns the max Y value of the map
+func (m *Map) GetImageKey() string {
+	pc := m.GetState().(MapState).Players
+	return fmt.Sprintf(MapImageKeyFmt, pc)
+}
 
 // GetNextLineID based on the map and max number of players
 // it returns the next one and when it reaches the end

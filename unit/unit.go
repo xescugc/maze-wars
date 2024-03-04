@@ -3,6 +3,7 @@ package unit
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image"
 	"log"
 
@@ -21,6 +22,9 @@ type Unit struct {
 	Faceset image.Image
 	Sprite  image.Image
 }
+
+func (u *Unit) FacesetKey() string { return fmt.Sprintf("u-f-%s", u.Type) }
+func (u *Unit) SpriteKey() string  { return fmt.Sprintf("u-s-%s", u.Type) }
 
 var (
 	Units map[string]*Unit
