@@ -170,6 +170,6 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 
 		op = &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(u.X-cs.X), float64(u.Y-cs.Y-ls.lifeBarProgress.Bounds().Dy()))
-		screen.DrawImage(ls.lifeBarProgress.(*ebiten.Image).SubImage(image.Rect(0, 0, ls.lifeBarProgress.Bounds().Dx()*int((u.Health/h)), ls.lifeBarProgress.Bounds().Dy())).(*ebiten.Image), op)
+		screen.DrawImage(ls.lifeBarProgress.(*ebiten.Image).SubImage(image.Rect(0, 0, int(float64(ls.lifeBarProgress.Bounds().Dx())*(u.Health/h)), ls.lifeBarProgress.Bounds().Dy())).(*ebiten.Image), op)
 	}
 }
