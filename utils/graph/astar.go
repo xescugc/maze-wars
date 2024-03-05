@@ -146,7 +146,10 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, atScale bool) [
 			if !neighborStep.open && !neighborStep.closed {
 				neighborStep.cost = cost
 				neighborStep.open = true
-				neighborStep.rank = cost + neighbor.Node.MDistance(tn)
+				// If no node is ranked it's basically doing a dijkstra
+				// which now it's much faster and gives better results
+				//neighborStep.rank = cost + neighbor.Node.MDistance(tn)
+				neighborStep.rank = cost
 				neighborStep.parent = current
 				// We try to give priority to the ones
 				// that are not on the same direction.
@@ -156,7 +159,7 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, atScale bool) [
 				// This helps on prioritizing doing
 				// diagonals
 				if neighborStep.step.Facing == current.step.Facing {
-					neighborStep.rank += 64
+					neighborStep.rank += 32
 				}
 				heap.Push(nq, neighborStep)
 			}
