@@ -26,7 +26,6 @@ type Action struct {
 	NavigateTo           *NavigateToPayload           `json:"navigate_to, omitempty"`
 	StartGame            *StartGamePayload            `json:"start_game, omitempty"`
 	GoHome               *GoHomePayload               `json:"go_home, omitempty"`
-	CheckedPath          *CheckedPathPayload          `json:"checked_path,omitempty"`
 	ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
 
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu, omitempty"`
@@ -348,19 +347,6 @@ func NewGoHome() *Action {
 	return &Action{
 		Type:   GoHome,
 		GoHome: &GoHomePayload{},
-	}
-}
-
-type CheckedPathPayload struct {
-	Checked bool
-}
-
-func NewCheckedPath(cp bool) *Action {
-	return &Action{
-		Type: CheckedPath,
-		CheckedPath: &CheckedPathPayload{
-			Checked: cp,
-		},
 	}
 }
 

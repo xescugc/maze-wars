@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/xescugc/go-flux"
+	"github.com/xescugc/maze-wars/client/game"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
 )
@@ -13,20 +15,15 @@ import (
 // of the main loop.
 // It holds all the other Stores and the Map
 type Game struct {
-	Store *store.Store
-
-	Camera *CameraStore
-	HUD    *HUDStore
-	Lines  *Lines
-
-	Map *Map
+	Game *game.Game
 
 	Logger *slog.Logger
 }
 
-func NewGame(s *store.Store, l *slog.Logger) *Game {
+func NewGame(s *store.Store, d *flux.Dispatcher, l *slog.Logger) *Game {
+	gl := l.WithGroup("game")
 	return &Game{
-		Store:  s,
+		Game:   game.New(s, game.NewActionDispatcher(d, s, wsSend, gl), gl),
 		Logger: l,
 	}
 }
@@ -35,12 +32,7 @@ func (g *Game) Update() error {
 	b := time.Now()
 	defer utils.LogTime(g.Logger, b, "game update")
 
-	g.Map.Update()
-	g.Camera.Update()
-	g.Lines.Update()
-	g.HUD.Update()
-
-	actionDispatcher.TPS()
+	g.Game.Update()
 
 	return nil
 }
@@ -49,8 +41,5 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(g.Logger, b, "game draw")
 
-	g.Map.Draw(screen)
-	g.Camera.Draw(screen)
-	g.HUD.Draw(screen)
-	g.Lines.Draw(screen)
+	g.Game.Draw(screen)
 }

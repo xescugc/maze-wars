@@ -54,7 +54,6 @@ var (
 	actionsTested   = map[string]struct{}{
 		// This are all the actions not involved on the Store
 		action.CameraZoom.String():            {},
-		action.CheckedPath.String():           {},
 		action.CloseTowerMenu.String():        {},
 		action.CursorMove.String():            {},
 		action.DeselectTower.String():         {},

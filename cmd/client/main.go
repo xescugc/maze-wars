@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
+	"github.com/xescugc/maze-wars/client/game"
 	"github.com/xescugc/maze-wars/store"
 )
 
@@ -57,21 +58,21 @@ var (
 			s := store.NewStore(d, l)
 			ad := client.NewActionDispatcher(d, s, l, opt)
 
-			g := client.NewGame(s, l)
+			g := client.NewGame(s, d, l)
 
-			cs := client.NewCameraStore(d, s, l, screenW, screenH)
-			g.Camera = cs
-			g.Lines, err = client.NewLines(g)
+			cs := game.NewCameraStore(d, s, l, screenW, screenH)
+			g.Game.Camera = cs
+			g.Game.Lines, err = game.NewLines(g.Game)
 			if err != nil {
 				return fmt.Errorf("failed to initialize Lines: %w", err)
 			}
 
-			g.HUD, err = client.NewHUDStore(d, g)
+			g.Game.HUD, err = game.NewHUDStore(d, g.Game)
 			if err != nil {
 				return fmt.Errorf("failed to initialize HUDStore: %w", err)
 			}
 
-			g.Map = client.NewMap(g)
+			g.Game.Map = game.NewMap(g.Game)
 
 			us := client.NewUserStore(d)
 			cls := client.NewStore(s, us)
