@@ -9,7 +9,6 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/assets"
-	"github.com/xescugc/maze-wars/utils"
 )
 
 var (
@@ -94,49 +93,8 @@ func (m *Map) GetNextLineID(clid int) int {
 	return clid
 }
 
-func (m *Map) GetHomeCoordinates(lid int) (float64, float64) {
-	return float64(lid*16*(16+1+10+1) + (43 * 16)), (43 * 16)
-}
-
-func (m *Map) EndZone(lid int) utils.Object {
-	return utils.Object{
-		X: float64((43 * 16) + 16 + (lid * 16 * (16 + 1 + 10 + 1))),
-		Y: 82*16 + (43 * 16),
-		W: 16 * 16,
-		H: 3 * 16,
-	}
-}
-
-func (m *Map) BuildingZone(lid int) utils.Object {
-	return utils.Object{
-		X: float64((43 * 16) + 16 + (lid * 16 * (16 + 1 + 10 + 1))),
-		Y: (7 * 16) + 16 + (43 * 16), // This +16 is for the border
-		W: 16 * 16,
-		H: 74 * 16,
-	}
-}
-
-func (m *Map) UnitZone(lid int) utils.Object {
-	return utils.Object{
-		X: float64((43 * 16) + 16 + (lid * 16 * (16 + 1 + 10 + 1))),
-		Y: 16 + (43 * 16), // This +16 is for the border
-		W: 16 * 16,
-		H: 81 * 16,
-	}
-}
-
-// IsAtTheEnd checks if the Object obj on the lineID lid has reached the end of the
-// line on it's position
-func (m *Map) IsAtTheEnd(obj utils.Object, lid int) bool {
-	return obj.IsColliding(m.EndZone(lid))
-}
-
-func (m *Map) IsInValidBuildingZone(obj utils.Object, lid int) bool {
-	return m.BuildingZone(lid).IsInside(obj)
-}
-
-func (m *Map) IsInValidUnitZone(obj utils.Object, lid int) bool {
-	return m.UnitZone(lid).IsInside(obj)
+func (m *Map) GetHomeCoordinates(lid int) (int, int) {
+	return lid*16*(16+1+10+1) + (43 * 16), (43 * 16)
 }
 
 func (m *Map) Reduce(state, a interface{}) interface{} {

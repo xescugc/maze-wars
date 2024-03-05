@@ -108,7 +108,7 @@ func (hs *HUDStore) Update() error {
 	cl := hs.game.Store.Lines.FindByID(cp.LineID)
 	tws := cl.Towers
 	// Only send a CursorMove when the curso has actually moved
-	if hst.LastCursorPosition.X != float64(x) || hst.LastCursorPosition.Y != float64(y) {
+	if hst.LastCursorPosition.X != x || hst.LastCursorPosition.Y != y {
 		actionDispatcher.CursorMove(x, y)
 	}
 	// If the Current player is dead or has no more lives there are no
@@ -118,13 +118,13 @@ func (hs *HUDStore) Update() error {
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		clickAbsolute := utils.Object{
-			X: float64(x) + cs.X,
-			Y: float64(y) + cs.Y,
+			X: x + cs.X,
+			Y: y + cs.Y,
 			W: 1, H: 1,
 		}
 
 		if hst.SelectedTower != nil && !hst.SelectedTower.Invalid {
-			actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y))
+			actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, hst.SelectedTower.X+cs.X, hst.SelectedTower.Y+cs.Y)
 			return nil
 		}
 		for _, t := range tws {
@@ -181,7 +181,7 @@ func (hs *HUDStore) Update() error {
 			neo.Y += cs.Y
 
 			if !invalid {
-				invalid = !cl.Graph.CanAddTower(int(neo.X), int(neo.Y), int(neo.W), int(neo.H))
+				invalid = !cl.Graph.CanAddTower(neo.X, neo.Y, neo.W, neo.H)
 			}
 
 			if !invalid {
@@ -272,7 +272,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 	if hst.SelectedTower != nil {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(hst.SelectedTower.X/cs.Zoom, hst.SelectedTower.Y/cs.Zoom)
+		op.GeoM.Translate(float64(hst.SelectedTower.X)/cs.Zoom, float64(hst.SelectedTower.Y)/cs.Zoom)
 		op.GeoM.Scale(cs.Zoom, cs.Zoom)
 
 		if hst.SelectedTower != nil && hst.SelectedTower.Invalid {
@@ -319,7 +319,7 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())
 		cp := hs.game.Store.Players.FindCurrent()
 		cs := hs.game.Camera.GetState().(CameraState)
-		x, y := fixPosition(cs, float64(act.SelectTower.X), float64(act.SelectTower.Y))
+		x, y := fixPosition(cs, act.SelectTower.X, act.SelectTower.Y)
 		hstate.SelectedTower = &SelectedTower{
 			Tower: store.Tower{
 				Object: utils.Object{
@@ -335,8 +335,8 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		}
 	case action.CursorMove:
 		// We update the last seen cursor position to not resend unnecessary events
-		nx := float64(act.CursorMove.X)
-		ny := float64(act.CursorMove.Y)
+		nx := act.CursorMove.X
+		ny := act.CursorMove.Y
 
 		hstate.LastCursorPosition.X = nx
 		hstate.LastCursorPosition.Y = ny
@@ -364,7 +364,7 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 	return hstate
 }
 
-func fixPosition(cs CameraState, x, y float64) (float64, float64) {
+func fixPosition(cs CameraState, x, y int) (int, int) {
 	absnx := x + cs.X
 	absny := y + cs.Y
 	// We find the closes multiple in case the cursor moves too fast, between FPS reloads,
@@ -374,15 +374,15 @@ func fixPosition(cs CameraState, x, y float64) (float64, float64) {
 	var multiple int = 16
 	// If it's == 0 means it's exact but as we want to center it we remove 16 (towers are 32)
 	// If it's !=0 then we find what's the remaning for
-	if int(absnx)%multiple == 0 {
+	if absnx%multiple == 0 {
 		x -= 16
 	} else {
-		x = float64(utils.ClosestMultiple(int(absnx), multiple)) - 16 - cs.X
+		x = utils.ClosestMultiple(absnx, multiple) - 16 - cs.X
 	}
-	if int(absny)%multiple == 0 {
+	if absny%multiple == 0 {
 		y -= 16
 	} else {
-		y = float64(utils.ClosestMultiple(int(absny), multiple)) - 16 - cs.Y
+		y = utils.ClosestMultiple(absny, multiple) - 16 - cs.Y
 	}
 
 	return x, y
@@ -700,7 +700,7 @@ func (hs *HUDStore) buildUI() {
 			widget.ButtonOpts.ClickedHandler(func(t *tower.Tower) func(args *widget.ButtonClickedEventArgs) {
 				return func(args *widget.ButtonClickedEventArgs) {
 					hst := hs.GetState().(HUDState)
-					actionDispatcher.SelectTower(t.Type.String(), int(hst.LastCursorPosition.X), int(hst.LastCursorPosition.Y))
+					actionDispatcher.SelectTower(t.Type.String(), hst.LastCursorPosition.X, hst.LastCursorPosition.Y)
 				}
 			}(t)),
 		)

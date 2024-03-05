@@ -96,7 +96,7 @@ func (ls *Lines) Update() error {
 			actionDispatcher.RemoveUnit(u.ID)
 			continue
 		}
-		if n := l.Graph.GetNodeOf(int(u.X), int(u.Y)); n != nil && n.IsDeathZone {
+		if n := l.Graph.GetNodeOf(u.X, u.Y); n != nil && n.IsDeathZone {
 			p := ls.game.Store.Players.FindByLineID(u.CurrentLineID)
 			nlid := ls.game.Store.Map.GetNextLineID(u.CurrentLineID)
 			actionDispatcher.StealLive(p.ID, u.PlayerID)
@@ -131,13 +131,13 @@ func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower)
 		return
 	}
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(t.X-cs.X, t.Y-cs.Y)
+	op.GeoM.Translate(float64(t.X-cs.X), float64(t.Y-cs.Y))
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
 	screen.DrawImage(imagesCache.Get(t.FacetKey()), op)
 
 	if t.ID == hst.TowerOpenMenuID {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(t.X-cs.X+8, t.Y-cs.Y+8)
+		op.GeoM.Translate(float64(t.X-cs.X+8), float64(t.Y-cs.Y+8))
 		op.GeoM.Scale(cs.Zoom, cs.Zoom)
 		screen.DrawImage(ls.tilesetLogicImage.(*ebiten.Image), op)
 	}
@@ -148,28 +148,28 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	// This is to display the full unit calculated path as a line
 	// used for testing visually the path
 	//for _, s := range u.Path {
-	//screen.Set(s.X-int(cs.X), s.Y-int(cs.Y), color.Black)
+	//screen.Set(s.X-cs.X, s.Y-cs.Y, color.Black)
 	//}
 	if !u.IsColliding(cs.Object) {
 		return
 	}
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y)
+	op.GeoM.Translate(float64(u.X-cs.X), float64(u.Y-cs.Y))
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
-	sx := directionToTile[u.Facing] * int(u.W)
+	sx := directionToTile[u.Facing] * u.W
 	i := (u.MovingCount / 5) % 4
-	sy := i * int(u.H)
-	screen.DrawImage(imagesCache.Get(u.SpriteKey()).SubImage(image.Rect(sx, sy, sx+int(u.W), sy+int(u.H))).(*ebiten.Image), op)
+	sy := i * u.H
+	screen.DrawImage(imagesCache.Get(u.SpriteKey()).SubImage(image.Rect(sx, sy, sx+u.W, sy+u.H)).(*ebiten.Image), op)
 
 	// Only draw the Health bar if the unit has been hit
 	h := unit.Units[u.Type].Health
 	if unit.Units[u.Type].Health != u.Health {
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(ls.lifeBarUnder.Bounds().Dy()))
+		op.GeoM.Translate(float64(u.X-cs.X), float64(u.Y-cs.Y-ls.lifeBarUnder.Bounds().Dy()))
 		screen.DrawImage(ls.lifeBarUnder.(*ebiten.Image), op)
 
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(ls.lifeBarProgress.Bounds().Dy()))
-		screen.DrawImage(ls.lifeBarProgress.(*ebiten.Image).SubImage(image.Rect(0, 0, int(float64(ls.lifeBarProgress.Bounds().Dx())*(u.Health/h)), ls.lifeBarProgress.Bounds().Dy())).(*ebiten.Image), op)
+		op.GeoM.Translate(float64(u.X-cs.X), float64(u.Y-cs.Y-ls.lifeBarProgress.Bounds().Dy()))
+		screen.DrawImage(ls.lifeBarProgress.(*ebiten.Image).SubImage(image.Rect(0, 0, ls.lifeBarProgress.Bounds().Dx()*int((u.Health/h)), ls.lifeBarProgress.Bounds().Dy())).(*ebiten.Image), op)
 	}
 }

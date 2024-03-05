@@ -21,7 +21,7 @@ type CameraStore struct {
 
 	logger *slog.Logger
 
-	cameraSpeed float64
+	cameraSpeed int
 }
 
 // CameraState is the store data on the Camera
@@ -51,8 +51,8 @@ func NewCameraStore(d *flux.Dispatcher, s *store.Store, l *slog.Logger, w, h int
 	cs.ReduceStore = flux.NewReduceStore(d, cs.Reduce, CameraState{
 		Object: utils.Object{
 			X: 0, Y: 0,
-			W: float64(w),
-			H: float64(h),
+			W: w,
+			H: h,
 		},
 		Zoom: 1,
 	})
@@ -94,20 +94,20 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 	switch act.Type {
 	case action.CursorMove:
 		// We update the last seen cursor position to not resend unnecessary events
-		cstate.LastCursorPosition.X = float64(act.CursorMove.X)
-		cstate.LastCursorPosition.Y = float64(act.CursorMove.Y)
+		cstate.LastCursorPosition.X = act.CursorMove.X
+		cstate.LastCursorPosition.Y = act.CursorMove.Y
 	case action.TPS:
 		// If the X or Y exceed the current Height or Width then
 		// it means the cursor is moving out of boundaries so we
 		// increase the camera X/Y at a ratio of the cameraSpeed
 		// so we move it around on the map
-		if float64(cstate.LastCursorPosition.Y) >= (cstate.H - leeway) {
+		if cstate.LastCursorPosition.Y >= (cstate.H - leeway) {
 			cstate.Y += cs.cameraSpeed
 		} else if cstate.LastCursorPosition.Y <= (0 + leeway) {
 			cstate.Y -= cs.cameraSpeed
 		}
 
-		if float64(cstate.LastCursorPosition.X) >= (cstate.W - leeway) {
+		if cstate.LastCursorPosition.X >= (cstate.W - leeway) {
 			cstate.X += cs.cameraSpeed
 		} else if cstate.LastCursorPosition.X <= (0 + leeway) {
 			cstate.X -= cs.cameraSpeed
@@ -118,19 +118,19 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 		// values as we cannot go out of the map
 		if cstate.X <= 0 {
 			cstate.X = 0
-		} else if cstate.X >= float64(cs.Store.Map.GetX()) {
-			cstate.X = float64(cs.Store.Map.GetX())
+		} else if cstate.X >= cs.Store.Map.GetX() {
+			cstate.X = cs.Store.Map.GetX()
 		}
 		if cstate.Y <= 0 {
 			cstate.Y = 0
-		} else if cstate.Y >= float64(cs.Store.Map.GetY()) {
-			cstate.Y = float64(cs.Store.Map.GetY())
+		} else if cstate.Y >= cs.Store.Map.GetY() {
+			cstate.Y = cs.Store.Map.GetY()
 		}
-	case action.CameraZoom:
-		cstate.Zoom += float64(act.CameraZoom.Direction) * zoomScale
+	//case action.CameraZoom:
+	//cstate.Zoom += act.CameraZoom.Direction * zoomScale
 	case action.WindowResizing:
-		cstate.W = float64(act.WindowResizing.Width)
-		cstate.H = float64(act.WindowResizing.Height)
+		cstate.W = act.WindowResizing.Width
+		cstate.H = act.WindowResizing.Height
 	case action.GoHome:
 		cp := cs.Store.Players.FindCurrent()
 		x, y := cs.Store.Map.GetHomeCoordinates(cp.LineID)

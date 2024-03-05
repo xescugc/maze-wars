@@ -80,7 +80,7 @@ func (rs *RouterStore) Draw(screen *ebiten.Image) {
 
 func (rs *RouterStore) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	cs := rs.game.Game.Camera.GetState().(game.CameraState)
-	if cs.W != float64(outsideWidth) || cs.H != float64(outsideHeight) {
+	if cs.W != outsideWidth || cs.H != outsideHeight {
 		actionDispatcher.WindowResizing(outsideWidth, outsideHeight)
 	}
 	return outsideWidth, outsideHeight

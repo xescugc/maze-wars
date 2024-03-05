@@ -61,7 +61,6 @@ func (us *UsersStore) FindByRemoteAddress(ra string) (User, bool) {
 	for _, u := range us.GetState().(UsersState).Users {
 		if u.RemoteAddr == ra {
 			return *u, true
-			break
 		}
 	}
 	return User{}, false
