@@ -128,7 +128,7 @@ func TestStartGame(t *testing.T) {
 		ls := linesInitialState()
 		for _, p := range ps.Players {
 			x, y := s.Map.GetHomeCoordinates(p.LineID)
-			g, err := graph.New(int(x+16), int(y+16), 16, 84, 16, 7, 74, 3)
+			g, err := graph.New(x+16, y+16, 16, 84, 16, 7, 74, 3)
 			require.NoError(t, err)
 			ls.Lines[p.LineID] = &store.Line{
 				Towers: make(map[string]*store.Tower),
@@ -182,7 +182,7 @@ func TestSummonUnit(t *testing.T) {
 		eu.ID, eu.X, eu.Y = units[uid].ID, units[uid].X, units[uid].Y
 
 		// We need to set the path after the X, Y are set
-		eu.Path = l.Graph.AStar(int(eu.X), int(eu.Y), eu.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+		eu.Path = l.Graph.AStar(eu.X, eu.Y, eu.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
 		eu.HashPath = graph.HashSteps(eu.Path)
 
 		// As the Unit is created we remove it from the gold
@@ -392,7 +392,7 @@ func TestPlaceTower(t *testing.T) {
 
 		// We place it in the 10th (any place would be fine) path position so we can force the
 		// unit to recalculate the path
-		s.Dispatch(action.NewPlaceTower(tower.Soldier.String(), p.ID, int(u.Path[10].X), int(u.Path[10].Y)))
+		s.Dispatch(action.NewPlaceTower(tower.Soldier.String(), p.ID, u.Path[10].X, u.Path[10].Y))
 
 		p.Gold -= tower.Towers[tower.Soldier.String()].Gold
 
@@ -409,7 +409,7 @@ func TestPlaceTower(t *testing.T) {
 		tw := store.Tower{
 			ID: tid,
 			Object: utils.Object{
-				X: float64(u.Path[10].X), Y: float64(u.Path[10].Y),
+				X: u.Path[10].X, Y: u.Path[10].Y,
 				W: 32, H: 32,
 			},
 			Type:     tower.Soldier.String(),
@@ -420,7 +420,7 @@ func TestPlaceTower(t *testing.T) {
 		l.Towers[tw.ID] = &tw
 
 		l2 := ls.Lines[p2.LineID]
-		u.Path = l2.Graph.AStar(int(u.X), int(u.Y), u.Facing, l2.Graph.DeathNode.X, l2.Graph.DeathNode.Y, atScale)
+		u.Path = l2.Graph.AStar(u.X, u.Y, u.Facing, l2.Graph.DeathNode.X, l2.Graph.DeathNode.Y, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 
 		l2.Units[u.ID] = &u
@@ -636,7 +636,7 @@ func TestChangeUnitLine(t *testing.T) {
 		u1.ID, u1.X, u1.Y = units[uid].ID, units[uid].X, units[uid].Y
 
 		// We need to set the path after the X, Y are set
-		u1.Path = l.Graph.AStar(int(u1.X), int(u1.Y), u1.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+		u1.Path = l.Graph.AStar(u1.X, u1.Y, u1.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
 		u1.HashPath = graph.HashSteps(u1.Path)
 
 		ls.Lines[p3.LineID].Units[u1.ID] = &u1

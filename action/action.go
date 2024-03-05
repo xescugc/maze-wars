@@ -23,26 +23,26 @@ type Action struct {
 	TowerAttack          *TowerAttackPayload          `json:"tower_attack,omitempty"`
 	UnitKilled           *UnitKilledPayload           `json:"unit_killed,omitempty"`
 	WindowResizing       *WindowResizingPayload       `json:"window_resizing,omitempty"`
-	NavigateTo           *NavigateToPayload           `json:"navigate_to, omitempty"`
-	StartGame            *StartGamePayload            `json:"start_game, omitempty"`
-	GoHome               *GoHomePayload               `json:"go_home, omitempty"`
+	NavigateTo           *NavigateToPayload           `json:"navigate_to,omitempty"`
+	StartGame            *StartGamePayload            `json:"start_game,omitempty"`
+	GoHome               *GoHomePayload               `json:"go_home,omitempty"`
 	ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
 
-	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu, omitempty"`
-	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu, omitempty"`
+	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu,omitempty"`
+	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu,omitempty"`
 
-	UserSignUp  *UserSignUpPayload  `json:"user_sign_up, omitempty"`
-	SignUpError *SignUpErrorPayload `json:"sign_in_error, omitempty"`
-	UserSignIn  *UserSignInPayload  `json:"user_sign_in, omitempty"`
-	UserSignOut *UserSignOutPayload `json:"user_sign_out, omitempty"`
+	UserSignUp  *UserSignUpPayload  `json:"user_sign_up,omitempty"`
+	SignUpError *SignUpErrorPayload `json:"sign_in_error,omitempty"`
+	UserSignIn  *UserSignInPayload  `json:"user_sign_in,omitempty"`
+	UserSignOut *UserSignOutPayload `json:"user_sign_out,omitempty"`
 
-	AddPlayer       *AddPlayerPayload       `json:"add_player, omitempty"`
-	RemovePlayer    *RemovePlayerPayload    `json:"remove_player, omitempty"`
-	JoinWaitingRoom *JoinWaitingRoomPayload `json:"join_waiting_room, omitempty"`
-	ExitWaitingRoom *ExitWaitingRoomPayload `json:"exit_waiting_room, omitempty"`
-	SyncState       *SyncStatePayload       `json:"sync_state, omitempty"`
-	SyncUsers       *SyncUsersPayload       `json:"sync_users, omitempty"`
-	SyncWaitingRoom *SyncWaitingRoomPayload `json:"sync_waiting_room, omitempty"`
+	AddPlayer       *AddPlayerPayload       `json:"add_player,omitempty"`
+	RemovePlayer    *RemovePlayerPayload    `json:"remove_player,omitempty"`
+	JoinWaitingRoom *JoinWaitingRoomPayload `json:"join_waiting_room,omitempty"`
+	ExitWaitingRoom *ExitWaitingRoomPayload `json:"exit_waiting_room,omitempty"`
+	SyncState       *SyncStatePayload       `json:"sync_state,omitempty"`
+	SyncUsers       *SyncUsersPayload       `json:"sync_users,omitempty"`
+	SyncWaitingRoom *SyncWaitingRoomPayload `json:"sync_waiting_room,omitempty"`
 }
 
 type CursorMovePayload struct {

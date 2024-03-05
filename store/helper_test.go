@@ -44,7 +44,7 @@ func startGame(t *testing.T, s *store.Store) (store.MapState, store.LinesState) 
 	ls := linesInitialState()
 	for _, p := range s.Players.List() {
 		x, y := s.Map.GetHomeCoordinates(p.LineID)
-		g, err := graph.New(int(x+16), int(y+16), 16, 84, 16, 7, 74, 3)
+		g, err := graph.New(x+16, y+16, 16, 84, 16, 7, 74, 3)
 		require.NoError(t, err)
 		ls.Lines[p.LineID] = &store.Line{
 			Towers: make(map[string]*store.Tower),

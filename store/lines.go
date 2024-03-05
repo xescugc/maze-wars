@@ -149,12 +149,12 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			break
 		}
 
-		var w, h float64 = 16 * 2, 16 * 2
+		var w, h int = 16 * 2, 16 * 2
 		tid := uuid.Must(uuid.NewV4())
 		tw := &Tower{
 			ID: tid.String(),
 			Object: utils.Object{
-				X: float64(act.PlaceTower.X), Y: float64(act.PlaceTower.Y),
+				X: act.PlaceTower.X, Y: act.PlaceTower.Y,
 				W: w, H: h,
 			},
 			Type:     act.PlaceTower.Type,
@@ -164,12 +164,12 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 
 		l := lstate.Lines[p.LineID]
 		// TODO: Check this errors
-		_ = l.Graph.AddTower(tw.ID, int(tw.X), int(tw.Y), int(tw.W), int(tw.H))
+		_ = l.Graph.AddTower(tw.ID, tw.X, tw.Y, tw.W, tw.H)
 
 		l.Towers[tw.ID] = tw
 
 		for _, u := range l.Units {
-			u.Path = l.Graph.AStar(int(u.X), int(u.Y), u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+			u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
 			u.HashPath = graph.HashSteps(u.Path)
 		}
 	case action.RemoveTower:
@@ -178,7 +178,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			if ok := l.Graph.RemoveTower(act.RemoveTower.TowerID); ok {
 				delete(l.Towers, act.RemoveTower.TowerID)
 				for _, u := range l.Units {
-					u.Path = l.Graph.AStar(int(u.X), int(u.Y), u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+					u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
 					u.HashPath = graph.HashSteps(u.Path)
 				}
 			}
@@ -208,13 +208,13 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 
 		l := lstate.Lines[act.SummonUnit.CurrentLineID]
 
-		var w, h float64 = 16, 16
+		var w, h int = 16, 16
 		var n = l.Graph.GetRandomSpawnNode()
 		uid := uuid.Must(uuid.NewV4())
 		u := &Unit{
 			MovingObject: utils.MovingObject{
 				Object: utils.Object{
-					X: float64(n.X), Y: float64(n.Y),
+					X: n.X, Y: n.Y,
 					W: w, H: h,
 				},
 				Facing: utils.Down,
@@ -227,7 +227,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Health:        unit.Units[act.SummonUnit.Type].Health,
 		}
 
-		u.Path = l.Graph.AStar(int(u.X), int(u.Y), u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.ChangeUnitLine:
@@ -246,10 +246,10 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 				nl := lstate.Lines[u.CurrentLineID]
 
 				n := nl.Graph.GetRandomSpawnNode()
-				u.X = float64(n.X)
-				u.Y = float64(n.Y)
+				u.X = n.X
+				u.Y = n.Y
 
-				u.Path = nl.Graph.AStar(int(u.X), int(u.Y), u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, atScale)
+				u.Path = nl.Graph.AStar(u.X, u.Y, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, atScale)
 				u.HashPath = graph.HashSteps(u.Path)
 
 				nl.Units[u.ID] = u
@@ -278,8 +278,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 					nextStep := u.Path[0]
 					u.Path = u.Path[1:]
 					u.MovingCount += 1
-					u.Y = float64(nextStep.Y)
-					u.X = float64(nextStep.X)
+					u.Y = nextStep.Y
+					u.X = nextStep.X
 					u.Facing = nextStep.Facing
 				}
 			}
@@ -357,7 +357,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			}
 			for id := range atws {
 				t := cl.Towers[id]
-				cl.Graph.AddTower(id, int(t.X), int(t.Y), int(t.W), int(t.H))
+				cl.Graph.AddTower(id, t.X, t.Y, t.W, t.H)
 			}
 		}
 	}
@@ -367,7 +367,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 
 func (ls *Lines) newLine(lid int) *Line {
 	x, y := ls.store.Map.GetHomeCoordinates(lid)
-	g, err := graph.New(int(x+16), int(y+16), 16, 84, 16, 7, 74, 3)
+	g, err := graph.New(x+16, y+16, 16, 84, 16, 7, 74, 3)
 	if err != nil {
 		panic(err)
 	}
