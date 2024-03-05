@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/utils"
 )
 
@@ -108,7 +109,7 @@ func (wr *WaitingRoomStore) buildUI() {
 	}
 
 	titleW := widget.NewText(
-		widget.TextOpts.Text("Waiting for players to join", normalFont, color.White),
+		widget.TextOpts.Text("Waiting for players to join", cutils.NormalFont, color.White),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
@@ -120,7 +121,7 @@ func (wr *WaitingRoomStore) buildUI() {
 	)
 
 	textPlayersW := widget.NewText(
-		widget.TextOpts.Text("", smallFont, color.White),
+		widget.TextOpts.Text("", cutils.SmallFont, color.White),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
@@ -131,7 +132,7 @@ func (wr *WaitingRoomStore) buildUI() {
 	)
 
 	textColdownW := widget.NewText(
-		widget.TextOpts.Text("", smallFont, color.White),
+		widget.TextOpts.Text("", cutils.SmallFont, color.White),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
@@ -151,10 +152,10 @@ func (wr *WaitingRoomStore) buildUI() {
 		),
 
 		// specify the images to sue
-		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.Image(cutils.ButtonImage),
 
 		// specify the button's text, the font face, and the color
-		widget.ButtonOpts.Text("EXIT", smallFont, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text("EXIT", cutils.SmallFont, &widget.ButtonTextColor{
 			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
 		}),
 

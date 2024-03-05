@@ -26,7 +26,6 @@ const (
 	OpenTowerMenu
 	CloseTowerMenu
 	GoHome
-	CheckedPath
 	ChangeUnitLine
 	SignUpError
 	UserSignUp

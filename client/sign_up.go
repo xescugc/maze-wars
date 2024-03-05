@@ -10,15 +10,11 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
-)
-
-var (
-	buttonImage, _ = loadButtonImage()
 )
 
 type SignUpStore struct {
@@ -26,8 +22,6 @@ type SignUpStore struct {
 
 	Store  *store.Store
 	Logger *slog.Logger
-
-	Camera *CameraStore
 
 	ui          *ebitenui.UI
 	inputErrorW *widget.Text
@@ -114,7 +108,7 @@ func (su *SignUpStore) buildUI() {
 	}
 
 	titleW := widget.NewText(
-		widget.TextOpts.Text("Maze Wars", normalFont, color.White),
+		widget.TextOpts.Text("Maze Wars", cutils.NormalFont, color.White),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
@@ -146,7 +140,7 @@ func (su *SignUpStore) buildUI() {
 		}),
 
 		//Set the font face and size for the widget
-		widget.TextInputOpts.Face(smallFont),
+		widget.TextInputOpts.Face(cutils.SmallFont),
 
 		//Set the colors for the text and caret
 		widget.TextInputOpts.Color(&widget.TextInputColor{
@@ -161,7 +155,7 @@ func (su *SignUpStore) buildUI() {
 
 		//Set the font and width of the caret
 		widget.TextInputOpts.CaretOpts(
-			widget.CaretOpts.Size(smallFont, 2),
+			widget.CaretOpts.Size(cutils.SmallFont, 2),
 		),
 
 		//This text is displayed if the input is empty
@@ -175,7 +169,7 @@ func (su *SignUpStore) buildUI() {
 	)
 
 	inputErrorW := widget.NewText(
-		widget.TextOpts.Text(su.GetState().(SignUpState).Error, normalFont, red),
+		widget.TextOpts.Text(su.GetState().(SignUpState).Error, cutils.NormalFont, cutils.Red),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
@@ -195,10 +189,10 @@ func (su *SignUpStore) buildUI() {
 		),
 
 		// specify the images to sue
-		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.Image(cutils.ButtonImage),
 
 		// specify the button's text, the font face, and the color
-		widget.ButtonOpts.Text("Enter", smallFont, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text("Enter", cutils.SmallFont, &widget.ButtonTextColor{
 			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
 		}),
 
@@ -227,35 +221,4 @@ func (su *SignUpStore) buildUI() {
 
 	rootContainer.AddChild(titleInputC)
 
-}
-
-func loadButtonImage() (*widget.ButtonImage, error) {
-	idle := euiimage.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 180, A: 255})
-
-	hover := euiimage.NewNineSliceColor(color.NRGBA{R: 130, G: 130, B: 150, A: 255})
-
-	pressed := euiimage.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 120, A: 255})
-
-	return &widget.ButtonImage{
-		Idle:    idle,
-		Hover:   hover,
-		Pressed: pressed,
-	}, nil
-}
-
-func buttonImageFromImage(i *ebiten.Image) *widget.ButtonImage {
-	nsi := euiimage.NewNineSliceSimple(i, i.Bounds().Dx(), i.Bounds().Dy())
-
-	cm := colorm.ColorM{}
-	cm.Scale(2, 0.5, 0.5, 0.9)
-
-	ni := ebiten.NewImage(i.Bounds().Dx(), i.Bounds().Dy())
-	colorm.DrawImage(ni, i, cm, nil)
-	dsi := euiimage.NewNineSliceSimple(ni, ni.Bounds().Dx(), ni.Bounds().Dy())
-	return &widget.ButtonImage{
-		Idle:     nsi,
-		Hover:    nsi,
-		Pressed:  nsi,
-		Disabled: dsi,
-	}
 }

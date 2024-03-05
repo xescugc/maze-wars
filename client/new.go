@@ -9,9 +9,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/maze-wars/action"
-	"github.com/xescugc/maze-wars/assets"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
@@ -22,34 +19,10 @@ var (
 	actionDispatcher *ActionDispatcher
 
 	wsc *websocket.Conn
-
-	normalFont font.Face
-	smallFont  font.Face
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-
-	// Initialize Font
-	tt, err := opentype.Parse(assets.Kongtext_ttf)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	const dpi = 72
-	normalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    24,
-		DPI:     dpi,
-		Hinting: font.HintingFull,
-	})
-	smallFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    16,
-		DPI:     dpi,
-		Hinting: font.HintingFull,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
 
 }
 

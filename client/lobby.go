@@ -12,6 +12,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/utils"
 )
 
@@ -107,7 +108,7 @@ func (ls *LobbyStore) buildUI() {
 	}
 
 	titleW := widget.NewText(
-		widget.TextOpts.Text("Maze Wars", normalFont, color.White),
+		widget.TextOpts.Text("Maze Wars", cutils.NormalFont, color.White),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
@@ -119,7 +120,7 @@ func (ls *LobbyStore) buildUI() {
 	)
 
 	textPlayersW := widget.NewText(
-		widget.TextOpts.Text("", smallFont, color.White),
+		widget.TextOpts.Text("", cutils.SmallFont, color.White),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
@@ -142,7 +143,7 @@ func (ls *LobbyStore) buildUI() {
 		widget.ButtonOpts.Image(buttonImageL),
 
 		// specify the button's text, the font face, and the color
-		widget.ButtonOpts.Text("Play", smallFont, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text("Play", cutils.SmallFont, &widget.ButtonTextColor{
 			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
 		}),
 
