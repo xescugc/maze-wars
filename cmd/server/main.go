@@ -41,7 +41,7 @@ var (
 				Level: lvl,
 			}))
 			ss := server.NewStore(d, l)
-			ad := server.NewActionDispatcher(d, l, ss)
+			ad := server.NewActionDispatcher(d, l, ss, server.NewWS())
 
 			err := server.New(ad, ss, server.Options{
 				Port:    viper.GetString("port"),

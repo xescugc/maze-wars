@@ -1,11 +1,15 @@
 package server_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server"
+	"github.com/xescugc/maze-wars/server/mock"
 	"nhooyr.io/websocket"
 )
 
@@ -24,13 +28,21 @@ var (
 )
 
 func TestEmpty(t *testing.T) {
-	_, s := initStore()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mwsc := mock.NewMockWSConnector(ctrl)
+
+	_, s := initStore(mwsc)
 	equalStore(t, s)
 }
 
 func TestUserSignUp(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		ad, s := initStore()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mwsc := mock.NewMockWSConnector(ctrl)
+
+		ad, s := initStore(mwsc)
 		un := "user name"
 
 		ad.UserSignUp(un)
@@ -47,7 +59,11 @@ func TestUserSignUp(t *testing.T) {
 
 func TestUserSignIn(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		ad, s := initStore()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mwsc := mock.NewMockWSConnector(ctrl)
+
+		ad, s := initStore(mwsc)
 		un := "user name"
 		ra := "remote-address"
 		ws := &websocket.Conn{}
@@ -69,7 +85,11 @@ func TestUserSignIn(t *testing.T) {
 
 func TestUserSignOut(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		ad, s := initStore()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mwsc := mock.NewMockWSConnector(ctrl)
+
+		ad, s := initStore(mwsc)
 		un := "user name"
 
 		ad.UserSignUp(un)
@@ -81,7 +101,11 @@ func TestUserSignOut(t *testing.T) {
 
 func TestJoinWaitingRoom(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		ad, s := initStore()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mwsc := mock.NewMockWSConnector(ctrl)
+
+		ad, s := initStore(mwsc)
 		un := "user name"
 		ra := "remote-address"
 		ws := &websocket.Conn{}
@@ -123,7 +147,11 @@ func TestJoinWaitingRoom(t *testing.T) {
 		equalStore(t, s, us, rs)
 	})
 	t.Run("Success2Players", func(t *testing.T) {
-		ad, s := initStore()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mwsc := mock.NewMockWSConnector(ctrl)
+
+		ad, s := initStore(mwsc)
 		un := "user name"
 		ra := "remote-address"
 		un2 := "user name2"
@@ -188,7 +216,11 @@ func TestJoinWaitingRoom(t *testing.T) {
 
 func TestWaitRoomCountdownTick(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		ad, s := initStore()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mwsc := mock.NewMockWSConnector(ctrl)
+
+		ad, s := initStore(mwsc)
 		un := "user name"
 		ra := "remote-address"
 		ws := &websocket.Conn{}
@@ -233,7 +265,11 @@ func TestWaitRoomCountdownTick(t *testing.T) {
 
 	})
 	t.Run("ReduceSize", func(t *testing.T) {
-		ad, s := initStore()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mwsc := mock.NewMockWSConnector(ctrl)
+
+		ad, s := initStore(mwsc)
 		un := "user name"
 		ra := "remote-address"
 		ws := &websocket.Conn{}
@@ -283,7 +319,11 @@ func TestWaitRoomCountdownTick(t *testing.T) {
 
 func TestExitWaitingRoom(t *testing.T) {
 	t.Run("Success2Players", func(t *testing.T) {
-		ad, s := initStore()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mwsc := mock.NewMockWSConnector(ctrl)
+
+		ad, s := initStore(mwsc)
 		un := "user name"
 		ra := "remote-address"
 		un2 := "user name2"
@@ -339,6 +379,275 @@ func TestExitWaitingRoom(t *testing.T) {
 		}
 
 		equalStore(t, s, us, rs)
+	})
+}
+
+func TestStartGame(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		t.Run("When we reach max players", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mwsc := mock.NewMockWSConnector(ctrl)
+			mwsc.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+			ad, s := initStore(mwsc)
+			// Key is 'un' and value is 'ra'
+			users := make(map[string]string)
+			for i := 1; i <= 6; i++ {
+				users[fmt.Sprintf("user name %d", i)] = fmt.Sprintf("remote-address%d", i)
+			}
+			ws := &websocket.Conn{}
+
+			var cwr *server.Room
+			for un, ra := range users {
+				ad.UserSignUp(un)
+				ad.UserSignIn(un, ra, ws)
+				a := action.NewJoinWaitingRoom(un)
+				ad.Dispatch(a)
+				if cwr == nil {
+					cwr = s.Rooms.FindCurrentWaitingRoom()
+				}
+			}
+
+			us := usersInitialState()
+			for un, ra := range users {
+				u, _ := s.Users.FindByUsername(un)
+				u = server.User{
+					ID:            u.ID,
+					Username:      un,
+					Conn:          ws,
+					RemoteAddr:    ra,
+					CurrentRoomID: cwr.Name,
+				}
+				us.Users[un] = &u
+			}
+
+			rs := roomsInitialState()
+			require.NotNil(t, cwr.Game)
+
+			rs.Rooms[cwr.Name] = &server.Room{
+				Name:        cwr.Name,
+				Players:     make(map[string]server.PlayerConn),
+				Connections: make(map[string]string),
+				Size:        6,
+				Countdown:   10,
+				// We set it to the value already created, we just
+				// check that it's not nil beforehand
+				Game: cwr.Game,
+			}
+			for _, u := range us.Users {
+				rs.Rooms[cwr.Name].Players[u.ID] = server.PlayerConn{
+					Conn:       ws,
+					RemoteAddr: u.RemoteAddr,
+				}
+				rs.Rooms[cwr.Name].Connections[u.RemoteAddr] = u.ID
+			}
+			equalStore(t, s, us, rs)
+		})
+		t.Run("When we reach countdown", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mwsc := mock.NewMockWSConnector(ctrl)
+			mwsc.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+			ad, s := initStore(mwsc)
+			// Key is 'un' and value is 'ra'
+			users := make(map[string]string)
+			for i := 1; i <= 2; i++ {
+				users[fmt.Sprintf("user name %d", i)] = fmt.Sprintf("remote-address%d", i)
+			}
+			ws := &websocket.Conn{}
+
+			var cwr *server.Room
+			for un, ra := range users {
+				ad.UserSignUp(un)
+				ad.UserSignIn(un, ra, ws)
+				a := action.NewJoinWaitingRoom(un)
+				ad.Dispatch(a)
+				if cwr == nil {
+					cwr = s.Rooms.FindCurrentWaitingRoom()
+				}
+			}
+
+			// Countdown from 6 users to 2 users
+			for i := 1; i <= 44; i++ {
+				ad.WaitRoomCountdownTick()
+			}
+
+			us := usersInitialState()
+			for un, ra := range users {
+				u, _ := s.Users.FindByUsername(un)
+				u = server.User{
+					ID:            u.ID,
+					Username:      un,
+					Conn:          ws,
+					RemoteAddr:    ra,
+					CurrentRoomID: cwr.Name,
+				}
+				us.Users[un] = &u
+			}
+
+			rs := roomsInitialState()
+			require.NotNil(t, cwr.Game)
+
+			rs.CurrentWaitingRoom = ""
+			rs.Rooms[cwr.Name] = &server.Room{
+				Name:        cwr.Name,
+				Players:     make(map[string]server.PlayerConn),
+				Connections: make(map[string]string),
+				Size:        2,
+				Countdown:   10,
+				// We set it to the value already created, we just
+				// check that it's not nil beforehand
+				Game: cwr.Game,
+			}
+			for _, u := range us.Users {
+				rs.Rooms[cwr.Name].Players[u.ID] = server.PlayerConn{
+					Conn:       ws,
+					RemoteAddr: u.RemoteAddr,
+				}
+				rs.Rooms[cwr.Name].Connections[u.RemoteAddr] = u.ID
+			}
+			equalStore(t, s, us, rs)
+		})
+	})
+}
+
+func TestRemovePlayer(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		t.Run("Remove 1 player", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mwsc := mock.NewMockWSConnector(ctrl)
+			mwsc.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+			ad, s := initStore(mwsc)
+			un := "user name"
+			ra := "remote-address"
+			un2 := "user name2"
+			ra2 := "remote-address2"
+			ws := &websocket.Conn{}
+
+			ad.UserSignUp(un)
+			ad.UserSignIn(un, ra, ws)
+			ad.UserSignUp(un2)
+			ad.UserSignIn(un2, ra2, ws)
+
+			a := action.NewJoinWaitingRoom(un)
+			ad.Dispatch(a)
+			a = action.NewJoinWaitingRoom(un2)
+			ad.Dispatch(a)
+
+			cwr := s.Rooms.FindCurrentWaitingRoom()
+
+			// Countdown from 6 users to 2 users
+			for i := 1; i <= 44; i++ {
+				ad.WaitRoomCountdownTick()
+			}
+
+			dbu, _ := s.Users.FindByUsername(un)
+			u := &server.User{
+				ID:            dbu.ID,
+				Username:      un,
+				Conn:          ws,
+				RemoteAddr:    ra,
+				CurrentRoomID: cwr.Name,
+			}
+			dbu2, _ := s.Users.FindByUsername(un2)
+			u2 := &server.User{
+				ID:         dbu2.ID,
+				Username:   un2,
+				Conn:       ws,
+				RemoteAddr: ra2,
+			}
+
+			a = action.NewRemovePlayer(u2.ID)
+			a.Room = cwr.Name
+			ad.Dispatch(a)
+
+			us := usersInitialState()
+			us.Users[un] = u
+			us.Users[un2] = u2
+
+			rs := roomsInitialState()
+			rs.Rooms[cwr.Name] = &server.Room{
+				Name:        cwr.Name,
+				Players:     make(map[string]server.PlayerConn),
+				Connections: make(map[string]string),
+				Size:        2,
+				Countdown:   10,
+				Game:        cwr.Game,
+			}
+			rs.Rooms[cwr.Name].Players[u.ID] = server.PlayerConn{
+				Conn:       ws,
+				RemoteAddr: u.RemoteAddr,
+			}
+			rs.Rooms[cwr.Name].Connections[u.RemoteAddr] = u.ID
+
+			equalStore(t, s, us, rs)
+		})
+		t.Run("Remove 2 players", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mwsc := mock.NewMockWSConnector(ctrl)
+			mwsc.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+			ad, s := initStore(mwsc)
+			un := "user name"
+			ra := "remote-address"
+			un2 := "user name2"
+			ra2 := "remote-address2"
+			ws := &websocket.Conn{}
+
+			ad.UserSignUp(un)
+			ad.UserSignIn(un, ra, ws)
+			ad.UserSignUp(un2)
+			ad.UserSignIn(un2, ra2, ws)
+
+			a := action.NewJoinWaitingRoom(un)
+			ad.Dispatch(a)
+			a = action.NewJoinWaitingRoom(un2)
+			ad.Dispatch(a)
+
+			cwr := s.Rooms.FindCurrentWaitingRoom()
+
+			// Countdown from 6 users to 2 users
+			for i := 1; i <= 44; i++ {
+				ad.WaitRoomCountdownTick()
+			}
+
+			dbu, _ := s.Users.FindByUsername(un)
+			u := &server.User{
+				ID:         dbu.ID,
+				Username:   un,
+				Conn:       ws,
+				RemoteAddr: ra,
+			}
+			dbu2, _ := s.Users.FindByUsername(un2)
+			u2 := &server.User{
+				ID:         dbu2.ID,
+				Username:   un2,
+				Conn:       ws,
+				RemoteAddr: ra2,
+			}
+
+			a = action.NewRemovePlayer(u.ID)
+			a.Room = cwr.Name
+			ad.Dispatch(a)
+			a = action.NewRemovePlayer(u2.ID)
+			a.Room = cwr.Name
+			ad.Dispatch(a)
+
+			us := usersInitialState()
+			us.Users[un] = u
+			us.Users[un2] = u2
+
+			equalStore(t, s, us)
+		})
 	})
 }
 

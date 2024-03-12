@@ -12,9 +12,9 @@ func newEmptyLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-func initStore() (*server.ActionDispatcher, *server.Store) {
+func initStore(ws server.WSConnector) (*server.ActionDispatcher, *server.Store) {
 	d := flux.NewDispatcher()
 	l := slog.New(slog.NewTextHandler(io.Discard, nil))
 	s := server.NewStore(d, newEmptyLogger())
-	return server.NewActionDispatcher(d, l, s), s
+	return server.NewActionDispatcher(d, l, s, ws), s
 }

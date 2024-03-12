@@ -11,7 +11,6 @@ import (
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
 	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
 )
 
 // ActionDispatcher is in charge of dispatching actions to the
@@ -20,15 +19,17 @@ type ActionDispatcher struct {
 	dispatcher *flux.Dispatcher
 	store      *Store
 	logger     *slog.Logger
+	ws         WSConnector
 }
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
-func NewActionDispatcher(d *flux.Dispatcher, l *slog.Logger, s *Store) *ActionDispatcher {
+func NewActionDispatcher(d *flux.Dispatcher, l *slog.Logger, s *Store, ws WSConnector) *ActionDispatcher {
 	return &ActionDispatcher{
 		dispatcher: d,
 		store:      s,
 		logger:     l,
+		ws:         ws,
 	}
 }
 
@@ -61,7 +62,7 @@ func (ac *ActionDispatcher) startGame() {
 	ac.SyncState(ac.store.Rooms)
 
 	for _, p := range rstate.Rooms[wr.Name].Players {
-		err := wsjson.Write(context.Background(), p.Conn, sga)
+		err := ac.ws.Write(context.Background(), p.Conn, sga)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -150,7 +151,7 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 					Lines: lines,
 				},
 			)
-			err := wsjson.Write(context.Background(), pc.Conn, aus)
+			err := ac.ws.Write(context.Background(), pc.Conn, aus)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -165,7 +166,7 @@ func (ac *ActionDispatcher) SyncUsers(users *UsersStore) {
 		auu := action.NewSyncUsers(
 			len(users.List()),
 		)
-		err := wsjson.Write(context.Background(), u.Conn, auu)
+		err := ac.ws.Write(context.Background(), u.Conn, auu)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -182,7 +183,7 @@ func (ac *ActionDispatcher) SyncWaitingRoom(rooms *RoomsStore) {
 			cwr.Countdown,
 		)
 		for _, p := range cwr.Players {
-			err := wsjson.Write(context.Background(), p.Conn, swra)
+			err := ac.ws.Write(context.Background(), p.Conn, swra)
 			if err != nil {
 				log.Fatal(err)
 			}
