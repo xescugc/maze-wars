@@ -71,8 +71,19 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, atScale bool) [
 		current.open = false
 		current.closed = true
 
-		// TODO: Check for end
-		if current.step.Node.ID == tn.ID {
+		if current.step.Node.ID == tn.ID || current.step.Node.NextStep != nil {
+			if current.step.Node.NextStep != nil {
+				current = &queueItem{
+					step:   *current.step.Node.NextStep,
+					parent: current,
+				}
+				for current.step.Node.NextStep != nil {
+					current = &queueItem{
+						step:   *current.step.Node.NextStep,
+						parent: current,
+					}
+				}
+			}
 			// Found a path to the goal.
 			p := []Step{}
 			curr := current
@@ -80,9 +91,17 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, atScale bool) [
 				s := curr.step
 				s.X = s.Node.X
 				s.Y = s.Node.Y
+				curr = curr.parent
+				// If it's the first node of the path it has
+				// no parent so we have to check it
+				if curr != nil {
+					curr.step.Node.NextStep = &Step{
+						Node:   s.Node,
+						Facing: s.Facing,
+					}
+				}
 				s.Node = nil
 				p = append(p, s)
-				curr = curr.parent
 				if atScale {
 					if curr != nil {
 						dx := s.X - curr.step.Node.X

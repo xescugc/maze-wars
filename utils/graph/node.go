@@ -34,6 +34,8 @@ type Node struct {
 
 	Neighbors     []*Node
 	NeighborSteps []Step
+
+	NextStep *Step
 }
 
 // GenerateID will generate the ID concatenating X and Y
