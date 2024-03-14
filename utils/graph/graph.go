@@ -176,6 +176,14 @@ func (g *Graph) AddTower(id string, x, y, w, h int) error {
 		n.TowerID = id
 	}
 
+	// When a new tower is added we remove all the
+	// cached paths by removing the Node.NextStep
+	for _, ny := range g.Nodes {
+		for _, n := range ny {
+			n.NextStep = nil
+		}
+	}
+
 	return nil
 }
 
@@ -242,6 +250,14 @@ func (g *Graph) RemoveTower(id string) bool {
 			if n.TowerID == id {
 				found = true
 				n.TowerID = ""
+			}
+		}
+	}
+
+	if found {
+		for _, xn := range g.Nodes {
+			for _, n := range xn {
+				n.NextStep = nil
 			}
 		}
 	}
