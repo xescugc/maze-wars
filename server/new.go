@@ -180,7 +180,6 @@ func startLoop(ctx context.Context, s *Store) {
 	stateTicker := time.NewTicker(time.Second / 4)
 	// The default TPS on of Ebiten client if 60 so to
 	// emulate that we trigger the move action every TPS
-	tpsTicker := time.NewTicker(time.Second / 60)
 	usersTicker := time.NewTicker(5 * time.Second)
 	for {
 		select {
@@ -190,14 +189,11 @@ func startLoop(ctx context.Context, s *Store) {
 			actionDispatcher.IncomeTick(s.Rooms)
 			actionDispatcher.WaitRoomCountdownTick()
 			actionDispatcher.SyncWaitingRoom(s.Rooms)
-		case <-tpsTicker.C:
-			actionDispatcher.TPS(s.Rooms)
 		case <-usersTicker.C:
 			actionDispatcher.SyncUsers(s.Users)
 		case <-ctx.Done():
 			stateTicker.Stop()
 			secondTicker.Stop()
-			tpsTicker.Stop()
 			usersTicker.Stop()
 			goto FINISH
 		}

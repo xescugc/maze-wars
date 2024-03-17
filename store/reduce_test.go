@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
@@ -237,24 +238,57 @@ func TestSummonUnit(t *testing.T) {
 func TestTPS(t *testing.T) {
 	addAction(action.TPS.String())
 	t.Run("Success", func(t *testing.T) {
-		s := initStore()
-		p := addPlayer(s)
-		p2 := addPlayer(s)
-		s.Dispatch(action.NewStartGame())
-		ms, ls := startGame(t, s)
-		p, u := summonUnit(s, p, p2)
+		t.Run("Default", func(t *testing.T) {
+			s := initStore()
+			p := addPlayer(s)
+			p2 := addPlayer(s)
+			s.Dispatch(action.NewStartGame())
+			ms, ls := startGame(t, s)
+			p, u := summonUnit(s, p, p2)
 
-		s.Dispatch(action.NewTPS())
+			s.Dispatch(action.NewTPS(time.Time{}))
 
-		ps := playersInitialState()
-		ps.Players[p.ID] = &p
-		ps.Players[p2.ID] = &p2
+			ps := playersInitialState()
+			ps.Players[p.ID] = &p
+			ps.Players[p2.ID] = &p2
 
-		u.Path = u.Path[1:]
-		u.MovingCount++
-		ls.Lines[p2.LineID].Units[u.ID] = &u
+			u.Path = u.Path[1:]
+			u.MovingCount++
+			ls.Lines[p2.LineID].Units[u.ID] = &u
 
-		equalStore(t, s, ps, ms, ls)
+			equalStore(t, s, ps, ms, ls)
+		})
+		t.Run("WithTime", func(t *testing.T) {
+			s := initStore()
+			p := addPlayer(s)
+			p2 := addPlayer(s)
+			s.Dispatch(action.NewStartGame())
+			ms, ls := startGame(t, s)
+			p, u := summonUnit(s, p, p2)
+
+			l2 := s.Lines.GetState().(store.LinesState).Lines[p2.LineID]
+
+			tn := time.Now()
+			l2.UpdatedAt = tn
+			l2.Units[u.ID].CreatedAt = tn
+
+			ta := tn.Add(time.Second)
+			s.Dispatch(action.NewTPS(ta))
+
+			ps := playersInitialState()
+			ps.Players[p.ID] = &p
+			ps.Players[p2.ID] = &p2
+
+			np := u.Path[61]
+			u.Path = u.Path[62:]
+			u.MovingCount += 62
+			u.X = np.X
+			u.Y = np.Y
+			u.Facing = np.Facing
+			ls.Lines[p2.LineID].Units[u.ID] = &u
+
+			equalStore(t, s, ps, ms, ls)
+		})
 	})
 }
 
@@ -489,6 +523,8 @@ func TestTowerAttack(t *testing.T) {
 		p := addPlayer(s)
 		p2 := addPlayer(s)
 		s.Dispatch(action.NewStartGame())
+		// TODO: Each summon/place updates the l.UpdatedAt so we should
+		// manually add the value from the store line
 		ms, ls := startGame(t, s)
 		p, tw := placeTower(s, p)
 		p, u := summonUnit(s, p, p2)
@@ -634,6 +670,7 @@ func TestChangeUnitLine(t *testing.T) {
 
 		// As this are random assigned we cannot expect them
 		u1.ID, u1.X, u1.Y = units[uid].ID, units[uid].X, units[uid].Y
+		u1.CreatedAt = units[uid].CreatedAt
 
 		// We need to set the path after the X, Y are set
 		u1.Path = l.Graph.AStar(u1.X, u1.Y, u1.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
@@ -763,9 +800,17 @@ func equalStore(t *testing.T, sto *store.Store, states ...interface{}) {
 	// to have the Units/Towers init
 	for _, l := range lis.Lines {
 		l.Graph = nil
+		l.UpdatedAt = time.Time{}
+		for _, u := range l.Units {
+			u.CreatedAt = time.Time{}
+		}
 	}
 	for _, l := range sto.Lines.GetState().(store.LinesState).Lines {
 		l.Graph = nil
+		l.UpdatedAt = time.Time{}
+		for _, u := range l.Units {
+			u.CreatedAt = time.Time{}
+		}
 	}
 	assert.Equal(t, lis, sto.Lines.GetState().(store.LinesState))
 	assert.Equal(t, mis, sto.Map.GetState().(store.MapState))

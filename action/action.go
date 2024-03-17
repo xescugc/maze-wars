@@ -1,6 +1,8 @@
 package action
 
 import (
+	"time"
+
 	"github.com/xescugc/maze-wars/utils"
 	"github.com/xescugc/maze-wars/utils/graph"
 	"nhooyr.io/websocket"
@@ -27,6 +29,7 @@ type Action struct {
 	StartGame            *StartGamePayload            `json:"start_game,omitempty"`
 	GoHome               *GoHomePayload               `json:"go_home,omitempty"`
 	ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
+	TPS                  *TPSPayload                  `json:"tps,omitempty"`
 
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu,omitempty"`
 	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu,omitempty"`
@@ -79,9 +82,16 @@ func NewSummonUnit(t, pid string, plid, clid int) *Action {
 	}
 }
 
-func NewTPS() *Action {
+type TPSPayload struct {
+	Time time.Time
+}
+
+func NewTPS(t time.Time) *Action {
 	return &Action{
 		Type: TPS,
+		TPS: &TPSPayload{
+			Time: t,
+		},
 	}
 }
 
@@ -509,8 +519,9 @@ type SyncStateUnitPayload struct {
 
 	Health float64
 
-	Path     []graph.Step
-	HashPath string
+	Path      []graph.Step
+	HashPath  string
+	CreatedAt time.Time
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated

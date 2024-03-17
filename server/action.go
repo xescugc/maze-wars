@@ -81,11 +81,6 @@ func (ac *ActionDispatcher) WaitRoomCountdownTick() {
 	ac.startGame()
 }
 
-func (ac *ActionDispatcher) TPS(rooms *RoomsStore) {
-	tpsa := action.NewTPS()
-	ac.Dispatch(tpsa)
-}
-
 func (ac *ActionDispatcher) UserSignUp(un string) {
 	ac.Dispatch(action.NewUserSignUp(un))
 }
@@ -103,6 +98,7 @@ func (ac *ActionDispatcher) UserSignOut(un string) {
 }
 
 func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
+	ac.Dispatch(action.NewTPS(time.Now()))
 	rstate := rooms.GetState().(RoomsState)
 	for _, r := range rstate.Rooms {
 		if r.Name == rstate.CurrentWaitingRoom {
