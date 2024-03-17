@@ -58,7 +58,7 @@ func (ac *ActionDispatcher) SummonUnit(unit, pid string, plid, clid int) {
 
 // TPS is the call for every TPS event
 func (ac *ActionDispatcher) TPS() {
-	tpsa := action.NewTPS()
+	tpsa := action.NewTPS(time.Time{})
 	ac.Dispatch(tpsa)
 }
 

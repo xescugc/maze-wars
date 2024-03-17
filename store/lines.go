@@ -2,6 +2,7 @@ package store
 
 import (
 	"sync"
+	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/xescugc/go-flux"
@@ -12,7 +13,13 @@ import (
 	"github.com/xescugc/maze-wars/utils/graph"
 )
 
-const atScale = true
+const (
+	atScale = true
+)
+
+var (
+	tpsMS = (time.Second / 60).Milliseconds()
+)
 
 type Lines struct {
 	*flux.ReduceStore
@@ -31,6 +38,17 @@ type Line struct {
 	Units  map[string]*Unit
 
 	Graph *graph.Graph
+
+	// UpdatedAt is the last time
+	// something was updated on this Line.
+	// Towers added, Units added or
+	// when the Units position was updated
+	// the last time.
+	// Used for the SyncState to know how much
+	// time has passed since the last update
+	// and move the Units accordingly
+	// (60 moves per second pass)
+	UpdatedAt time.Time
 }
 
 type Tower struct {
@@ -59,6 +77,12 @@ type Unit struct {
 
 	Path     []graph.Step
 	HashPath string
+
+	// CreatedAt has the time of creation so
+	// on the next SyncState will be moved just
+	// the diff amount and then it'll be set to 'nil'
+	// so we know it's on sync
+	CreatedAt time.Time
 }
 
 func (u *Unit) FacesetKey() string { return unit.Units[u.Type].FacesetKey() }
@@ -168,19 +192,13 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 
 		l.Towers[tw.ID] = tw
 
-		for _, u := range l.Units {
-			u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
-			u.HashPath = graph.HashSteps(u.Path)
-		}
+		recalculateLineUnitSteps(l)
 	case action.RemoveTower:
 		// TODO: Add the LineID
 		for _, l := range lstate.Lines {
 			if ok := l.Graph.RemoveTower(act.RemoveTower.TowerID); ok {
 				delete(l.Towers, act.RemoveTower.TowerID)
-				for _, u := range l.Units {
-					u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
-					u.HashPath = graph.HashSteps(u.Path)
-				}
+				recalculateLineUnitSteps(l)
 			}
 		}
 	case action.TowerAttack:
@@ -225,6 +243,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
 			Health:        unit.Units[act.SummonUnit.Type].Health,
+			CreatedAt:     time.Now(),
 		}
 
 		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
@@ -252,6 +271,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 				u.Path = nl.Graph.AStar(u.X, u.Y, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, atScale)
 				u.HashPath = graph.HashSteps(u.Path)
 
+				u.CreatedAt = time.Now()
 				nl.Units[u.ID] = u
 
 				break
@@ -273,16 +293,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		defer ls.mxLines.Unlock()
 
 		for _, l := range lstate.Lines {
-			for _, u := range l.Units {
-				if len(u.Path) > 0 {
-					nextStep := u.Path[0]
-					u.Path = u.Path[1:]
-					u.MovingCount += 1
-					u.Y = nextStep.Y
-					u.X = nextStep.X
-					u.Facing = nextStep.Facing
-				}
-			}
+			moveLineUnitsTo(l, act.TPS.Time)
 		}
 	case action.RemovePlayer:
 		ls.mxLines.Lock()
@@ -363,6 +374,48 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 	}
 
 	return lstate
+}
+
+func recalculateLineUnitSteps(l *Line) {
+	t := time.Now()
+	moveLineUnitsTo(l, t)
+
+	for _, u := range l.Units {
+		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+		u.HashPath = graph.HashSteps(u.Path)
+	}
+}
+
+func moveLineUnitsTo(l *Line, t time.Time) {
+	lmoves := 1
+	if !t.IsZero() && !l.UpdatedAt.IsZero() {
+		lmoves = int(t.Sub(l.UpdatedAt).Milliseconds() / tpsMS)
+	}
+	for _, u := range l.Units {
+		if len(u.Path) > 0 {
+			umoves := lmoves
+			if !t.IsZero() && !u.CreatedAt.IsZero() {
+				umoves = int(t.Sub(u.CreatedAt).Milliseconds() / tpsMS)
+				// This way we mean it's up to date now
+				u.CreatedAt = time.Time{}
+			}
+			// If we have less moves remaining that the expected amount
+			// we just move to the last position
+			if len(u.Path) < umoves {
+				umoves = len(u.Path) - 1
+			}
+			if umoves == 0 {
+				continue
+			}
+			nextStep := u.Path[umoves-1]
+			u.Path = u.Path[umoves:]
+			u.MovingCount += umoves
+			u.Y = nextStep.Y
+			u.X = nextStep.X
+			u.Facing = nextStep.Facing
+		}
+	}
+	l.UpdatedAt = t
 }
 
 func (ls *Lines) newLine(lid int) *Line {
