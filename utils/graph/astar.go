@@ -71,7 +71,7 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, atScale bool) [
 		current.open = false
 		current.closed = true
 
-		if current.step.Node.ID == tn.ID || current.step.Node.NextStep != nil {
+		if current.step.Node.ID == tn.ID || checkConsecutiveSteps(current, 4) {
 			if current.step.Node.NextStep != nil {
 				current = &queueItem{
 					step:   *current.step.Node.NextStep,
@@ -216,4 +216,18 @@ func (q *queue) Pop() interface{} {
 	item.index = -1 // for safety
 	*q = old[0 : n-1]
 	return item
+}
+
+// checkConsecutiveSteps will check in the queueItem tree if it has
+// 'c' consecutive steps before returning true or false
+func checkConsecutiveSteps(qi *queueItem, c int) bool {
+	if qi.parent != nil && qi.step.Node.NextStep != nil && qi.parent.step.Node.NextStep != nil && qi.parent.step.Node.NextStep.Node == qi.step.Node {
+		c--
+		if c == 0 {
+			return true
+		} else {
+			return checkConsecutiveSteps(qi.parent, c)
+		}
+	}
+	return false
 }
