@@ -261,11 +261,17 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	if cp.Lives == 0 {
 		hs.winLoseTextW.Label = "YOU LOST"
 		hs.winLoseTextW.GetWidget().Visibility = widget.Visibility_Show
+	} else if hs.winLoseTextW.GetWidget().Visibility != widget.Visibility_Hide {
+		hs.winLoseTextW.Label = ""
+		hs.winLoseTextW.GetWidget().Visibility = widget.Visibility_Hide
 	}
 
 	if cp.Winner {
 		hs.winLoseTextW.Label = "YOU WON!"
 		hs.winLoseTextW.GetWidget().Visibility = widget.Visibility_Show
+	} else if hs.winLoseTextW.GetWidget().Visibility != widget.Visibility_Hide {
+		hs.winLoseTextW.Label = ""
+		hs.winLoseTextW.GetWidget().Visibility = widget.Visibility_Hide
 	}
 
 	hs.ui.Draw(screen)
