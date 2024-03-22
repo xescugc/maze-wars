@@ -50,3 +50,4 @@ tags
 *.wasm
 
 dist/
+.env

@@ -23,12 +23,16 @@ type SignUpStore struct {
 	Store  *store.Store
 	Logger *slog.Logger
 
-	ui          *ebitenui.UI
-	inputErrorW *widget.Text
+	ui         *ebitenui.UI
+	textErrorW *widget.Text
+	inputW     *widget.TextInput
+	buttonW    *widget.Button
 }
 
 type SignUpState struct {
 	Error string
+
+	VersionError string
 }
 
 func NewSignUpStore(d *flux.Dispatcher, s *store.Store, l *slog.Logger) (*SignUpStore, error) {
@@ -57,8 +61,14 @@ func (su *SignUpStore) Draw(screen *ebiten.Image) {
 
 	sutate := su.GetState().(SignUpState)
 	if sutate.Error != "" {
-		su.inputErrorW.GetWidget().Visibility = widget.Visibility_Show
-		su.inputErrorW.Label = sutate.Error
+		su.textErrorW.GetWidget().Visibility = widget.Visibility_Show
+		su.textErrorW.Label = sutate.Error
+	}
+	if sutate.VersionError != "" {
+		su.textErrorW.GetWidget().Visibility = widget.Visibility_Show
+		su.textErrorW.Label = sutate.VersionError
+		su.inputW.GetWidget().Disabled = true
+		su.buttonW.GetWidget().Disabled = true
 	}
 	su.ui.Draw(screen)
 }
@@ -77,6 +87,8 @@ func (su *SignUpStore) Reduce(state, a interface{}) interface{} {
 	switch act.Type {
 	case action.SignUpError:
 		sutate.Error = act.SignUpError.Error
+	case action.VersionError:
+		sutate.VersionError = act.VersionError.Error
 	}
 
 	return sutate
@@ -168,7 +180,7 @@ func (su *SignUpStore) buildUI() {
 		}),
 	)
 
-	inputErrorW := widget.NewText(
+	textErrorW := widget.NewText(
 		widget.TextOpts.Text(su.GetState().(SignUpState).Error, cutils.NormalFont, cutils.Red),
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
@@ -193,7 +205,8 @@ func (su *SignUpStore) buildUI() {
 
 		// specify the button's text, the font face, and the color
 		widget.ButtonOpts.Text("Enter", cutils.SmallFont, &widget.ButtonTextColor{
-			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+			Idle:     color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+			Disabled: color.NRGBA{R: 200, G: 200, B: 200, A: 255},
 		}),
 
 		// specify that the button's text needs some padding for correct display
@@ -211,12 +224,14 @@ func (su *SignUpStore) buildUI() {
 	)
 
 	inputW.Focus(true)
-	inputErrorW.GetWidget().Visibility = widget.Visibility_Hide
-	su.inputErrorW = inputErrorW
+	textErrorW.GetWidget().Visibility = widget.Visibility_Hide
+	su.textErrorW = textErrorW
+	su.buttonW = buttonW
+	su.inputW = inputW
 
 	titleInputC.AddChild(titleW)
 	titleInputC.AddChild(inputW)
-	titleInputC.AddChild(inputErrorW)
+	titleInputC.AddChild(textErrorW)
 	titleInputC.AddChild(buttonW)
 
 	rootContainer.AddChild(titleInputC)

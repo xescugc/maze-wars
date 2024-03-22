@@ -60,6 +60,29 @@ func (ac *ActionDispatcher) NavigateTo(route string) {
 	ac.Dispatch(nt)
 }
 
+func (ac *ActionDispatcher) CheckVersion() {
+	httpu, _ := url.Parse(ac.opt.HostURL)
+	httpu.Path = "/version"
+	resp, err := http.Post(httpu.String(), "application/json", bytes.NewBuffer([]byte(fmt.Sprintf(`{"version":"%s"}`, ac.opt.Version))))
+	if err != nil {
+		ac.Dispatch(action.NewVersionError(err.Error()))
+		return
+	}
+	body := struct {
+		Error string `json:"error"`
+	}{}
+	if resp.StatusCode != http.StatusOK {
+		err = json.NewDecoder(resp.Body).Decode(&body)
+		if err != nil {
+			ac.Dispatch(action.NewVersionError(err.Error()))
+			return
+		}
+		ac.Dispatch(action.NewVersionError(body.Error))
+		return
+	}
+	return
+}
+
 func (ac *ActionDispatcher) SignUpSubmit(un string) {
 	httpu, _ := url.Parse(ac.opt.HostURL)
 	httpu.Path = "/users"

@@ -39,11 +39,12 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 
 	r.HandleFunc("/play", playHandler).Methods(http.MethodGet)
 	r.HandleFunc("/download", downloadHandler).Methods(http.MethodGet)
-	r.HandleFunc("/game", gameHandler).Methods(http.MethodGet)
+	r.HandleFunc("/game", gameHandler(opt.Version)).Methods(http.MethodGet)
 	r.HandleFunc("/docs", docsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
 
 	r.HandleFunc("/users", usersCreateHandler(s)).Methods(http.MethodPost).Headers("Content-Type", "application/json")
+	r.HandleFunc("/version", versionHandler(opt.Version)).Methods(http.MethodPost).Headers("Content-Type", "application/json")
 
 	hmux := http.NewServeMux()
 	hmux.Handle("/", r)
@@ -84,9 +85,11 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, templateData{"download"})
 }
 
-func gameHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := templates.Templates["views/game/game.tmpl"]
-	t.Execute(w, nil)
+func gameHandler(v string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		t, _ := templates.Templates["views/game/game.tmpl"]
+		t.Execute(w, map[string]interface{}{"version": v})
+	}
 }
 
 func docsHandler(w http.ResponseWriter, r *http.Request) {
@@ -135,6 +138,32 @@ func usersCreateHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+type versionRequest struct {
+	Version string `json:"version"`
+}
+
+func versionHandler(v string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var vr versionRequest
+
+		err := json.NewDecoder(r.Body).Decode(&vr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(errorResponse{Error: err.Error()})
+			return
+		}
+
+		if vr.Version != v {
+			w.WriteHeader(http.StatusBadRequest)
+
+			json.NewEncoder(w).Encode(errorResponse{Error: fmt.Sprintf("The client version (%q) is outdated, download the new version %q", vr.Version, v)})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

@@ -76,6 +76,7 @@ var (
 		action.WindowResizing.String():        {},
 		action.SyncWaitingRoom.String():       {},
 		action.SyncUsers.String():             {},
+		action.VersionError.String():          {},
 	}
 )
 

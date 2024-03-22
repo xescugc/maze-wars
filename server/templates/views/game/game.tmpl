@@ -34,7 +34,7 @@
 
     // Origin includes the schema
     const host = currentUrl.origin
-    const err = new_client(host);
+    const err = new_client(host,{{.version}});
     if (err != null) {
       console.log("error",err)
     }

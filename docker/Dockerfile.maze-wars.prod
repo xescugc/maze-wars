@@ -11,7 +11,8 @@ COPY . .
 
 RUN make wasm
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o maze-wars_app ./cmd/server/
+ARG VERSION
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$VERSION" -o maze-wars_app ./cmd/server/
 ENTRYPOINT ["/app/maze-wars_app"]
 
 # final stage
