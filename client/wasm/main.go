@@ -23,18 +23,20 @@ func main() {
 
 func NewClient() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
-		if len(args) != 1 || (args[0].String() == "") {
-			return fmt.Errorf("requires 1 parameter: host")
+		if len(args) != 2 || (args[0].String() == "") || (args[1].String() == "") {
+			return fmt.Errorf("requires 2 parameter: host, version")
 		}
 		var (
 			err     error
 			hostURL = args[0].String()
+			version = args[1].String()
 			screenW = 288
 			screenH = 240
 			opt     = client.Options{
 				HostURL: hostURL,
 				ScreenW: screenW,
 				ScreenH: screenH,
+				Version: version,
 			}
 		)
 

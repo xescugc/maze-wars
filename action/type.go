@@ -34,6 +34,7 @@ const (
 	JoinWaitingRoom
 	ExitWaitingRoom
 	ToggleStats
+	VersionError
 
 	// Specific to WS
 	AddPlayer

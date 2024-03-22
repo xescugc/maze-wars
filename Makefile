@@ -42,9 +42,11 @@ wa-copy: ## Copy the 'wasm_exec.js' to execute WebAssembly binary
 wasm: wa-copy wa-build ## Runs all the WASM related commands to have the code ready to run
 
 .PHONY: local-goreleaser
-local-goreleaser:
-	./bins/goreleaser release --snapshot --clean
+local-goreleaser: ## Generates a local release without publishing it
+	@./bins/goreleaser release --snapshot --clean
+	@cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;' > ./docker/.env
 
 .PHONY: release
-release:
-	./bins/goreleaser release --clean
+release: ## Makes a full release to GitHub
+	@./bins/goreleaser release --clean
+	@cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;' > ./docker/.env

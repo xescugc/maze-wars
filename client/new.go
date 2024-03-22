@@ -33,6 +33,8 @@ func New(ctx context.Context, ad *ActionDispatcher, rs *RouterStore, opt Options
 
 	actionDispatcher = ad
 
+	actionDispatcher.CheckVersion()
+
 	err := ebiten.RunGame(rs)
 	if err != nil {
 		return fmt.Errorf("failed to RunGame: %w", err)

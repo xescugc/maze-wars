@@ -4,6 +4,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.maze-wars.dev
+      args:
+        VERSION: ${VERSION}
     ports:
       - '5555:5555'
     environment:

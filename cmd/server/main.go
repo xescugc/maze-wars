@@ -46,6 +46,7 @@ var (
 			err := server.New(ad, ss, server.Options{
 				Port:    viper.GetString("port"),
 				Verbose: viper.GetBool("verbose"),
+				Version: version,
 			})
 			if err != nil {
 				return fmt.Errorf("server error: %w", err)
@@ -65,6 +66,8 @@ func init() {
 
 	serverCmd.Flags().Bool("verbose", false, fmt.Sprintf("If all the logs are gonna be printed to %s", logFile))
 	viper.BindPFlag("verbose", serverCmd.Flags().Lookup("verbose"))
+
+	serverCmd.AddCommand(versionCmd)
 }
 
 func main() {

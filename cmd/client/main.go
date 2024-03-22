@@ -32,6 +32,7 @@ var (
 				HostURL: hostURL,
 				ScreenW: screenW,
 				ScreenH: screenH,
+				Version: version,
 			}
 
 			d := flux.NewDispatcher()
@@ -103,6 +104,8 @@ func init() {
 	clientCmd.Flags().IntVar(&screenW, "screenw", 288, "The default width of the screen when not full screen")
 	clientCmd.Flags().IntVar(&screenH, "screenh", 240, "The default height of the screen when not full screen")
 	clientCmd.Flags().BoolVar(&verbose, "verbose", false, fmt.Sprintf("If all the logs are gonna be printed to %s", logFile))
+
+	clientCmd.AddCommand(versionCmd)
 }
 
 func main() {

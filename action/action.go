@@ -30,6 +30,7 @@ type Action struct {
 	GoHome               *GoHomePayload               `json:"go_home,omitempty"`
 	ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
 	TPS                  *TPSPayload                  `json:"tps,omitempty"`
+	VersionError         *VersionErrorPayload         `json:"version_error,omitempty"`
 
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu,omitempty"`
 	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu,omitempty"`
@@ -544,6 +545,19 @@ func NewSyncUsers(totalUsers int) *Action {
 		Type: SyncUsers,
 		SyncUsers: &SyncUsersPayload{
 			TotalUsers: totalUsers,
+		},
+	}
+}
+
+type VersionErrorPayload struct {
+	Error string
+}
+
+func NewVersionError(err string) *Action {
+	return &Action{
+		Type: VersionError,
+		VersionError: &VersionErrorPayload{
+			Error: err,
 		},
 	}
 }

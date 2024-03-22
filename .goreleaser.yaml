@@ -12,7 +12,7 @@ builds:
     command: " "
     flags:
     gcflags: " "
-    ldflags: "-s -w -X main.defaultHost=https://maze-wars.com"
+    ldflags: "-s -w -X main.defaultHost=https://maze-wars.com -X main.version={{.Version}}"
     env: []
     main: ./cmd/client/
     goos:
