@@ -30,29 +30,29 @@ var (
 	Units map[string]*Unit
 
 	sprites = map[Type][]byte{
-		Spirit:     assets.Spirit_png,
-		Spirit2:    assets.Spirit2_png,
-		Flam2:      assets.Flam2_png,
-		Flam:       assets.Flam_png,
-		Octopus:    assets.Octopus_png,
-		Octopus2:   assets.Octopus2_png,
-		Raccon:     assets.Racoon_png,
-		GoldRacoon: assets.GoldRacoon_png,
-		Cyclope2:   assets.Cyclope2_png,
-		Cyclope:    assets.Cyclope_png,
+		Spirit:    assets.SpiritSprite_png,
+		Flam:      assets.FlamSprite_png,
+		Raccon:    assets.RacoonSprite_png,
+		Cyclope:   assets.CyclopeSprite_png,
+		Eye:       assets.EyeSprite_png,
+		Beast:     assets.BeastSprite_png,
+		Butterfly: assets.ButterflySprite_png,
+		Mole:      assets.MoleSprite_png,
+		Skull:     assets.SkullSprite_png,
+		Snake:     assets.SnakeSprite_png,
 	}
 
 	facesets = map[Type][]byte{
-		Spirit:     assets.SpiritFaceset_png,
-		Spirit2:    assets.Spirit2Faceset_png,
-		Flam2:      assets.Flam2Faceset_png,
-		Flam:       assets.FlamFaceset_png,
-		Octopus:    assets.OctopusFaceset_png,
-		Octopus2:   assets.Octopus2Faceset_png,
-		Raccon:     assets.RacoonFaceset_png,
-		GoldRacoon: assets.GoldRacoonFaceset_png,
-		Cyclope2:   assets.Cyclope2Faceset_png,
-		Cyclope:    assets.CyclopeFaceset_png,
+		Spirit:    assets.SpiritFaceset_png,
+		Flam:      assets.FlamFaceset_png,
+		Raccon:    assets.RacoonFaceset_png,
+		Cyclope:   assets.CyclopeFaceset_png,
+		Eye:       assets.EyeFaceset_png,
+		Beast:     assets.BeastFaceset_png,
+		Butterfly: assets.ButterflyFaceset_png,
+		Mole:      assets.MoleFaceset_png,
+		Skull:     assets.SkullFaceset_png,
+		Snake:     assets.SnakeFaceset_png,
 	}
 )
 

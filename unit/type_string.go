@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "spiritspirit2flamflam2octopusoctopus2raccongold_racooncyclopecyclope2"
+const _TypeName = "spiritflamoctopusracconcyclopeeyebeastbutterflymoleskullsnake"
 
-var _TypeIndex = [...]uint8{0, 6, 13, 17, 22, 29, 37, 43, 54, 61, 69}
+var _TypeIndex = [...]uint8{0, 6, 10, 17, 23, 30, 33, 38, 47, 51, 56, 61}
 
-const _TypeLowerName = "spiritspirit2flamflam2octopusoctopus2raccongold_racooncyclopecyclope2"
+const _TypeLowerName = "spiritflamoctopusracconcyclopeeyebeastbutterflymoleskullsnake"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -25,53 +25,57 @@ func (i Type) String() string {
 func _TypeNoOp() {
 	var x [1]struct{}
 	_ = x[Spirit-(0)]
-	_ = x[Spirit2-(1)]
-	_ = x[Flam-(2)]
-	_ = x[Flam2-(3)]
-	_ = x[Octopus-(4)]
-	_ = x[Octopus2-(5)]
-	_ = x[Raccon-(6)]
-	_ = x[GoldRacoon-(7)]
-	_ = x[Cyclope-(8)]
-	_ = x[Cyclope2-(9)]
+	_ = x[Flam-(1)]
+	_ = x[Octopus-(2)]
+	_ = x[Raccon-(3)]
+	_ = x[Cyclope-(4)]
+	_ = x[Eye-(5)]
+	_ = x[Beast-(6)]
+	_ = x[Butterfly-(7)]
+	_ = x[Mole-(8)]
+	_ = x[Skull-(9)]
+	_ = x[Snake-(10)]
 }
 
-var _TypeValues = []Type{Spirit, Spirit2, Flam, Flam2, Octopus, Octopus2, Raccon, GoldRacoon, Cyclope, Cyclope2}
+var _TypeValues = []Type{Spirit, Flam, Octopus, Raccon, Cyclope, Eye, Beast, Butterfly, Mole, Skull, Snake}
 
 var _TypeNameToValueMap = map[string]Type{
 	_TypeName[0:6]:        Spirit,
 	_TypeLowerName[0:6]:   Spirit,
-	_TypeName[6:13]:       Spirit2,
-	_TypeLowerName[6:13]:  Spirit2,
-	_TypeName[13:17]:      Flam,
-	_TypeLowerName[13:17]: Flam,
-	_TypeName[17:22]:      Flam2,
-	_TypeLowerName[17:22]: Flam2,
-	_TypeName[22:29]:      Octopus,
-	_TypeLowerName[22:29]: Octopus,
-	_TypeName[29:37]:      Octopus2,
-	_TypeLowerName[29:37]: Octopus2,
-	_TypeName[37:43]:      Raccon,
-	_TypeLowerName[37:43]: Raccon,
-	_TypeName[43:54]:      GoldRacoon,
-	_TypeLowerName[43:54]: GoldRacoon,
-	_TypeName[54:61]:      Cyclope,
-	_TypeLowerName[54:61]: Cyclope,
-	_TypeName[61:69]:      Cyclope2,
-	_TypeLowerName[61:69]: Cyclope2,
+	_TypeName[6:10]:       Flam,
+	_TypeLowerName[6:10]:  Flam,
+	_TypeName[10:17]:      Octopus,
+	_TypeLowerName[10:17]: Octopus,
+	_TypeName[17:23]:      Raccon,
+	_TypeLowerName[17:23]: Raccon,
+	_TypeName[23:30]:      Cyclope,
+	_TypeLowerName[23:30]: Cyclope,
+	_TypeName[30:33]:      Eye,
+	_TypeLowerName[30:33]: Eye,
+	_TypeName[33:38]:      Beast,
+	_TypeLowerName[33:38]: Beast,
+	_TypeName[38:47]:      Butterfly,
+	_TypeLowerName[38:47]: Butterfly,
+	_TypeName[47:51]:      Mole,
+	_TypeLowerName[47:51]: Mole,
+	_TypeName[51:56]:      Skull,
+	_TypeLowerName[51:56]: Skull,
+	_TypeName[56:61]:      Snake,
+	_TypeLowerName[56:61]: Snake,
 }
 
 var _TypeNames = []string{
 	_TypeName[0:6],
-	_TypeName[6:13],
-	_TypeName[13:17],
-	_TypeName[17:22],
-	_TypeName[22:29],
-	_TypeName[29:37],
-	_TypeName[37:43],
-	_TypeName[43:54],
-	_TypeName[54:61],
-	_TypeName[61:69],
+	_TypeName[6:10],
+	_TypeName[10:17],
+	_TypeName[17:23],
+	_TypeName[23:30],
+	_TypeName[30:33],
+	_TypeName[33:38],
+	_TypeName[38:47],
+	_TypeName[47:51],
+	_TypeName[51:56],
+	_TypeName[56:61],
 }
 
 // TypeString retrieves an enum value from the enum constants string name.

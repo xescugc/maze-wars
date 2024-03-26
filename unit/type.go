@@ -6,13 +6,14 @@ type Type int
 
 const (
 	Spirit Type = iota
-	Spirit2
 	Flam
-	Flam2
 	Octopus
-	Octopus2
 	Raccon
-	GoldRacoon
 	Cyclope
-	Cyclope2
+	Eye
+	Beast
+	Butterfly
+	Mole
+	Skull
+	Snake
 )
