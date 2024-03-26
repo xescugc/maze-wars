@@ -3,60 +3,70 @@
     "health": 100,
     "income": 1,
     "gold": 10,
-    "keybind":"1"
+    "keybind":"1",
+    "environment":"terrestrial"
   },
   "eye":{
     "health": 200,
     "income": 2,
     "gold": 20,
-    "keybind":"2"
+    "keybind":"2",
+    "environment":"terrestrial"
   },
   "flam":{
     "health": 300,
     "income": 3,
     "gold": 30,
-    "keybind":"3"
+    "keybind":"3",
+    "environment":"terrestrial"
   },
   "skull":{
     "health": 400,
     "income": 4,
     "gold": 40,
-    "keybind":"4"
+    "keybind":"4",
+    "environment":"terrestrial"
   },
   "mole":{
     "health": 500,
     "income": 5,
     "gold": 50,
-    "keybind":"5"
+    "keybind":"5",
+    "environment":"terrestrial"
   },
   "snake":{
     "health": 600,
     "income": 6,
     "gold": 60,
-    "keybind":"6"
+    "keybind":"6",
+    "environment":"terrestrial"
   },
   "raccon":{
     "health": 700,
     "income": 7,
     "gold": 70,
-    "keybind":"7"
+    "keybind":"7",
+    "environment":"terrestrial"
   },
   "beast":{
     "health": 800,
     "income": 8,
     "gold": 80,
-    "keybind":"8"
+    "keybind":"8",
+    "environment":"terrestrial"
   },
   "cyclope":{
     "health": 900,
     "income": 9,
     "gold": 90,
-    "keybind":"9"
+    "keybind":"9",
+    "environment":"terrestrial"
   },
   "butterfly":{
-    "health": 1000,
-    "income":10,
+    "health": 300,
+    "income":3,
     "gold": 100,
-    "keybind":"0"
+    "keybind":"0",
+    "environment":"aerial"
   }
 }

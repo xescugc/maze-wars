@@ -3,12 +3,14 @@
         "range": 40,
         "damage": 5,
         "gold": 10,
-        "keybind": "w"
+        "keybind": "w",
+        "targets":["terrestrial"]
     },
     "monk": {
         "range": 80,
         "damage": 1,
         "gold": 10,
-        "keybind": "q"
+        "keybind": "q",
+        "targets":["terrestrial","aerial"]
     }
 }

@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/xescugc/maze-wars/assets"
+	"github.com/xescugc/maze-wars/unit/environment"
 )
 
 type Unit struct {
@@ -16,6 +17,8 @@ type Unit struct {
 	Health float64 `json:"health"`
 	Income int     `json:"income"`
 	Gold   int     `json:"gold"`
+
+	Environment environment.Environment `json:"environment"`
 
 	Keybind string
 
