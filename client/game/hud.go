@@ -605,7 +605,7 @@ func (hs *HUDStore) buildUI() {
 
 		toolTxt := widget.NewText(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nHP: %.0f\nIncome: %d\nKeybind: %s", u.Gold, u.Health, u.Income, u.Keybind), cutils.SmallFont, color.White),
+			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nHP: %.0f\nIncome: %d\nEnv: %s\nKeybind: %s", u.Gold, u.Health, u.Income, u.Environment, u.Keybind), cutils.SmallFont, color.White),
 			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 		)
 		tooltipContainer.AddChild(toolTxt)
@@ -674,7 +674,7 @@ func (hs *HUDStore) buildUI() {
 
 		toolTxt := widget.NewText(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nRange: %.0f\nDamage: %.0f\nKeybind: %s", t.Gold, t.Range, t.Damage, t.Keybind), cutils.SmallFont, color.White),
+			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nRange: %.0f\nDamage: %.0f\nTargets: %s\nKeybind: %s", t.Gold, t.Range, t.Damage, t.Targets, t.Keybind), cutils.SmallFont, color.White),
 			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 		)
 		tooltipContainer.AddChild(toolTxt)

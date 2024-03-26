@@ -9,6 +9,7 @@ import (
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
+	"github.com/xescugc/maze-wars/unit/environment"
 	"github.com/xescugc/maze-wars/utils"
 	"github.com/xescugc/maze-wars/utils/graph"
 )
@@ -62,6 +63,9 @@ type Tower struct {
 }
 
 func (t *Tower) FacetKey() string { return tower.Towers[t.Type].FacesetKey() }
+func (t *Tower) CanTarget(env environment.Environment) bool {
+	return tower.Towers[t.Type].CanTarget(env)
+}
 
 type Unit struct {
 	utils.MovingObject
@@ -246,7 +250,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			CreatedAt:     time.Now(),
 		}
 
-		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[act.SummonUnit.Type].Environment, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.ChangeUnitLine:
@@ -268,7 +272,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 				u.X = n.X
 				u.Y = n.Y
 
-				u.Path = nl.Graph.AStar(u.X, u.Y, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, atScale)
+				u.Path = nl.Graph.AStar(u.X, u.Y, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
 				u.HashPath = graph.HashSteps(u.Path)
 
 				u.CreatedAt = time.Now()
@@ -381,7 +385,7 @@ func recalculateLineUnitSteps(l *Line) {
 	moveLineUnitsTo(l, t)
 
 	for _, u := range l.Units {
-		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 	}
 }

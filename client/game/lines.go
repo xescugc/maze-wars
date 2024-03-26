@@ -71,7 +71,7 @@ func (ls *Lines) Update() error {
 			minDistUnit string
 		)
 		for _, u := range l.Units {
-			if u.CurrentLineID != cp.LineID {
+			if u.CurrentLineID != cp.LineID || !t.CanTarget(unit.Units[u.Type].Environment) {
 				continue
 			}
 			d := t.PDistance(u.Object)

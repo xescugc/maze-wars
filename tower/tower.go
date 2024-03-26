@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/xescugc/maze-wars/assets"
+	"github.com/xescugc/maze-wars/unit/environment"
 )
 
 type Tower struct {
@@ -17,12 +18,28 @@ type Tower struct {
 	Damage float64 `json:"damage"`
 	Gold   int     `json:"gold"`
 
+	Targets []environment.Environment `json:"targets"`
+	targets map[environment.Environment]struct{}
+
 	Keybind string
 
 	Faceset image.Image
 }
 
 func (t *Tower) FacesetKey() string { return fmt.Sprintf("t-f-%s", t.Type) }
+
+func (t *Tower) CanTarget(env environment.Environment) bool {
+	_, ok := t.targets[env]
+	return ok
+}
+
+// initTargets will map the Targets to a map for easy access
+func (t *Tower) initTargets() {
+	t.targets = make(map[environment.Environment]struct{})
+	for _, tg := range t.Targets {
+		t.targets[tg] = struct{}{}
+	}
+}
 
 var (
 	Towers map[string]*Tower
@@ -53,6 +70,7 @@ func init() {
 			log.Fatalf("failed to load tower %q\n", t)
 		}
 		tw.Type = ty
+		tw.initTargets()
 	}
 }
 

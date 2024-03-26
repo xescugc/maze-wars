@@ -3,6 +3,7 @@ package graph
 import (
 	"container/heap"
 
+	"github.com/xescugc/maze-wars/unit/environment"
 	"github.com/xescugc/maze-wars/utils"
 )
 
@@ -34,10 +35,10 @@ type queueItem struct {
 }
 
 // AStar calculates the shortest path between between Source(sx,sy)
-// to Target(tx,ty) with W,H equal to the Scale
+// to Target(tx,ty) with W,H equal to the Scale in the designed Environment(env).
 // If atScale is true it'll return the 1:1 result, if not it'll return
 // the 1:Scale result
-func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, atScale bool) []Step {
+func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, env environment.Environment, atScale bool) []Step {
 	nm := stepMap{}
 	nq := &queue{}
 	heap.Init(nq)
@@ -71,16 +72,44 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, atScale bool) [
 		current.open = false
 		current.closed = true
 
-		if current.step.Node.ID == tn.ID || checkConsecutiveSteps(current, 4) {
-			if current.step.Node.NextStep != nil {
+		// We want to enter the return loop, where we calculate the end path to return if:
+		// * The current node is the end node
+		// * There are 4 consecutive already known steps, then we use the cache on Node.NextStep
+		// * It's aerial, which means it just goes straight down, noting to calculate
+		if current.step.Node.ID == tn.ID || checkConsecutiveSteps(current, 4) || env == environment.Aerial {
+			if env == environment.Aerial {
+				// If it's an Aerial environment it has to go straight down until
+				// the next node is Death Zone
 				current = &queueItem{
-					step:   *current.step.Node.NextStep,
+					step: Step{
+						Node:   current.step.Node.BottomNeighbor,
+						Facing: d,
+					},
 					parent: current,
 				}
-				for current.step.Node.NextStep != nil {
+				for !current.step.Node.IsDeathZone {
+					current = &queueItem{
+						step: Step{
+							Node:   current.step.Node.BottomNeighbor,
+							Facing: d,
+						},
+						parent: current,
+					}
+				}
+
+			} else {
+				// If it has a NextStep then it builds it up from the
+				// cache that is NextStep by following it up until the end
+				if current.step.Node.NextStep != nil {
 					current = &queueItem{
 						step:   *current.step.Node.NextStep,
 						parent: current,
+					}
+					for current.step.Node.NextStep != nil {
+						current = &queueItem{
+							step:   *current.step.Node.NextStep,
+							parent: current,
+						}
 					}
 				}
 			}
@@ -94,7 +123,8 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, atScale bool) [
 				curr = curr.parent
 				// If it's the first node of the path it has
 				// no parent so we have to check it
-				if curr != nil {
+				if curr != nil && env != environment.Aerial {
+					// TODO: if it's Aerial don't do this
 					curr.step.Node.NextStep = &Step{
 						Node:   s.Node,
 						Facing: s.Facing,

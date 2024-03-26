@@ -184,7 +184,7 @@ func TestSummonUnit(t *testing.T) {
 		eu.ID, eu.X, eu.Y = units[uid].ID, units[uid].X, units[uid].Y
 
 		// We need to set the path after the X, Y are set
-		eu.Path = l.Graph.AStar(eu.X, eu.Y, eu.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+		eu.Path = l.Graph.AStar(eu.X, eu.Y, eu.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[eu.Type].Environment, atScale)
 		eu.HashPath = graph.HashSteps(eu.Path)
 
 		// As the Unit is created we remove it from the gold
@@ -455,7 +455,7 @@ func TestPlaceTower(t *testing.T) {
 		l.Towers[tw.ID] = &tw
 
 		l2 := ls.Lines[p2.LineID]
-		u.Path = l2.Graph.AStar(u.X, u.Y, u.Facing, l2.Graph.DeathNode.X, l2.Graph.DeathNode.Y, atScale)
+		u.Path = l2.Graph.AStar(u.X, u.Y, u.Facing, l2.Graph.DeathNode.X, l2.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 
 		l2.Units[u.ID] = &u
@@ -674,7 +674,7 @@ func TestChangeUnitLine(t *testing.T) {
 		u1.CreatedAt = units[uid].CreatedAt
 
 		// We need to set the path after the X, Y are set
-		u1.Path = l.Graph.AStar(u1.X, u1.Y, u1.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, atScale)
+		u1.Path = l.Graph.AStar(u1.X, u1.Y, u1.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u1.Type].Environment, atScale)
 		u1.HashPath = graph.HashSteps(u1.Path)
 
 		ls.Lines[p3.LineID].Units[u1.ID] = &u1

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/xescugc/maze-wars/unit/environment"
 	"github.com/xescugc/maze-wars/utils"
 )
 
@@ -230,7 +231,7 @@ func (g *Graph) canAddTower(x, y, w, h int) ([]*Node, error) {
 
 	// Validates that adding the tower will not block the path
 	// from top to bottom
-	if len(g.AStar(g.OffsetX, g.OffsetY, utils.Down, g.DeathNode.X, g.DeathNode.Y, !atScale)) == 0 {
+	if len(g.AStar(g.OffsetX, g.OffsetY, utils.Down, g.DeathNode.X, g.DeathNode.Y, environment.Terrestrial, !atScale)) == 0 {
 		return nil, ErrInvalidBlockingPath
 	}
 
