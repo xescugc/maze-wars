@@ -109,7 +109,20 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 			players := make(map[string]*action.SyncStatePlayerPayload)
 			ps := r.Game.Players.GetState().(store.PlayersState)
 			for idp, p := range ps.Players {
-				uspp := action.SyncStatePlayerPayload(*p)
+				uspp := action.SyncStatePlayerPayload{
+					ID:          p.ID,
+					Name:        p.Name,
+					Lives:       p.Lives,
+					LineID:      p.LineID,
+					Income:      p.Income,
+					Gold:        p.Gold,
+					Current:     p.Current,
+					Winner:      p.Winner,
+					UnitUpdates: make(map[string]action.SyncStatePlayerUnitUpdatePayload),
+				}
+				for t, uu := range p.UnitUpdates {
+					uspp.UnitUpdates[t] = action.SyncStatePlayerUnitUpdatePayload(uu)
+				}
 				if id == idp {
 					uspp.Current = true
 				}

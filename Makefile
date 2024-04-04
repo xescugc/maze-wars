@@ -10,6 +10,10 @@ build:
 test: wasm ## Run the tests
 	@xvfb-run go test ./...
 
+.PHONY: generate
+generate: ## Generates code
+	@go generate ./...
+
 .PHONY: test
 ctest: wasm ## Run the tests
 	@xvfb-run go test ./... -coverprofile=cover.out

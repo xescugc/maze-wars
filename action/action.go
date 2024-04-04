@@ -3,6 +3,7 @@ package action
 import (
 	"time"
 
+	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
 	"github.com/xescugc/maze-wars/utils/graph"
 	"nhooyr.io/websocket"
@@ -16,6 +17,7 @@ type Action struct {
 	SummonUnit           *SummonUnitPayload           `json:"summon_unit,omitempty"`
 	RemoveUnit           *RemoveUnitPayload           `json:"remove_unit,omitempty"`
 	ChangeUnitLine       *ChangeUnitLinePayload       `json:"change_unit_line,omitempty"`
+	UpdateUnit           *UpdateUnitPayload           `json:"update_unit,omitempty"`
 	StealLive            *StealLivePayload            `json:"steal_live,omitempty"`
 	CameraZoom           *CameraZoomPayload           `json:"camera_zoom,omitempty"`
 	SelectTower          *SelectTowerPayload          `json:"select_tower,omitempty"`
@@ -249,15 +251,15 @@ func NewTowerAttack(uid, tt string) *Action {
 
 type UnitKilledPayload struct {
 	PlayerID string
-	UnitType string
+	UnitID   string
 }
 
-func NewUnitKilled(pid, ut string) *Action {
+func NewUnitKilled(pid, uid string) *Action {
 	return &Action{
 		Type: UnitKilled,
 		UnitKilled: &UnitKilledPayload{
 			PlayerID: pid,
-			UnitType: ut,
+			UnitID:   uid,
 		},
 	}
 }
@@ -498,6 +500,15 @@ type SyncStatePlayerPayload struct {
 	Gold    int
 	Current bool
 	Winner  bool
+
+	UnitUpdates map[string]SyncStatePlayerUnitUpdatePayload
+}
+
+type SyncStatePlayerUnitUpdatePayload struct {
+	Current    unit.Stats
+	Level      int
+	UpdateCost int
+	Next       unit.Stats
 }
 
 type SyncStateTowerPayload struct {
@@ -519,6 +530,8 @@ type SyncStateUnitPayload struct {
 	CurrentLineID int
 
 	Health float64
+
+	Level int
 
 	Path      []graph.Step
 	HashPath  string
@@ -558,6 +571,21 @@ func NewVersionError(err string) *Action {
 		Type: VersionError,
 		VersionError: &VersionErrorPayload{
 			Error: err,
+		},
+	}
+}
+
+type UpdateUnitPayload struct {
+	Type     string
+	PlayerID string
+}
+
+func NewUpdateUnit(pid, t string) *Action {
+	return &Action{
+		Type: UpdateUnit,
+		UpdateUnit: &UpdateUnitPayload{
+			Type:     t,
+			PlayerID: pid,
 		},
 	}
 }

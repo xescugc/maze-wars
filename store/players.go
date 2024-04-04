@@ -11,6 +11,12 @@ import (
 
 const (
 	incomeTimer = 15
+
+	// It's 10% so we use 1.1 to get the increment
+	updateFactor = 1.1
+
+	// It's 100% more
+	updateCostFactor = 100
 )
 
 type Players struct {
@@ -37,10 +43,31 @@ type Player struct {
 	Gold    int
 	Current bool
 	Winner  bool
+
+	// UnitUpdates holds the current unit version
+	UnitUpdates map[string]UnitUpdate
+}
+
+type UnitUpdate struct {
+	// Current is the current unit
+	Current unit.Stats
+
+	// Level is the number of the unit level
+	// which is basically the number of times
+	// it has been updated
+	Level int
+
+	UpdateCost int
+
+	// Is how the unit will look after the next update
+	Next unit.Stats
 }
 
 func (p Player) CanSummonUnit(ut string) bool {
 	return (p.Gold - unit.Units[ut].Gold) >= 0
+}
+func (p Player) CanUpdateUnit(ut string) bool {
+	return (p.Gold - p.UnitUpdates[ut].UpdateCost) >= 0
 }
 func (p Player) CanPlaceTower(tt string) bool {
 	return (p.Gold - tower.Towers[tt].Gold) >= 0
@@ -131,14 +158,26 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			break
 		}
 
-		pstate.Players[act.AddPlayer.ID] = &Player{
+		p := &Player{
 			ID:     act.AddPlayer.ID,
 			Name:   act.AddPlayer.Name,
 			Lives:  20,
 			LineID: act.AddPlayer.LineID,
 			Income: 25,
 			Gold:   40,
+
+			UnitUpdates: make(map[string]UnitUpdate),
 		}
+		for _, u := range unit.Units {
+			p.UnitUpdates[u.Type.String()] = UnitUpdate{
+				Current:    u.Stats,
+				Level:      1,
+				UpdateCost: updateCostFactor * u.Gold,
+				Next:       unitUpdate(2, u.Type.String(), u.Stats),
+			}
+		}
+
+		pstate.Players[act.AddPlayer.ID] = p
 	case action.RemovePlayer:
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
@@ -186,11 +225,12 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
 
-		if !pstate.Players[act.SummonUnit.PlayerID].CanSummonUnit(act.SummonUnit.Type) {
+		cp := pstate.Players[act.SummonUnit.PlayerID]
+		if !cp.CanSummonUnit(act.SummonUnit.Type) {
 			break
 		}
-		pstate.Players[act.SummonUnit.PlayerID].Income += unit.Units[act.SummonUnit.Type].Income
-		pstate.Players[act.SummonUnit.PlayerID].Gold -= unit.Units[act.SummonUnit.Type].Gold
+		pstate.Players[act.SummonUnit.PlayerID].Income += cp.UnitUpdates[act.SummonUnit.Type].Current.Income
+		pstate.Players[act.SummonUnit.PlayerID].Gold -= cp.UnitUpdates[act.SummonUnit.Type].Current.Gold
 	case action.IncomeTick:
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
@@ -224,7 +264,26 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
 
-		pstate.Players[act.UnitKilled.PlayerID].Gold += unit.Units[act.UnitKilled.UnitType].Income
+		cp := pstate.Players[act.UnitKilled.PlayerID]
+		u := ps.store.Lines.FindByID(cp.LineID).Units[act.UnitKilled.UnitID]
+
+		cp.Gold += unitUpdate(u.Level, u.Type, unit.Units[u.Type].Stats).Income
+	case action.UpdateUnit:
+		u := unit.Units[act.UpdateUnit.Type]
+		buu := pstate.Players[act.UpdateUnit.PlayerID].UnitUpdates[act.UpdateUnit.Type]
+
+		if !pstate.Players[act.UpdateUnit.PlayerID].CanUpdateUnit(act.UpdateUnit.Type) {
+			break
+		}
+
+		pstate.Players[act.UpdateUnit.PlayerID].Gold -= buu.UpdateCost
+		pstate.Players[act.UpdateUnit.PlayerID].UnitUpdates[act.UpdateUnit.Type] = UnitUpdate{
+			Current:    buu.Next,
+			Level:      buu.Level + 1,
+			UpdateCost: updateCostFactor * buu.Next.Gold,
+			Next:       unitUpdate(buu.Level+2, u.Type.String(), u.Stats),
+		}
+
 	case action.SyncState:
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
@@ -235,7 +294,20 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		}
 		for id, p := range act.SyncState.Players.Players {
 			delete(pids, id)
-			np := Player(*p)
+			np := Player{
+				ID:          p.ID,
+				Name:        p.Name,
+				Lives:       p.Lives,
+				LineID:      p.LineID,
+				Income:      p.Income,
+				Gold:        p.Gold,
+				Current:     p.Current,
+				Winner:      p.Winner,
+				UnitUpdates: make(map[string]UnitUpdate),
+			}
+			for t, uu := range p.UnitUpdates {
+				np.UnitUpdates[t] = UnitUpdate(uu)
+			}
 			pstate.Players[id] = &np
 		}
 		for id := range pids {
@@ -245,4 +317,22 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 	}
 
 	return pstate
+}
+
+func unitUpdate(nlvl int, ut string, u unit.Stats) unit.Stats {
+	bu := unit.Units[ut]
+
+	u.Health = float64(levelToValue(nlvl, int(bu.Health)))
+	u.Gold = levelToValue(nlvl, bu.Gold)
+	u.Income = levelToValue(nlvl, bu.Income)
+
+	return u
+}
+
+func levelToValue(lvl, base int) int {
+	fb := float64(base)
+	for i := 1; i < lvl; i++ {
+		fb = fb * updateFactor
+	}
+	return int(fb)
 }

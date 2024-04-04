@@ -23,6 +23,11 @@ import (
 	"github.com/xescugc/maze-wars/utils"
 )
 
+const (
+	unitToolTipTmpl       = "Gold: %d\nHP: %.0f\nIncome: %d\nEnv: %s\nKeybind: %s"
+	unitUpdateToolTipTmpl = "Cost: %d\nGold: %d\nHP: %.0f\nIncome: %d"
+)
+
 // HUDStore is in charge of keeping track of all the elements
 // on the player HUD that are static and always seen
 type HUDStore struct {
@@ -35,8 +40,14 @@ type HUDStore struct {
 	statsListW   *widget.List
 	incomeTextW  *widget.Text
 	winLoseTextW *widget.Text
+
 	unitsC       *widget.Container
-	towersC      *widget.Container
+	unitsTooltip map[string]*widget.Text
+
+	unitUpdatesC       *widget.Container
+	unitUpdatesTooltip map[string]*widget.Text
+
+	towersC *widget.Container
 }
 
 // HUDState stores the HUD state
@@ -84,7 +95,9 @@ func init() {
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
 func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 	hs := &HUDStore{
-		game: g,
+		game:               g,
+		unitsTooltip:       make(map[string]*widget.Text),
+		unitUpdatesTooltip: make(map[string]*widget.Text),
 	}
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
 		ShowStats: true,
@@ -250,7 +263,16 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 	wuts := hs.unitsC.Children()
 	for i, u := range sortedUnits() {
+		uu := cp.UnitUpdates[u.Type.String()]
 		wuts[i].GetWidget().Disabled = !cp.CanSummonUnit(u.Type.String())
+		hs.unitsTooltip[u.Type.String()].Label = fmt.Sprintf(unitToolTipTmpl, uu.Current.Gold, uu.Current.Health, uu.Current.Income, u.Environment, u.Keybind)
+	}
+
+	wuuts := hs.unitUpdatesC.Children()
+	for i, u := range sortedUnits() {
+		uu := cp.UnitUpdates[u.Type.String()]
+		wuuts[i].GetWidget().Disabled = !cp.CanUpdateUnit(u.Type.String())
+		hs.unitUpdatesTooltip[u.Type.String()].Label = fmt.Sprintf(unitUpdateToolTipTmpl, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income)
 	}
 
 	wtws := hs.towersC.Children()
@@ -417,6 +439,7 @@ func sortedTowers() []*tower.Tower {
 }
 
 func (hs *HUDStore) buildUI() {
+	cp := hs.game.Store.Players.FindCurrent()
 	topRightContainer := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
@@ -597,6 +620,8 @@ func (hs *HUDStore) buildUI() {
 		)),
 	)
 	for _, u := range sortedUnits() {
+		uu := cp.UnitUpdates[u.Type.String()]
+
 		tooltipContainer := widget.NewContainer(
 			widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
 			widget.ContainerOpts.AutoDisableChildren(),
@@ -605,9 +630,10 @@ func (hs *HUDStore) buildUI() {
 
 		toolTxt := widget.NewText(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nHP: %.0f\nIncome: %d\nEnv: %s\nKeybind: %s", u.Gold, u.Health, u.Income, u.Environment, u.Keybind), cutils.SmallFont, color.White),
+			widget.TextOpts.Text(fmt.Sprintf(unitToolTipTmpl, uu.Current.Gold, uu.Current.Health, uu.Current.Income, u.Environment, u.Keybind), cutils.SmallFont, color.White),
 			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 		)
+		hs.unitsTooltip[u.Type.String()] = toolTxt
 		tooltipContainer.AddChild(toolTxt)
 
 		ubtn := widget.NewButton(
@@ -715,6 +741,81 @@ func (hs *HUDStore) buildUI() {
 	hs.towersC = towersC
 	tabTowers.AddChild(towersC)
 
+	// Create the first tab
+	// A TabBookTab is a labelled container. The text here is what will show up in the tab button
+	tabUnitsUpdates := widget.NewTabBookTab("UNITS UPDATES",
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 120, A: 255})),
+	)
+
+	unitUpdatesC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(5),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(5, 5),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false, false, false, false, false}, []bool{false, false, false, false, false}),
+		)),
+	)
+	for _, u := range sortedUnits() {
+		uu := cp.UnitUpdates[u.Type.String()]
+
+		tooltipContainer := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+			widget.ContainerOpts.AutoDisableChildren(),
+			widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+		)
+
+		toolTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf(unitUpdateToolTipTmpl, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income), cutils.SmallFont, color.White),
+			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+		)
+		hs.unitUpdatesTooltip[u.Type.String()] = toolTxt
+		tooltipContainer.AddChild(toolTxt)
+
+		ubtn := widget.NewButton(
+			// set general widget options
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					MaxWidth:  38,
+					MaxHeight: 38,
+				}),
+				widget.WidgetOpts.ToolTip(widget.NewToolTip(
+					widget.ToolTipOpts.Content(tooltipContainer),
+					//widget.WidgetToolTipOpts.Delay(1*time.Second),
+					widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+					widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+					//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+					//They will default to what you see below if you do not provide them
+					widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+				)),
+			),
+
+			// specify the images to sue
+			widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(u.FacesetKey()))),
+
+			// add a handler that reacts to clicking the button
+			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
+				return func(args *widget.ButtonClickedEventArgs) {
+					cp := hs.game.Store.Players.FindCurrent()
+					actionDispatcher.UpdateUnit(cp.ID, u.Type.String())
+				}
+			}(u)),
+		)
+		unitUpdatesC.AddChild(ubtn)
+	}
+	hs.unitUpdatesC = unitUpdatesC
+	tabUnitsUpdates.AddChild(unitUpdatesC)
+
 	tabBook := widget.NewTabBook(
 		widget.TabBookOpts.TabButtonImage(cutils.ButtonImage),
 		widget.TabBookOpts.TabButtonText(cutils.SmallFont, &widget.ButtonTextColor{Idle: color.White, Disabled: color.White}),
@@ -729,7 +830,7 @@ func (hs *HUDStore) buildUI() {
 			widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(5)),
 			widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.MinSize(98, 0)),
 		),
-		widget.TabBookOpts.Tabs(tabUnits, tabTowers),
+		widget.TabBookOpts.Tabs(tabUnits, tabTowers, tabUnitsUpdates),
 	)
 	bottomRightContainer.AddChild(tabBook)
 

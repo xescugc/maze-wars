@@ -56,6 +56,11 @@ func (ac *ActionDispatcher) SummonUnit(unit, pid string, plid, clid int) {
 	//ac.Dispatch(sua)
 }
 
+func (ac *ActionDispatcher) UpdateUnit(pid, ut string) {
+	uua := action.NewUpdateUnit(pid, ut)
+	ac.wsSend(uua)
+}
+
 // TPS is the call for every TPS event
 func (ac *ActionDispatcher) TPS() {
 	tpsa := action.NewTPS(time.Time{})
@@ -133,8 +138,8 @@ func (ac *ActionDispatcher) TowerAttack(uid, tt string) {
 }
 
 // UnitKilled adds gold to the user
-func (ac *ActionDispatcher) UnitKilled(pid, ut string) {
-	uk := action.NewUnitKilled(pid, ut)
+func (ac *ActionDispatcher) UnitKilled(pid, uid string) {
+	uk := action.NewUnitKilled(pid, uid)
 	ac.wsSend(uk)
 	ac.Dispatch(uk)
 }

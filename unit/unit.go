@@ -14,9 +14,7 @@ import (
 type Unit struct {
 	Type Type
 
-	Health float64 `json:"health"`
-	Income int     `json:"income"`
-	Gold   int     `json:"gold"`
+	Stats
 
 	Environment environment.Environment `json:"environment"`
 
@@ -24,6 +22,12 @@ type Unit struct {
 
 	Faceset image.Image
 	Sprite  image.Image
+}
+
+type Stats struct {
+	Health float64 `json:"health"`
+	Income int     `json:"income"`
+	Gold   int     `json:"gold"`
 }
 
 func (u *Unit) FacesetKey() string { return fmt.Sprintf("u-f-%s", u.Type) }

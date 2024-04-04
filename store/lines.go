@@ -70,14 +70,16 @@ func (t *Tower) CanTarget(env environment.Environment) bool {
 type Unit struct {
 	utils.MovingObject
 
-	ID string
-
+	ID            string
 	Type          string
 	PlayerID      string
 	PlayerLineID  int
 	CurrentLineID int
 
 	Health float64
+
+	// The current level of the unit from the PlayerID
+	Level int
 
 	Path     []graph.Step
 	HashPath string
@@ -228,6 +230,9 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			break
 		}
 
+		uu := p.UnitUpdates[act.SummonUnit.Type]
+		bu := unit.Units[act.SummonUnit.Type]
+
 		l := lstate.Lines[act.SummonUnit.CurrentLineID]
 
 		var w, h int = 16, 16
@@ -246,11 +251,12 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			PlayerID:      act.SummonUnit.PlayerID,
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
-			Health:        unit.Units[act.SummonUnit.Type].Health,
+			Health:        float64(uu.Current.Health),
+			Level:         uu.Level,
 			CreatedAt:     time.Now(),
 		}
 
-		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[act.SummonUnit.Type].Environment, atScale)
+		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.ChangeUnitLine:
