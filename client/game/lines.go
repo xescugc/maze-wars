@@ -92,7 +92,7 @@ func (ls *Lines) Update() error {
 		// Only dispatch events from your own line
 		if u.Health == 0 {
 			p := ls.game.Store.Players.FindByLineID(u.CurrentLineID)
-			actionDispatcher.UnitKilled(p.ID, u.Type)
+			actionDispatcher.UnitKilled(p.ID, u.ID)
 			actionDispatcher.RemoveUnit(u.ID)
 			continue
 		}

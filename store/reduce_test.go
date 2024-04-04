@@ -29,7 +29,9 @@ import (
 // relevance
 
 var (
-	atScale = true
+	atScale          = true
+	updateFactor     = 1.1
+	updateCostFactor = 100
 
 	playersInitialState = func() store.PlayersState {
 		return store.PlayersState{
@@ -168,6 +170,7 @@ func TestSummonUnit(t *testing.T) {
 			PlayerLineID:  p.LineID,
 			CurrentLineID: p2.LineID,
 			Health:        unit.Units[unit.Spirit.String()].Health,
+			Level:         1,
 		}
 
 		a := action.NewSummonUnit(eu.Type, p.ID, p.LineID, p2.LineID)
@@ -557,8 +560,8 @@ func TestUnitKilled(t *testing.T) {
 		ms, ls := startGame(t, s)
 		p, u := summonUnit(s, p, p2)
 
-		s.Dispatch(action.NewUnitKilled(p.ID, u.Type))
-		p.Gold += unit.Units[u.Type].Income
+		s.Dispatch(action.NewUnitKilled(p2.ID, u.ID))
+		p2.Gold += unit.Units[u.Type].Income
 
 		ps := playersInitialState()
 		ps.Players[p.ID] = &p
@@ -588,6 +591,7 @@ func TestAddPlayer(t *testing.T) {
 			Income: 25,
 			Gold:   40,
 		}
+		fillPlayerUnitUpdates(&p)
 
 		ps := playersInitialState()
 		ps.Players[p.ID] = &p
@@ -611,6 +615,7 @@ func TestAddPlayer(t *testing.T) {
 			Income: 25,
 			Gold:   40,
 		}
+		fillPlayerUnitUpdates(&p)
 
 		ps := playersInitialState()
 		ps.Players[p.ID] = &p
@@ -734,6 +739,7 @@ func TestSyncState(t *testing.T) {
 				},
 			},
 		}
+		fillSyncStatePlayerUnitUpdates(ssa.SyncState.Players.Players["123"])
 		ps := playersInitialState()
 		ps.Players["123"] = &store.Player{
 			ID:      "123",
@@ -745,6 +751,7 @@ func TestSyncState(t *testing.T) {
 			Current: true,
 			Winner:  false,
 		}
+		fillPlayerUnitUpdates(ps.Players["123"])
 		ps.IncomeTimer = 5
 		ls := linesInitialState()
 		ls.Lines[1] = &store.Line{
@@ -772,6 +779,57 @@ func TestSyncState(t *testing.T) {
 		}
 		s.Dispatch(ssa)
 		equalStore(t, s, ps, ls)
+	})
+}
+
+func TestUpdateUnit(t *testing.T) {
+	addAction(action.UpdateUnit.String())
+	t.Run("Success", func(t *testing.T) {
+		s := initStore()
+		p := addPlayer(s)
+		p2 := addPlayer(s)
+		s.Dispatch(action.NewStartGame())
+		ms, ls := startGame(t, s)
+
+		// Added 1000 gold to be able to update
+		p.Gold += 1000
+		s.Dispatch(action.NewUpdateUnit(p.ID, unit.Spirit.String()))
+
+		u := unit.Units[unit.Spirit.String()]
+		p.UnitUpdates[unit.Spirit.String()] = store.UnitUpdate{
+			Current:    unitUpdate(2, u.Type, u.Stats),
+			Level:      2,
+			UpdateCost: updateCostFactor * unitUpdate(2, u.Type, u.Stats).Gold,
+			Next:       unitUpdate(3, u.Type, u.Stats),
+		}
+		p.Gold -= updateCostFactor * unitUpdate(1, u.Type, u.Stats).Gold
+
+		p, su := summonUnit(s, p, p2)
+
+		assert.Equal(t, 2, su.Level)
+
+		ls.Lines[p2.LineID].Units[su.ID] = &su
+
+		ps := playersInitialState()
+		ps.Players[p.ID] = &p
+		ps.Players[p2.ID] = &p2
+
+		equalStore(t, s, ps, ms, ls)
+	})
+	t.Run("Do not reach negative gold", func(t *testing.T) {
+		s := initStore()
+		p := addPlayer(s)
+		p2 := addPlayer(s)
+		s.Dispatch(action.NewStartGame())
+		ms, ls := startGame(t, s)
+
+		s.Dispatch(action.NewUpdateUnit(p.ID, unit.Spirit.String()))
+
+		ps := playersInitialState()
+		ps.Players[p.ID] = &p
+		ps.Players[p2.ID] = &p2
+
+		equalStore(t, s, ps, ms, ls)
 	})
 }
 

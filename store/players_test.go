@@ -43,6 +43,7 @@ func TestPlayers_List(t *testing.T) {
 			Gold:   40,
 		},
 	}
+	fillPlayerUnitUpdates(eplayers[0])
 
 	assert.Equal(t, eplayers, playes)
 }
@@ -77,6 +78,7 @@ func TestPlayers_FindCurrent(t *testing.T) {
 		Gold:    40,
 		Current: true,
 	}
+	fillPlayerUnitUpdates(&ecp)
 
 	assert.Equal(t, ecp, cp)
 }
@@ -104,6 +106,7 @@ func TestPlayers_FindByID(t *testing.T) {
 		Income: 25,
 		Gold:   40,
 	}
+	fillPlayerUnitUpdates(&ecp)
 
 	assert.Equal(t, ecp, cp)
 }
@@ -131,6 +134,7 @@ func TestPlayers_FindByLineID(t *testing.T) {
 		Income: 25,
 		Gold:   40,
 	}
+	fillPlayerUnitUpdates(&ecp)
 
 	assert.Equal(t, ecp, cp)
 }

@@ -61,8 +61,8 @@ func summonUnit(s *store.Store, fp, tp store.Player) (store.Player, store.Unit) 
 
 	// We know the Summon does this and as 'p' is not a pointer
 	// we need to do it manually
-	fp.Gold -= unit.Units[unit.Spirit.String()].Gold
-	fp.Income += unit.Units[unit.Spirit.String()].Income
+	fp.Gold -= fp.UnitUpdates[unit.Spirit.String()].Current.Gold
+	fp.Income += fp.UnitUpdates[unit.Spirit.String()].Current.Income
 
 	units := s.Lines.FindByID(tp.LineID).Units
 	var u *store.Unit
@@ -91,4 +91,45 @@ func placeTower(s *store.Store, p store.Player) (store.Player, store.Tower) {
 	}
 
 	return p, *tw
+}
+
+func fillPlayerUnitUpdates(p *store.Player) {
+	p.UnitUpdates = make(map[string]store.UnitUpdate)
+	for _, u := range unit.Units {
+		p.UnitUpdates[u.Type.String()] = store.UnitUpdate{
+			Current:    u.Stats,
+			Level:      1,
+			UpdateCost: updateCostFactor * u.Gold,
+			Next:       unitUpdate(2, u.Type, u.Stats),
+		}
+	}
+}
+func fillSyncStatePlayerUnitUpdates(p *action.SyncStatePlayerPayload) {
+	p.UnitUpdates = make(map[string]action.SyncStatePlayerUnitUpdatePayload)
+	for _, u := range unit.Units {
+		p.UnitUpdates[u.Type.String()] = action.SyncStatePlayerUnitUpdatePayload{
+			Current:    u.Stats,
+			Level:      1,
+			UpdateCost: updateCostFactor * u.Gold,
+			Next:       unitUpdate(2, u.Type, u.Stats),
+		}
+	}
+}
+
+func unitUpdate(nlvl int, ut unit.Type, u unit.Stats) unit.Stats {
+	bu := unit.Units[ut.String()]
+
+	u.Health = float64(levelToValue(nlvl, int(bu.Health)))
+	u.Gold = levelToValue(nlvl, bu.Gold)
+	u.Income = levelToValue(nlvl, bu.Income)
+
+	return u
+}
+
+func levelToValue(lvl, base int) int {
+	fb := float64(base)
+	for i := 1; i < lvl; i++ {
+		fb = fb * updateFactor
+	}
+	return int(fb)
 }

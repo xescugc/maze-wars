@@ -8,6 +8,7 @@ const (
 	CursorMove Type = iota
 	CameraZoom
 	SummonUnit
+	UpdateUnit
 	TPS
 	RemoveUnit
 	StealLive
