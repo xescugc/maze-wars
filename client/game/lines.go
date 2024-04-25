@@ -2,11 +2,15 @@ package game
 
 import (
 	"bytes"
+	"fmt"
 	"image"
+	"image/color"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/xescugc/maze-wars/assets"
+	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
@@ -84,7 +88,7 @@ func (ls *Lines) Update() error {
 			}
 		}
 		if minDistUnit != "" {
-			actionDispatcher.TowerAttack(minDistUnit, t.Type)
+			actionDispatcher.TowerAttack(minDistUnit, t.ID)
 		}
 	}
 
@@ -126,7 +130,6 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 
 func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
 	cs := c.GetState().(CameraState)
-	hst := ls.game.HUD.GetState().(HUDState)
 	if !t.IsColliding(cs.Object) {
 		return
 	}
@@ -134,12 +137,8 @@ func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower)
 	op.GeoM.Translate(float64(t.X-cs.X), float64(t.Y-cs.Y))
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
 	screen.DrawImage(imagesCache.Get(t.FacetKey()), op)
-
-	if t.ID == hst.TowerOpenMenuID {
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(t.X-cs.X+8), float64(t.Y-cs.Y+8))
-		op.GeoM.Scale(cs.Zoom, cs.Zoom)
-		screen.DrawImage(ls.tilesetLogicImage.(*ebiten.Image), op)
+	if t.Level != 1 {
+		text.Draw(screen, fmt.Sprintf("%d", t.Level), cutils.SmallFont, int(t.X-cs.X)+8, int(t.Y-cs.Y)+24, color.White)
 	}
 }
 

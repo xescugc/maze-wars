@@ -390,6 +390,8 @@ func TestPlaceTower(t *testing.T) {
 			Type:     tower.Soldier.String(),
 			LineID:   p.LineID,
 			PlayerID: p.ID,
+			Stats:    tower.Towers[tower.Soldier.String()].Stats,
+			Level:    1,
 		}
 		ls.Lines[p.LineID].Towers[tw.ID] = &tw
 
@@ -453,6 +455,8 @@ func TestPlaceTower(t *testing.T) {
 			Type:     tower.Soldier.String(),
 			LineID:   p.LineID,
 			PlayerID: p.ID,
+			Stats:    tower.Towers[tower.Soldier.String()].Stats,
+			Level:    1,
 		}
 		l := ls.Lines[p.LineID]
 		l.Towers[tw.ID] = &tw
@@ -470,22 +474,49 @@ func TestPlaceTower(t *testing.T) {
 func TestRemoveTower(t *testing.T) {
 	addAction(action.RemoveTower.String())
 	t.Run("Success", func(t *testing.T) {
-		s := initStore()
-		p := addPlayer(s)
-		p2 := addPlayer(s)
-		s.Dispatch(action.NewStartGame())
-		ms, ls := startGame(t, s)
-		p, tw := placeTower(s, p)
+		t.Run("Default", func(t *testing.T) {
+			s := initStore()
+			p := addPlayer(s)
+			p2 := addPlayer(s)
+			s.Dispatch(action.NewStartGame())
+			ms, ls := startGame(t, s)
+			p, tw := placeTower(s, p)
 
-		s.Dispatch(action.NewRemoveTower(p.ID, tw.ID, tw.Type))
+			s.Dispatch(action.NewRemoveTower(p.ID, tw.ID))
 
-		p.Gold += tower.Towers[tw.Type].Gold / 2
+			p.Gold += tower.Towers[tw.Type].Gold / 2
 
-		ps := playersInitialState()
-		ps.Players[p.ID] = &p
-		ps.Players[p2.ID] = &p2
+			ps := playersInitialState()
+			ps.Players[p.ID] = &p
+			ps.Players[p2.ID] = &p2
 
-		equalStore(t, s, ps, ms, ls)
+			equalStore(t, s, ps, ms, ls)
+		})
+		t.Run("UpdatedTower", func(t *testing.T) {
+			s := initStore()
+			p := addPlayer(s)
+			p2 := addPlayer(s)
+			s.Dispatch(action.NewStartGame())
+			ms, ls := startGame(t, s)
+			p, tw := placeTower(s, p)
+
+			p.Gold += 1000
+			s.Players.GetState().(store.PlayersState).Players[p.ID].Gold += 1000
+			s.Dispatch(action.NewUpdateTower(p.ID, tw.ID))
+			tu := tower.FindUpdateByLevel(tw.Type, 2)
+			p.Gold -= tu.UpdateCost
+
+			s.Dispatch(action.NewRemoveTower(p.ID, tw.ID))
+
+			tu = tower.FindUpdateByLevel(tw.Type, 2)
+			p.Gold += tu.UpdateCost / 2
+
+			ps := playersInitialState()
+			ps.Players[p.ID] = &p
+			ps.Players[p2.ID] = &p2
+
+			equalStore(t, s, ps, ms, ls)
+		})
 	})
 }
 
@@ -523,30 +554,66 @@ func TestIncomeTick(t *testing.T) {
 func TestTowerAttack(t *testing.T) {
 	addAction(action.TowerAttack.String())
 	t.Run("Success", func(t *testing.T) {
-		s := initStore()
-		p := addPlayer(s)
-		p2 := addPlayer(s)
-		s.Dispatch(action.NewStartGame())
-		// TODO: Each summon/place updates the l.UpdatedAt so we should
-		// manually add the value from the store line
-		ms, ls := startGame(t, s)
-		p, tw := placeTower(s, p)
-		p, u := summonUnit(s, p, p2)
+		t.Run("Default", func(t *testing.T) {
+			s := initStore()
+			p := addPlayer(s)
+			p2 := addPlayer(s)
+			s.Dispatch(action.NewStartGame())
+			// TODO: Each summon/place updates the l.UpdatedAt so we should
+			// manually add the value from the store line
+			ms, ls := startGame(t, s)
+			p2, tw := placeTower(s, p2)
+			p, u := summonUnit(s, p, p2)
 
-		s.Dispatch(action.NewTowerAttack(u.ID, tw.Type))
-		u.Health -= tower.Towers[tw.Type].Damage
+			s.Dispatch(action.NewTowerAttack(u.ID, tw.ID))
+			u.Health -= tower.Towers[tw.Type].Damage
 
-		ps := playersInitialState()
-		ps.Players[p.ID] = &p
-		ps.Players[p2.ID] = &p2
+			ps := playersInitialState()
+			ps.Players[p.ID] = &p
+			ps.Players[p2.ID] = &p2
 
-		l := ls.Lines[p.LineID]
-		l.Towers[tw.ID] = &tw
+			l := ls.Lines[p2.LineID]
+			l.Towers[tw.ID] = &tw
 
-		l2 := ls.Lines[p2.LineID]
-		l2.Units[u.ID] = &u
+			l2 := ls.Lines[p2.LineID]
+			l2.Units[u.ID] = &u
 
-		equalStore(t, s, ps, ms, ls)
+			equalStore(t, s, ps, ms, ls)
+		})
+		t.Run("WithUpdateTower", func(t *testing.T) {
+			s := initStore()
+			p := addPlayer(s)
+			p2 := addPlayer(s)
+			s.Dispatch(action.NewStartGame())
+			// TODO: Each summon/place updates the l.UpdatedAt so we should
+			// manually add the value from the store line
+			ms, ls := startGame(t, s)
+			p2, tw := placeTower(s, p2)
+			p, u := summonUnit(s, p, p2)
+
+			p2.Gold += 1010
+			s.Players.GetState().(store.PlayersState).Players[p2.ID].Gold += 1010
+			s.Dispatch(action.NewUpdateTower(p2.ID, tw.ID))
+			tu := tower.FindUpdateByLevel(tw.Type, 2)
+			p2.Gold -= tu.UpdateCost
+			tw.Stats = tu.Stats
+			tw.Level += 1
+
+			s.Dispatch(action.NewTowerAttack(u.ID, tw.ID))
+			u.Health -= tw.Stats.Damage
+
+			ps := playersInitialState()
+			ps.Players[p.ID] = &p
+			ps.Players[p2.ID] = &p2
+
+			l := ls.Lines[p2.LineID]
+			l.Towers[tw.ID] = &tw
+
+			l2 := ls.Lines[p2.LineID]
+			l2.Units[u.ID] = &u
+
+			equalStore(t, s, ps, ms, ls)
+		})
 	})
 }
 
@@ -792,7 +859,8 @@ func TestUpdateUnit(t *testing.T) {
 		ms, ls := startGame(t, s)
 
 		// Added 1000 gold to be able to update
-		p.Gold += 1000
+		p.Gold += 1010
+		s.Players.GetState().(store.PlayersState).Players[p.ID].Gold += 1010
 		s.Dispatch(action.NewUpdateUnit(p.ID, unit.Spirit.String()))
 
 		u := unit.Units[unit.Spirit.String()]
@@ -824,6 +892,55 @@ func TestUpdateUnit(t *testing.T) {
 		ms, ls := startGame(t, s)
 
 		s.Dispatch(action.NewUpdateUnit(p.ID, unit.Spirit.String()))
+
+		ps := playersInitialState()
+		ps.Players[p.ID] = &p
+		ps.Players[p2.ID] = &p2
+
+		equalStore(t, s, ps, ms, ls)
+	})
+}
+
+func TestUpdateTower(t *testing.T) {
+	addAction(action.UpdateTower.String())
+	t.Run("Success", func(t *testing.T) {
+		s := initStore()
+		p := addPlayer(s)
+		p2 := addPlayer(s)
+		s.Dispatch(action.NewStartGame())
+		ms, ls := startGame(t, s)
+		p, tw := placeTower(s, p)
+
+		// Added 1010 gold to be able to update
+		p.Gold += 1010
+		s.Players.GetState().(store.PlayersState).Players[p.ID].Gold += 1010
+		s.Dispatch(action.NewUpdateTower(p.ID, tw.ID))
+
+		tu := tower.FindUpdateByLevel(tw.Type, 2)
+
+		tw.Level += 1
+		tw.Stats = tu.Stats
+		ls.Lines[p.LineID].Towers[tw.ID] = &tw
+
+		p.Gold -= tu.UpdateCost
+
+		ps := playersInitialState()
+		ps.Players[p.ID] = &p
+		ps.Players[p2.ID] = &p2
+
+		equalStore(t, s, ps, ms, ls)
+	})
+	t.Run("Do not reach negative gold", func(t *testing.T) {
+		s := initStore()
+		p := addPlayer(s)
+		p2 := addPlayer(s)
+		s.Dispatch(action.NewStartGame())
+		ms, ls := startGame(t, s)
+		p, tw := placeTower(s, p)
+
+		s.Dispatch(action.NewUpdateTower(p.ID, tw.ID))
+
+		ls.Lines[p.LineID].Towers[tw.ID] = &tw
 
 		ps := playersInitialState()
 		ps.Players[p.ID] = &p

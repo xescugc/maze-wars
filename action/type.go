@@ -9,6 +9,7 @@ const (
 	CameraZoom
 	SummonUnit
 	UpdateUnit
+	UpdateTower
 	TPS
 	RemoveUnit
 	StealLive

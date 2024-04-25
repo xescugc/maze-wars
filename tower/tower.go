@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"log"
+	"math"
 
 	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/unit/environment"
@@ -14,9 +15,10 @@ import (
 type Tower struct {
 	Type Type
 
-	Range  float64 `json:"range"`
-	Damage float64 `json:"damage"`
-	Gold   int     `json:"gold"`
+	Stats
+
+	Gold  int     `json:"gold"`
+	Range float64 `json:"range"`
 
 	Targets []environment.Environment `json:"targets"`
 	targets map[environment.Environment]struct{}
@@ -24,6 +26,15 @@ type Tower struct {
 	Keybind string
 
 	Faceset image.Image
+}
+
+type Stats struct {
+	Damage float64 `json:"damage"`
+}
+
+type Update struct {
+	UpdateCost int
+	Stats
 }
 
 func (t *Tower) FacesetKey() string { return fmt.Sprintf("t-f-%s", t.Type) }
@@ -43,6 +54,13 @@ func (t *Tower) initTargets() {
 
 var (
 	Towers map[string]*Tower
+
+	towerUpdates = make(map[string]map[int]Update)
+
+	updateCostBase   = 100
+	updateCostFactor = 0.5
+
+	updateStateDamageFactor = 1.5
 )
 
 func init() {
@@ -71,9 +89,34 @@ func init() {
 		}
 		tw.Type = ty
 		tw.initTargets()
+
+		towerUpdates[t] = make(map[int]Update)
+		for i := 2; i < 5; i++ {
+			towerUpdates[t][i] = Update{
+				UpdateCost: int(float64(updateCostBase) * updateCostFactor * math.Pow(2, float64((i-1)))),
+				Stats: Stats{
+					Damage: levelToValue(i, tw.Damage),
+				},
+			}
+		}
 	}
 }
 
 type SubImager interface {
 	SubImage(r image.Rectangle) image.Image
+}
+
+func FindUpdateByLevel(t string, lvl int) *Update {
+	tu, ok := towerUpdates[t][lvl]
+	if !ok {
+		return nil
+	}
+	return &tu
+}
+
+func levelToValue(lvl int, base float64) float64 {
+	for i := 1; i < lvl; i++ {
+		base = base * updateStateDamageFactor
+	}
+	return base
 }

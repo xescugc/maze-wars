@@ -11,6 +11,7 @@ import (
 
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
+	"github.com/ebitenui/ebitenui/input"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -26,6 +27,10 @@ import (
 const (
 	unitToolTipTmpl       = "Gold: %d\nHP: %.0f\nIncome: %d\nEnv: %s\nKeybind: %s"
 	unitUpdateToolTipTmpl = "Cost: %d\nGold: %d\nHP: %.0f\nIncome: %d"
+
+	towerRemoveToolTipTmpl = "Gold back: %d\nKeybind: %s"
+	towerUpdateToolTipTmpl = "Cost: %d\nDamage: %.1f\nKeybind: %s"
+	towerUpdateLimit       = "Tower is at it's max level"
 )
 
 // HUDStore is in charge of keeping track of all the elements
@@ -48,12 +53,18 @@ type HUDStore struct {
 	unitUpdatesTooltip map[string]*widget.Text
 
 	towersC *widget.Container
+
+	bottomLeftContainer *widget.Container
+	towerMenuContainer  *widget.Container
+	towerRemoveToolTip  *widget.Text
+	towerUpdateToolTip  *widget.Text
+	towerUpdateButton   *widget.Button
 }
 
 // HUDState stores the HUD state
 type HUDState struct {
-	SelectedTower   *SelectedTower
-	TowerOpenMenuID string
+	SelectedTower *SelectedTower
+	OpenTowerMenu *store.Tower
 
 	LastCursorPosition utils.Object
 
@@ -70,6 +81,9 @@ var (
 	// The key value of this maps is the TYPE of the Unit|Tower
 	unitKeybinds  = make(map[string]ebiten.Key)
 	towerKeybinds = make(map[string]ebiten.Key)
+
+	removeTowerKeybind = ebiten.KeyD
+	updateTowerKeybind = ebiten.KeyF
 )
 
 func init() {
@@ -142,24 +156,24 @@ func (hs *HUDStore) Update() error {
 		}
 		for _, t := range tws {
 			if clickAbsolute.IsColliding(t.Object) && cp.ID == t.PlayerID {
-				if hst.TowerOpenMenuID != "" {
-					// When the user clicks 2 times on the same tower we remove it
-					if t.ID == hst.TowerOpenMenuID {
-						actionDispatcher.RemoveTower(cp.ID, t.ID, t.Type)
-						actionDispatcher.CloseTowerMenu()
-						return nil
-					}
-				} else {
-					actionDispatcher.OpenTowerMenu(t.ID)
-					return nil
-				}
+				actionDispatcher.OpenTowerMenu(t.ID)
+				return nil
 			}
 		}
 		// If we are here no Tower was clicked but a click action was done,
-		// so we check if the TowerOpenMenuID is set to unset it as this was
+		// so we check if the OpenTowerMenu is set to unset it as this was
 		// a click-off
-		if hst.TowerOpenMenuID != "" {
-			actionDispatcher.CloseTowerMenu()
+		if hst.OpenTowerMenu != nil {
+			p := stdimage.Point{x, y}
+			w := hs.towerMenuContainer.GetWidget()
+			inside := p.In(w.Rect)
+			layer := w.EffectiveInputLayer()
+
+			clickedInside := inside && input.MouseButtonPressedLayer(ebiten.MouseButtonLeft, layer)
+
+			if !clickedInside {
+				actionDispatcher.CloseTowerMenu()
+			}
 		}
 	}
 
@@ -178,9 +192,16 @@ func (hs *HUDStore) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyF1) {
 		actionDispatcher.GoHome()
 	}
-	if hst.TowerOpenMenuID != "" {
+	if hst.OpenTowerMenu != nil {
 		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			actionDispatcher.CloseTowerMenu()
+		}
+		if inpututil.IsKeyJustPressed(removeTowerKeybind) {
+			actionDispatcher.RemoveTower(cp.ID, hst.OpenTowerMenu.ID)
+			actionDispatcher.CloseTowerMenu()
+		}
+		if inpututil.IsKeyJustPressed(updateTowerKeybind) {
+			actionDispatcher.UpdateTower(cp.ID, hst.OpenTowerMenu.ID)
 		}
 	}
 	if hst.SelectedTower != nil {
@@ -296,6 +317,28 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		hs.winLoseTextW.GetWidget().Visibility = widget.Visibility_Hide
 	}
 
+	if hst.OpenTowerMenu != nil {
+		// TODO: Add the keybind to the tooltip
+		hs.bottomLeftContainer.GetWidget().Visibility = widget.Visibility_Show
+		tu := tower.FindUpdateByLevel(hst.OpenTowerMenu.Type, hst.OpenTowerMenu.Level+1)
+		tc := tower.FindUpdateByLevel(hst.OpenTowerMenu.Type, hst.OpenTowerMenu.Level)
+		removeTowerGoldReturn := tower.Towers[hst.OpenTowerMenu.Type].Gold / 2
+		if tc != nil {
+			removeTowerGoldReturn = tc.UpdateCost / 2
+		}
+		// Where there is no more updates we disable the button
+		if tu == nil {
+			hs.towerUpdateButton.GetWidget().Disabled = true
+			hs.towerUpdateToolTip.Label = towerUpdateLimit
+		} else {
+			hs.towerUpdateButton.GetWidget().Disabled = cp.Gold < tu.UpdateCost
+			hs.towerUpdateToolTip.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tu.UpdateCost, tu.Stats.Damage, updateTowerKeybind)
+		}
+		hs.towerRemoveToolTip.Label = fmt.Sprintf(towerRemoveToolTipTmpl, removeTowerGoldReturn, removeTowerKeybind)
+	} else {
+		hs.bottomLeftContainer.GetWidget().Visibility = widget.Visibility_Hide
+	}
+
 	hs.ui.Draw(screen)
 
 	if hst.SelectedTower != nil {
@@ -381,15 +424,30 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 			hstate.SelectedTower.Invalid = act.SelectedTowerInvalid.Invalid
 		}
 	case action.OpenTowerMenu:
-		hstate.TowerOpenMenuID = act.OpenTowerMenu.TowerID
+		hstate.OpenTowerMenu = hs.findTowerByID(act.OpenTowerMenu.TowerID)
+	case action.UpdateTower:
+		hs.GetDispatcher().WaitFor(hs.game.Store.Lines.GetDispatcherToken())
+
+		// As the UpdateTower is done we need to update the OpenTowerMenu
+		// so we can display the new information
+		hstate.OpenTowerMenu = hs.findTowerByID(act.UpdateTower.TowerID)
 	case action.CloseTowerMenu:
-		hstate.TowerOpenMenuID = ""
+		hstate.OpenTowerMenu = nil
 	case action.ToggleStats:
 		hstate.ShowStats = !hstate.ShowStats
 	default:
 	}
 
 	return hstate
+}
+
+func (hs *HUDStore) findTowerByID(tid string) *store.Tower {
+	for _, l := range hs.game.Store.Lines.List() {
+		if t, ok := l.Towers[tid]; ok {
+			return t
+		}
+	}
+	return nil
 }
 
 func fixPosition(cs CameraState, x, y int) (int, int) {
@@ -834,6 +892,9 @@ func (hs *HUDStore) buildUI() {
 	)
 	bottomRightContainer.AddChild(tabBook)
 
+	bottomLeftContainer := hs.guiBottomLeft()
+	bottomLeftContainer.GetWidget().Visibility = widget.Visibility_Hide
+
 	hs.incomeTextW = incomeTextW
 	hs.statsListW = statsListW
 
@@ -904,9 +965,141 @@ func (hs *HUDStore) buildUI() {
 	rootContainer.AddChild(topRightContainer)
 	rootContainer.AddChild(topLeftBtnContainer)
 	rootContainer.AddChild(bottomRightContainer)
+	rootContainer.AddChild(bottomLeftContainer)
 	rootContainer.AddChild(centerTextContainer)
 
 	hs.ui = &ebitenui.UI{
 		Container: rootContainer,
 	}
+}
+
+func (hs *HUDStore) guiBottomLeft() *widget.Container {
+	bottomLeftContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+	towerMenuC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(5),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(5, 5),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false, false, false, false, false}, []bool{false, false, false, false, false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionStart,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+	)
+	// Remove button
+	removeToolTipContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+		widget.ContainerOpts.AutoDisableChildren(),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+	)
+
+	removeToolTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text(fmt.Sprintf(towerRemoveToolTipTmpl, 0, removeTowerKeybind), cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+	)
+	hs.towerRemoveToolTip = removeToolTxt
+	removeToolTipContainer.AddChild(removeToolTxt)
+
+	rbtn := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				MaxWidth:  38,
+				MaxHeight: 38,
+			}),
+			widget.WidgetOpts.ToolTip(widget.NewToolTip(
+				widget.ToolTipOpts.Content(removeToolTipContainer),
+				//widget.WidgetToolTipOpts.Delay(1*time.Second),
+				widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+				widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+				//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+				//They will default to what you see below if you do not provide them
+				widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+			)),
+		),
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(crossImageKey))),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
+			return func(args *widget.ButtonClickedEventArgs) {
+				cp := hs.game.Store.Players.FindCurrent()
+				otm := hs.GetState().(HUDState).OpenTowerMenu
+				actionDispatcher.RemoveTower(cp.ID, otm.ID)
+				actionDispatcher.CloseTowerMenu()
+			}
+		}()),
+	)
+	towerMenuC.AddChild(rbtn)
+
+	// Update button
+	updateToolTipContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+		widget.ContainerOpts.AutoDisableChildren(),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+	)
+
+	updateToolTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text(fmt.Sprintf(towerUpdateToolTipTmpl, 0, 0.0, updateTowerKeybind), cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+	)
+	hs.towerUpdateToolTip = updateToolTxt
+	updateToolTipContainer.AddChild(updateToolTxt)
+
+	ubtn := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				MaxWidth:  38,
+				MaxHeight: 38,
+			}),
+			widget.WidgetOpts.ToolTip(widget.NewToolTip(
+				widget.ToolTipOpts.Content(updateToolTipContainer),
+				//widget.WidgetToolTipOpts.Delay(1*time.Second),
+				widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+				widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+				//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+				//They will default to what you see below if you do not provide them
+				widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+			)),
+		),
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(arrowImageKey))),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
+			return func(args *widget.ButtonClickedEventArgs) {
+				cp := hs.game.Store.Players.FindCurrent()
+				tomid := hs.GetState().(HUDState).OpenTowerMenu.ID
+				actionDispatcher.UpdateTower(cp.ID, tomid)
+			}
+		}()),
+	)
+	towerMenuC.AddChild(ubtn)
+	bottomLeftContainer.AddChild(towerMenuC)
+	hs.bottomLeftContainer = bottomLeftContainer
+	hs.towerMenuContainer = towerMenuC
+	hs.towerUpdateButton = ubtn
+
+	return bottomLeftContainer
 }

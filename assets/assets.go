@@ -110,3 +110,6 @@ var LifeBarMiniProgress_png []byte
 
 //go:embed LifeBarMiniUnder.png
 var LifeBarMiniUnder_png []byte
+
+//go:embed Arrow.png
+var Arrow_png []byte

@@ -3,6 +3,7 @@ package action
 import (
 	"time"
 
+	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
 	"github.com/xescugc/maze-wars/utils/graph"
@@ -18,6 +19,7 @@ type Action struct {
 	RemoveUnit           *RemoveUnitPayload           `json:"remove_unit,omitempty"`
 	ChangeUnitLine       *ChangeUnitLinePayload       `json:"change_unit_line,omitempty"`
 	UpdateUnit           *UpdateUnitPayload           `json:"update_unit,omitempty"`
+	UpdateTower          *UpdateTowerPayload          `json:"update_tower,omitempty"`
 	StealLive            *StealLivePayload            `json:"steal_live,omitempty"`
 	CameraZoom           *CameraZoomPayload           `json:"camera_zoom,omitempty"`
 	SelectTower          *SelectTowerPayload          `json:"select_tower,omitempty"`
@@ -170,18 +172,16 @@ func NewPlaceTower(t, pid string, x, y int) *Action {
 }
 
 type RemoveTowerPayload struct {
-	PlayerID  string
-	TowerID   string
-	TowerType string
+	PlayerID string
+	TowerID  string
 }
 
-func NewRemoveTower(pid, tid, tt string) *Action {
+func NewRemoveTower(pid, tid string) *Action {
 	return &Action{
 		Type: RemoveTower,
 		RemoveTower: &RemoveTowerPayload{
-			PlayerID:  pid,
-			TowerID:   tid,
-			TowerType: tt,
+			PlayerID: pid,
+			TowerID:  tid,
 		},
 	}
 }
@@ -235,16 +235,16 @@ func NewWaitRoomCountdownTick() *Action {
 }
 
 type TowerAttackPayload struct {
-	TowerType string
-	UnitID    string
+	TowerID string
+	UnitID  string
 }
 
-func NewTowerAttack(uid, tt string) *Action {
+func NewTowerAttack(uid, tid string) *Action {
 	return &Action{
 		Type: TowerAttack,
 		TowerAttack: &TowerAttackPayload{
-			UnitID:    uid,
-			TowerType: tt,
+			UnitID:  uid,
+			TowerID: tid,
 		},
 	}
 }
@@ -518,6 +518,8 @@ type SyncStateTowerPayload struct {
 	Type     string
 	LineID   int
 	PlayerID string
+	Stats    tower.Stats
+	Level    int
 }
 
 type SyncStateUnitPayload struct {
@@ -585,6 +587,21 @@ func NewUpdateUnit(pid, t string) *Action {
 		Type: UpdateUnit,
 		UpdateUnit: &UpdateUnitPayload{
 			Type:     t,
+			PlayerID: pid,
+		},
+	}
+}
+
+type UpdateTowerPayload struct {
+	TowerID  string
+	PlayerID string
+}
+
+func NewUpdateTower(pid, tid string) *Action {
+	return &Action{
+		Type: UpdateTower,
+		UpdateTower: &UpdateTowerPayload{
+			TowerID:  tid,
 			PlayerID: pid,
 		},
 	}
