@@ -60,6 +60,10 @@ type Tower struct {
 	Type     string
 	LineID   int
 	PlayerID string
+
+	Stats tower.Stats
+
+	Level int
 }
 
 func (t *Tower) FacetKey() string { return tower.Towers[t.Type].FacesetKey() }
@@ -190,6 +194,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Type:     act.PlaceTower.Type,
 			LineID:   p.LineID,
 			PlayerID: p.ID,
+			Level:    1,
+			Stats:    tower.Towers[act.PlaceTower.Type].Stats,
 		}
 
 		l := lstate.Lines[p.LineID]
@@ -199,7 +205,28 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		l.Towers[tw.ID] = tw
 
 		recalculateLineUnitSteps(l)
+	case action.UpdateTower:
+		ls.mxLines.Lock()
+		defer ls.mxLines.Unlock()
+
+		p := ls.store.Players.FindByID(act.UpdateTower.PlayerID)
+		l := lstate.Lines[p.LineID]
+		t := l.Towers[act.UpdateTower.TowerID]
+		tu := tower.FindUpdateByLevel(t.Type, t.Level+1)
+		if tu != nil {
+			if p.Gold-tu.UpdateCost > 0 {
+				t.Stats = tu.Stats
+				t.Level += 1
+			}
+		}
+
 	case action.RemoveTower:
+		// We wait so the players store can get the tower before we remove it
+		ls.GetDispatcher().WaitFor(ls.store.Players.GetDispatcherToken())
+
+		ls.mxLines.Lock()
+		defer ls.mxLines.Unlock()
+
 		// TODO: Add the LineID
 		for _, l := range lstate.Lines {
 			if ok := l.Graph.RemoveTower(act.RemoveTower.TowerID); ok {
@@ -214,7 +241,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		// TODO: Add the LineID
 		for _, l := range lstate.Lines {
 			if u, ok := l.Units[act.TowerAttack.UnitID]; ok {
-				u.Health -= tower.Towers[act.TowerAttack.TowerType].Damage
+				tw := l.Towers[act.TowerAttack.TowerID]
+				u.Health -= tw.Stats.Damage
 				if u.Health <= 0 {
 					u.Health = 0
 				}

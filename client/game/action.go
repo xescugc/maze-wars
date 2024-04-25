@@ -59,6 +59,7 @@ func (ac *ActionDispatcher) SummonUnit(unit, pid string, plid, clid int) {
 func (ac *ActionDispatcher) UpdateUnit(pid, ut string) {
 	uua := action.NewUpdateUnit(pid, ut)
 	ac.wsSend(uua)
+	ac.Dispatch(uua)
 }
 
 // TPS is the call for every TPS event
@@ -100,8 +101,8 @@ func (ac *ActionDispatcher) PlaceTower(t, pid string, x, y int) {
 }
 
 // RemoveTower removes the tower tid
-func (ac *ActionDispatcher) RemoveTower(pid, tid, tt string) {
-	rta := action.NewRemoveTower(pid, tid, tt)
+func (ac *ActionDispatcher) RemoveTower(pid, tid string) {
+	rta := action.NewRemoveTower(pid, tid)
 	ac.wsSend(rta)
 	//ac.Dispatch(rta)
 }
@@ -131,8 +132,8 @@ func (ac *ActionDispatcher) IncomeTick() {
 }
 
 // TowerAttack issues a attack to the Unit with uid
-func (ac *ActionDispatcher) TowerAttack(uid, tt string) {
-	ta := action.NewTowerAttack(uid, tt)
+func (ac *ActionDispatcher) TowerAttack(uid, tid string) {
+	ta := action.NewTowerAttack(uid, tid)
 	ac.wsSend(ta)
 	ac.Dispatch(ta)
 }
@@ -181,4 +182,11 @@ func (ac *ActionDispatcher) ToggleStats() {
 func (ac *ActionDispatcher) GoHome() {
 	gha := action.NewGoHome()
 	ac.Dispatch(gha)
+}
+
+// GoHome will move the camera to the current player home line
+func (ac *ActionDispatcher) UpdateTower(pid, tid string) {
+	uta := action.NewUpdateTower(pid, tid)
+	ac.wsSend(uta)
+	ac.Dispatch(uta)
 }

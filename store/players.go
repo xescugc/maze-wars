@@ -44,7 +44,7 @@ type Player struct {
 	Current bool
 	Winner  bool
 
-	// UnitUpdates holds the current unit version
+	// UnitUpdates holds the current unit level
 	UnitUpdates map[string]UnitUpdate
 }
 
@@ -259,7 +259,16 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
 
-		pstate.Players[act.RemoveTower.PlayerID].Gold += tower.Towers[act.RemoveTower.TowerType].Gold / 2
+		p := pstate.Players[act.RemoveTower.PlayerID]
+		l := ps.store.Lines.FindByID(p.LineID)
+		t := l.Towers[act.RemoveTower.TowerID]
+
+		removeTowerGoldReturn := tower.Towers[t.Type].Gold / 2
+		tc := tower.FindUpdateByLevel(t.Type, t.Level)
+		if tc != nil {
+			removeTowerGoldReturn = tc.UpdateCost / 2
+		}
+		pstate.Players[act.RemoveTower.PlayerID].Gold += removeTowerGoldReturn
 	case action.UnitKilled:
 		ps.mxPlayers.Lock()
 		defer ps.mxPlayers.Unlock()
@@ -282,6 +291,26 @@ func (ps *Players) Reduce(state, a interface{}) interface{} {
 			Level:      buu.Level + 1,
 			UpdateCost: updateCostFactor * buu.Next.Gold,
 			Next:       unitUpdate(buu.Level+2, u.Type.String(), u.Stats),
+		}
+
+	case action.UpdateTower:
+		// We need to wait for the towers if not it cannot check
+		// if the unit can be summoned if the Gold has already been removed
+		ps.GetDispatcher().WaitFor(ps.store.Lines.GetDispatcherToken())
+
+		ps.mxPlayers.Lock()
+		defer ps.mxPlayers.Unlock()
+
+		p := pstate.Players[act.UpdateTower.PlayerID]
+		l := ps.store.Lines.FindByID(p.LineID)
+		t := l.Towers[act.UpdateTower.TowerID]
+		// As the tower has been already updated the level is for the current
+		// and not for the +1 as the Line store
+		tu := tower.FindUpdateByLevel(t.Type, t.Level)
+		if tu != nil {
+			if p.Gold-tu.UpdateCost > 0 {
+				p.Gold -= tu.UpdateCost
+			}
 		}
 
 	case action.SyncState:
