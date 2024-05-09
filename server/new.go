@@ -16,6 +16,7 @@ import (
 
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server/assets"
+	"github.com/xescugc/maze-wars/server/models"
 	"github.com/xescugc/maze-wars/server/templates"
 )
 
@@ -35,16 +36,21 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 
 	r := mux.NewRouter()
 
+	// Game Websocket
 	r.HandleFunc("/ws", wsHandler(s)).Methods(http.MethodGet)
 
+	// Webpage
 	r.HandleFunc("/play", playHandler).Methods(http.MethodGet)
 	r.HandleFunc("/download", downloadHandler).Methods(http.MethodGet)
 	r.HandleFunc("/game", gameHandler(opt.Version)).Methods(http.MethodGet)
 	r.HandleFunc("/docs", docsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
 
+	// Game Endpoints
 	r.HandleFunc("/users", usersCreateHandler(s)).Methods(http.MethodPost).Headers("Content-Type", "application/json")
 	r.HandleFunc("/version", versionHandler(opt.Version)).Methods(http.MethodPost).Headers("Content-Type", "application/json")
+
+	r.HandleFunc("/lobbies", listLobbiesHandler(s)).Methods(http.MethodGet)
 
 	hmux := http.NewServeMux()
 	hmux.Handle("/", r)
@@ -141,6 +147,30 @@ func usersCreateHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+func listLobbiesHandler(s *Store) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		lobbies := s.Lobbies.List()
+		respLobbies := models.LobbiesResponse{
+			Lobbies: make([]models.LobbyResponse, 0, len(lobbies)),
+		}
+
+		for _, l := range lobbies {
+			lr := models.LobbyResponse{
+				ID:         l.ID,
+				Name:       l.Name,
+				MaxPlayers: l.MaxPlayers,
+				Owner:      l.Owner,
+				Players:    l.PlayersSlice(),
+			}
+			respLobbies.Lobbies = append(respLobbies.Lobbies, lr)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(respLobbies)
+	}
+}
+
 type versionRequest struct {
 	Version string `json:"version"`
 }
@@ -218,6 +248,7 @@ func startLoop(ctx context.Context, s *Store) {
 			actionDispatcher.IncomeTick(s.Rooms)
 			actionDispatcher.WaitRoomCountdownTick()
 			actionDispatcher.SyncWaitingRoom(s.Rooms)
+			actionDispatcher.SyncLobbies(s)
 		case <-usersTicker.C:
 			actionDispatcher.SyncUsers(s.Users)
 		case <-ctx.Done():

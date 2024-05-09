@@ -173,7 +173,7 @@ func (su *SignUpStore) buildUI() {
 		//This text is displayed if the input is empty
 		widget.TextInputOpts.Placeholder("Enter Username"),
 
-		//This is called when the suer hits the "Enter" key.
+		//This is called when the user hits the "Enter" key.
 		//There are other options that can configure this behavior
 		widget.TextInputOpts.SubmitHandler(func(args *widget.TextInputChangedEventArgs) {
 			actionDispatcher.SignUpSubmit(args.InputText)

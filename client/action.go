@@ -13,6 +13,7 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	cutils "github.com/xescugc/maze-wars/client/utils"
+	"github.com/xescugc/maze-wars/server/models"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
 	"nhooyr.io/websocket"
@@ -57,7 +58,38 @@ func (ac *ActionDispatcher) WindowResizing(w, h int) {
 // NavigateTo navigates to the given route
 func (ac *ActionDispatcher) NavigateTo(route string) {
 	nt := action.NewNavigateTo(route)
+	// If we are going to the LobbiesRoute we need to
+	// preload the data
+	if route == cutils.LobbiesRoute {
+		ac.RefreshLobbies()
+	}
 	ac.Dispatch(nt)
+}
+
+func (ac *ActionDispatcher) RefreshLobbies() {
+	httpu, _ := url.Parse(ac.opt.HostURL)
+	httpu.Path = "/lobbies"
+	resp, err := http.Get(httpu.String())
+	if err != nil {
+		ac.logger.Error(err.Error())
+		return
+	}
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+	mlbs := &models.LobbiesResponse{}
+	err = json.NewDecoder(resp.Body).Decode(&mlbs)
+	if err != nil {
+		ac.logger.Error(err.Error())
+		return
+	}
+
+	lbs := make([]*action.LobbyPayload, 0, len(mlbs.Lobbies))
+	for _, ml := range mlbs.Lobbies {
+		allp := action.LobbyPayload(ml)
+		lbs = append(lbs, &allp)
+	}
+	ac.Dispatch(action.NewAddLobbies(&action.AddLobbiesPayload{Lobbies: lbs}))
 }
 
 func (ac *ActionDispatcher) CheckVersion() {
@@ -134,7 +166,7 @@ func (ac *ActionDispatcher) SignUpSubmit(un string) {
 
 	go wsHandler(ctx)
 
-	ac.Dispatch(action.NewNavigateTo(cutils.LobbyRoute))
+	ac.Dispatch(action.NewNavigateTo(cutils.RootRoute))
 }
 
 // GoHome will move the camera to the current player home line
@@ -154,5 +186,39 @@ func (ac *ActionDispatcher) ExitWaitingRoom(un string) {
 	ewra := action.NewExitWaitingRoom(un)
 	wsSend(ewra)
 
-	ac.Dispatch(action.NewNavigateTo(cutils.LobbyRoute))
+	ac.Dispatch(action.NewNavigateTo(cutils.RootRoute))
+}
+
+func (ac *ActionDispatcher) CreateLobby(lid, o, ln string, lmp int) {
+	cla := action.NewCreateLobby(lid, o, ln, lmp)
+	wsSend(cla)
+	ac.Dispatch(cla)
+}
+
+func (ac *ActionDispatcher) SelectLobby(lid string) {
+	sla := action.NewSelectLobby(lid)
+	ac.Dispatch(sla)
+}
+
+func (ac *ActionDispatcher) DeleteLobby(lid string) {
+	dla := action.NewDeleteLobby(lid)
+	wsSend(dla)
+	ac.Dispatch(dla)
+}
+
+func (ac *ActionDispatcher) LeaveLobby(lid, un string) {
+	lla := action.NewLeaveLobby(lid, un)
+	wsSend(lla)
+	ac.Dispatch(lla)
+}
+
+func (ac *ActionDispatcher) JoinLobby(lid, un string) {
+	jla := action.NewJoinLobby(lid, un)
+	wsSend(jla)
+	ac.Dispatch(jla)
+}
+
+func (ac *ActionDispatcher) StartLobby(lid string) {
+	sla := action.NewStartLobby(lid)
+	wsSend(sla)
 }

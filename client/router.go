@@ -16,23 +16,31 @@ type RouterStore struct {
 	*flux.ReduceStore
 
 	game        *Game
-	lobby       *LobbyStore
+	root        *RootStore
 	signUp      *SignUpStore
 	waitingRoom *WaitingRoomStore
-	logger      *slog.Logger
+	lobbies     *LobbiesView
+	newLobby    *NewLobbyView
+	showLobby   *ShowLobbyView
+
+	logger *slog.Logger
 }
 
 type RouterState struct {
 	Route string
 }
 
-func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ls *LobbyStore, wr *WaitingRoomStore, g *Game, l *slog.Logger) *RouterStore {
+func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ros *RootStore, wr *WaitingRoomStore, g *Game, lv *LobbiesView, nlv *NewLobbyView, slv *ShowLobbyView, l *slog.Logger) *RouterStore {
 	rs := &RouterStore{
 		game:        g,
-		lobby:       ls,
+		root:        ros,
 		signUp:      su,
 		waitingRoom: wr,
-		logger:      l,
+		lobbies:     lv,
+		newLobby:    nlv,
+		showLobby:   slv,
+
+		logger: l,
 	}
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RouterState{
@@ -50,10 +58,16 @@ func (rs *RouterStore) Update() error {
 	switch rstate.Route {
 	case cutils.SignUpRoute:
 		rs.signUp.Update()
-	case cutils.LobbyRoute:
-		rs.lobby.Update()
+	case cutils.RootRoute:
+		rs.root.Update()
 	case cutils.WaitingRoomRoute:
 		rs.waitingRoom.Update()
+	case cutils.LobbiesRoute:
+		rs.lobbies.Update()
+	case cutils.NewLobbyRoute:
+		rs.newLobby.Update()
+	case cutils.ShowLobbyRoute:
+		rs.showLobby.Update()
 	case cutils.GameRoute:
 		rs.game.Update()
 	}
@@ -68,10 +82,16 @@ func (rs *RouterStore) Draw(screen *ebiten.Image) {
 	switch rstate.Route {
 	case cutils.SignUpRoute:
 		rs.signUp.Draw(screen)
-	case cutils.LobbyRoute:
-		rs.lobby.Draw(screen)
+	case cutils.RootRoute:
+		rs.root.Draw(screen)
 	case cutils.WaitingRoomRoute:
 		rs.waitingRoom.Draw(screen)
+	case cutils.LobbiesRoute:
+		rs.lobbies.Draw(screen)
+	case cutils.NewLobbyRoute:
+		rs.newLobby.Draw(screen)
+	case cutils.ShowLobbyRoute:
+		rs.showLobby.Draw(screen)
 	case cutils.GameRoute:
 		rs.game.Draw(screen)
 	}

@@ -35,8 +35,18 @@ const (
 	UserSignOut
 	JoinWaitingRoom
 	ExitWaitingRoom
+	StartRoom
 	ToggleStats
 	VersionError
+
+	CreateLobby
+	DeleteLobby
+	JoinLobby
+	AddLobbies
+	SelectLobby
+	LeaveLobby
+	UpdateLobby
+	StartLobby
 
 	// Specific to WS
 	AddPlayer

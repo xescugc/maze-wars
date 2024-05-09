@@ -6,7 +6,6 @@ import (
 	"image/color"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ebitenui/ebitenui"
@@ -248,9 +247,9 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	entries := make([]any, 0, 0)
 	entries = append(entries,
 		fmt.Sprintf("%s %s %s",
-			fillIn("Name", 10),
-			fillIn("Lives", 8),
-			fillIn("Income", 8)),
+			cutils.FillIn("Name", 10),
+			cutils.FillIn("Lives", 8),
+			cutils.FillIn("Income", 8)),
 	)
 
 	var sortedPlayers = make([]*store.Player, 0, 0)
@@ -268,9 +267,9 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	for _, p := range sortedPlayers {
 		entries = append(entries,
 			fmt.Sprintf("%s %s %s",
-				fillIn(p.Name, 10),
-				fillIn(strconv.Itoa(p.Lives), 8),
-				fillIn(strconv.Itoa(p.Income), 8)),
+				cutils.FillIn(p.Name, 10),
+				cutils.FillIn(strconv.Itoa(p.Lives), 8),
+				cutils.FillIn(strconv.Itoa(p.Income), 8)),
 		)
 	}
 	hs.statsListW.SetEntries(entries)
@@ -280,7 +279,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		visibility = widget.Visibility_Hide_Blocking
 	}
 	hs.statsListW.GetWidget().Visibility = visibility
-	hs.incomeTextW.Label = fmt.Sprintf("Gold: %s Income Timer: %ds", fillIn(strconv.Itoa(cp.Gold), 5), psit)
+	hs.incomeTextW.Label = fmt.Sprintf("Gold: %s Income Timer: %ds", cutils.FillIn(strconv.Itoa(cp.Gold), 5), psit)
 
 	wuts := hs.unitsC.Children()
 	for i, u := range sortedUnits() {
@@ -352,26 +351,6 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 		screen.DrawImage(imagesCache.Get(hst.SelectedTower.FacetKey()), op)
 	}
-}
-
-func fillIn(s string, l int) string {
-	tl := len(s) > l
-	ss := make([]string, l, l)
-	for i, v := range s {
-		if i >= l {
-			break
-		} else if i > 6 && tl {
-			ss[i] = "."
-		} else {
-			ss[i] = string(v)
-		}
-	}
-	for i, v := range ss {
-		if string(v) == "" {
-			ss[i] = " "
-		}
-	}
-	return strings.Join(ss, "")
 }
 
 func (hs *HUDStore) Reduce(state, a interface{}) interface{} {

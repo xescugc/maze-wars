@@ -39,6 +39,15 @@ type Action struct {
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu,omitempty"`
 	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu,omitempty"`
 
+	CreateLobby *CreateLobbyPayload `json:"create_lobby,omitempty"`
+	DeleteLobby *DeleteLobbyPayload `json:"delete_lobby,omitempty"`
+	JoinLobby   *JoinLobbyPayload   `json:"join_lobby,omitempty"`
+	AddLobbies  *AddLobbiesPayload  `json:"add_lobbies,omitempty"`
+	SelectLobby *SelectLobbyPayload `json:"select_lobby,omitempty"`
+	LeaveLobby  *LeaveLobbyPayload  `json:"leave_lobby,omitempty"`
+	UpdateLobby *UpdateLobbyPayload `json:"update_lobby,omitempty"`
+	StartLobby  *StartLobbyPayload  `json:"start_lobby,omitempty"`
+
 	UserSignUp  *UserSignUpPayload  `json:"user_sign_up,omitempty"`
 	SignUpError *SignUpErrorPayload `json:"sign_in_error,omitempty"`
 	UserSignIn  *UserSignInPayload  `json:"user_sign_in,omitempty"`
@@ -48,6 +57,7 @@ type Action struct {
 	RemovePlayer    *RemovePlayerPayload    `json:"remove_player,omitempty"`
 	JoinWaitingRoom *JoinWaitingRoomPayload `json:"join_waiting_room,omitempty"`
 	ExitWaitingRoom *ExitWaitingRoomPayload `json:"exit_waiting_room,omitempty"`
+	StartRoom       *StartRoomPayload       `json:"start_room,omitempty"`
 	SyncState       *SyncStatePayload       `json:"sync_state,omitempty"`
 	SyncUsers       *SyncUsersPayload       `json:"sync_users,omitempty"`
 	SyncWaitingRoom *SyncWaitingRoomPayload `json:"sync_waiting_room,omitempty"`
@@ -332,6 +342,19 @@ func NewStartGame() *Action {
 	}
 }
 
+type StartRoomPayload struct {
+	RoomID string
+}
+
+func NewStartRoom(rid string) *Action {
+	return &Action{
+		Type: StartRoom,
+		StartRoom: &StartRoomPayload{
+			RoomID: rid,
+		},
+	}
+}
+
 type OpenTowerMenuPayload struct {
 	TowerID string
 }
@@ -603,6 +626,128 @@ func NewUpdateTower(pid, tid string) *Action {
 		UpdateTower: &UpdateTowerPayload{
 			TowerID:  tid,
 			PlayerID: pid,
+		},
+	}
+}
+
+type CreateLobbyPayload struct {
+	LobbyID         string
+	Owner           string
+	LobbyName       string
+	LobbyMaxPlayers int
+}
+
+func NewCreateLobby(lid, o, ln string, lmp int) *Action {
+	return &Action{
+		Type: CreateLobby,
+		CreateLobby: &CreateLobbyPayload{
+			LobbyID:         lid,
+			Owner:           o,
+			LobbyName:       ln,
+			LobbyMaxPlayers: lmp,
+		},
+	}
+}
+
+type DeleteLobbyPayload struct {
+	LobbyID string
+}
+
+func NewDeleteLobby(lid string) *Action {
+	return &Action{
+		Type: DeleteLobby,
+		DeleteLobby: &DeleteLobbyPayload{
+			LobbyID: lid,
+		},
+	}
+}
+
+type JoinLobbyPayload struct {
+	LobbyID  string
+	Username string
+}
+
+func NewJoinLobby(lid, un string) *Action {
+	return &Action{
+		Type: JoinLobby,
+		JoinLobby: &JoinLobbyPayload{
+			LobbyID:  lid,
+			Username: un,
+		},
+	}
+}
+
+type AddLobbiesPayload struct {
+	Lobbies []*LobbyPayload
+}
+
+type LobbyPayload struct {
+	ID         string
+	Name       string
+	MaxPlayers int
+
+	Players []string
+
+	Owner string
+}
+
+func NewAddLobbies(lbs *AddLobbiesPayload) *Action {
+	return &Action{
+		Type:       AddLobbies,
+		AddLobbies: lbs,
+	}
+}
+
+type SelectLobbyPayload struct {
+	LobbyID string
+}
+
+func NewSelectLobby(lbi string) *Action {
+	return &Action{
+		Type: SelectLobby,
+		SelectLobby: &SelectLobbyPayload{
+			LobbyID: lbi,
+		},
+	}
+}
+
+type LeaveLobbyPayload struct {
+	LobbyID  string
+	Username string
+}
+
+func NewLeaveLobby(lbi, un string) *Action {
+	return &Action{
+		Type: LeaveLobby,
+		LeaveLobby: &LeaveLobbyPayload{
+			LobbyID:  lbi,
+			Username: un,
+		},
+	}
+}
+
+type UpdateLobbyPayload struct {
+	Lobby LobbyPayload
+}
+
+func NewUpdateLobby(l LobbyPayload) *Action {
+	return &Action{
+		Type: UpdateLobby,
+		UpdateLobby: &UpdateLobbyPayload{
+			Lobby: l,
+		},
+	}
+}
+
+type StartLobbyPayload struct {
+	LobbyID string
+}
+
+func NewStartLobby(lid string) *Action {
+	return &Action{
+		Type: StartLobby,
+		StartLobby: &StartLobbyPayload{
+			LobbyID: lid,
 		},
 	}
 }

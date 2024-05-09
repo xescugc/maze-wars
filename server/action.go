@@ -8,6 +8,7 @@ import (
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
 	"nhooyr.io/websocket"
@@ -21,6 +22,8 @@ type ActionDispatcher struct {
 	logger     *slog.Logger
 	ws         WSConnector
 }
+
+const noRoomID = ""
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
@@ -43,25 +46,87 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	case action.JoinWaitingRoom:
 		ac.dispatcher.Dispatch(a)
 
-		ac.startGame()
+		ac.startGame(noRoomID)
+	case action.DeleteLobby:
+		l := ac.store.Lobbies.FindByID(a.DeleteLobby.LobbyID)
+		ac.dispatcher.Dispatch(a)
+		ac.notifyPlayersLobbyDeleted(l.PlayersSlice())
+	case action.UserSignOut:
+		u, _ := ac.store.Users.FindByUsername(a.UserSignOut.Username)
+		l := ac.store.Lobbies.FindByID(u.CurrentLobbyID)
+		ac.dispatcher.Dispatch(a)
+		if l != nil {
+			nl := ac.store.Lobbies.FindByID(u.CurrentLobbyID)
+			// It has been deleted
+			if nl == nil {
+				ac.notifyPlayersLobbyDeleted(l.PlayersSlice())
+			}
+		}
+	case action.StartLobby:
+		// Order of things:
+		// * I create the Room from the Lobby
+		// * I start the room
+		// * I delete the lobby
+		ac.dispatcher.Dispatch(a)
+		ac.startGame(a.StartLobby.LobbyID)
+		ac.dispatcher.Dispatch(action.NewDeleteLobby(a.StartLobby.LobbyID))
 	default:
 		ac.dispatcher.Dispatch(a)
 	}
 }
 
-func (ac *ActionDispatcher) startGame() {
-	wr := ac.store.Rooms.FindCurrentWaitingRoom()
-	if wr == nil || (len(wr.Players) != wr.Size) {
-		return
+func (ac *ActionDispatcher) notifyPlayersLobbyDeleted(uns []string) {
+	lbs := ac.store.Lobbies.List()
+	albs := make([]*action.LobbyPayload, 0, len(lbs))
+	for _, l := range lbs {
+		albs = append(albs, &action.LobbyPayload{
+			ID:         l.ID,
+			Name:       l.Name,
+			MaxPlayers: l.MaxPlayers,
+			Players:    l.PlayersSlice(),
+			Owner:      l.Owner,
+		})
+	}
+	ala := action.NewAddLobbies(&action.AddLobbiesPayload{Lobbies: albs})
+	nto := action.NewNavigateTo(cutils.LobbiesRoute)
+
+	for _, un := range uns {
+		u, ok := ac.store.Users.FindByUsername(un)
+		if !ok {
+			continue
+		}
+
+		err := ac.ws.Write(context.Background(), u.Conn, ala)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = ac.ws.Write(context.Background(), u.Conn, nto)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func (ac *ActionDispatcher) startGame(roid string) {
+	var rid = roid
+	// If no rid is passed then the WR is the one chosen and
+	// will only start if it has the number of players
+	if rid == "" {
+		r := ac.store.Rooms.FindCurrentWaitingRoom()
+		if r == nil || (len(r.Players) != r.Size) {
+			return
+		}
+		rid = r.Name
 	}
 
 	rstate := ac.store.Rooms.GetState().(RoomsState)
 	sga := action.NewStartGame()
+	sra := action.NewStartRoom(rid)
 
-	ac.Dispatch(sga)
+	ac.Dispatch(sra)
 	ac.SyncState(ac.store.Rooms)
 
-	for _, p := range rstate.Rooms[wr.Name].Players {
+	for _, p := range rstate.Rooms[rid].Players {
 		err := ac.ws.Write(context.Background(), p.Conn, sga)
 		if err != nil {
 			log.Fatal(err)
@@ -78,7 +143,7 @@ func (ac *ActionDispatcher) WaitRoomCountdownTick() {
 	wrcta := action.NewWaitRoomCountdownTick()
 	ac.Dispatch(wrcta)
 
-	ac.startGame()
+	ac.startGame(noRoomID)
 }
 
 func (ac *ActionDispatcher) UserSignUp(un string) {
@@ -195,6 +260,30 @@ func (ac *ActionDispatcher) SyncWaitingRoom(rooms *RoomsStore) {
 			err := ac.ws.Write(context.Background(), p.Conn, swra)
 			if err != nil {
 				log.Fatal(err)
+			}
+		}
+	}
+}
+
+// SyncLobbies will just sync the info of each lobby to the players on it
+func (ac *ActionDispatcher) SyncLobbies(s *Store) {
+	lbs := s.Lobbies.List()
+	for _, l := range lbs {
+		al := action.LobbyPayload{
+			ID:         l.ID,
+			Name:       l.Name,
+			MaxPlayers: l.MaxPlayers,
+			Players:    l.PlayersSlice(),
+			Owner:      l.Owner,
+		}
+		ula := action.NewUpdateLobby(al)
+		for p := range l.Players {
+			u, ok := s.Users.FindByUsername(p)
+			if ok {
+				err := ac.ws.Write(context.Background(), u.Conn, ula)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 		}
 	}

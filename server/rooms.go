@@ -79,6 +79,18 @@ func (rs *RoomsStore) FindCurrentWaitingRoom() *Room {
 	return r
 }
 
+func (rs *RoomsStore) FindByID(rid string) *Room {
+	rs.mxRooms.RLock()
+	defer rs.mxRooms.RUnlock()
+
+	srooms := rs.GetState().(RoomsState)
+	r, ok := srooms.Rooms[rid]
+	if !ok {
+		return nil
+	}
+	return r
+}
+
 func (rs *RoomsStore) GetNextID(room string) int {
 	r, _ := rs.GetState().(RoomsState).Rooms[room]
 	return len(r.Players)
@@ -96,20 +108,43 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	switch act.Type {
-	case action.StartGame:
-		rs.GetDispatcher().WaitFor(rs.Store.Users.GetDispatcherToken())
+	case action.StartRoom:
+		rid := act.StartRoom.RoomID
 
 		rd := flux.NewDispatcher()
 		g := NewGame(rd, rs.logger)
-		rstate.Rooms[rstate.CurrentWaitingRoom].Game = g
+		rstate.Rooms[rid].Game = g
 		pcount := 0
-		for pid, pc := range rstate.Rooms[rstate.CurrentWaitingRoom].Players {
+		for pid, pc := range rstate.Rooms[rid].Players {
 			u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
 			g.Dispatch(action.NewAddPlayer(pid, u.Username, pcount))
 			pcount++
 		}
-		rstate.CurrentWaitingRoom = ""
+		if rid == rstate.CurrentWaitingRoom {
+			rstate.CurrentWaitingRoom = ""
+		}
 		g.Dispatch(action.NewStartGame())
+	case action.StartLobby:
+		l := rs.Store.Lobbies.FindByID(act.StartLobby.LobbyID)
+		r := &Room{
+			Name:        l.ID,
+			Players:     make(map[string]PlayerConn),
+			Connections: make(map[string]string),
+
+			Size:      l.MaxPlayers,
+			Countdown: 10,
+		}
+
+		for p := range l.Players {
+			us, _ := rs.Store.Users.FindByUsername(p)
+			r.Players[us.ID] = PlayerConn{
+				Conn:       us.Conn,
+				RemoteAddr: us.RemoteAddr,
+			}
+			r.Connections[us.RemoteAddr] = us.ID
+		}
+
+		rstate.Rooms[l.ID] = r
 
 	case action.RemovePlayer:
 		rs.mxRooms.Lock()
