@@ -28,7 +28,8 @@ type User struct {
 	Conn       *websocket.Conn
 	RemoteAddr string
 
-	CurrentRoomID string
+	CurrentRoomID  string
+	CurrentLobbyID string
 }
 
 func NewUsersStore(d *flux.Dispatcher, s *Store) *UsersStore {
@@ -114,11 +115,11 @@ func (us *UsersStore) Reduce(state, a interface{}) interface{} {
 		defer us.mxUsers.Unlock()
 
 		delete(ustate.Users, act.UserSignOut.Username)
-	case action.StartGame:
+	case action.StartRoom:
 		us.mxUsers.Lock()
 		defer us.mxUsers.Unlock()
 
-		r := us.Store.Rooms.FindCurrentWaitingRoom()
+		r := us.Store.Rooms.FindByID(act.StartRoom.RoomID)
 		if r != nil {
 			for pid := range r.Players {
 				for _, u := range ustate.Users {
@@ -128,7 +129,6 @@ func (us *UsersStore) Reduce(state, a interface{}) interface{} {
 				}
 			}
 		}
-
 	case action.RemovePlayer:
 		us.mxUsers.Lock()
 		defer us.mxUsers.Unlock()
@@ -139,6 +139,32 @@ func (us *UsersStore) Reduce(state, a interface{}) interface{} {
 				break
 			}
 		}
+
+	// Lobby actions
+	case action.JoinLobby:
+		us.mxUsers.Lock()
+		defer us.mxUsers.Unlock()
+
+		ustate.Users[act.JoinLobby.Username].CurrentLobbyID = act.JoinLobby.LobbyID
+	case action.LeaveLobby:
+		us.mxUsers.Lock()
+		defer us.mxUsers.Unlock()
+
+		ustate.Users[act.LeaveLobby.Username].CurrentLobbyID = ""
+	case action.DeleteLobby:
+		us.mxUsers.Lock()
+		defer us.mxUsers.Unlock()
+
+		// TODO: Potentially make it better if this could have access to the
+		// lobby and just target the users that we know need this.
+		// It has access but it would need a WaitFor in order so synchronize
+		for _, u := range ustate.Users {
+			if u.CurrentLobbyID == act.DeleteLobby.LobbyID {
+				u.CurrentLobbyID = ""
+			}
+		}
+	case action.CreateLobby:
+		ustate.Users[act.CreateLobby.Owner].CurrentLobbyID = act.CreateLobby.LobbyID
 	}
 
 	return ustate

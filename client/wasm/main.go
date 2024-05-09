@@ -66,9 +66,9 @@ func NewClient() js.Func {
 		us := client.NewUserStore(d)
 		cls := client.NewStore(s, us)
 
-		ls, err := client.NewLobbyStore(d, cls, l)
+		ros, err := client.NewRootStore(d, cls, l)
 		if err != nil {
-			return fmt.Errorf("failed to initialize LobbyStore: %w", err)
+			return fmt.Errorf("failed to initialize RootStore: %w", err)
 		}
 
 		u, err := client.NewSignUpStore(d, s, l)
@@ -77,8 +77,11 @@ func NewClient() js.Func {
 		}
 
 		wr := client.NewWaitingRoomStore(d, cls, l)
+		lv := client.NewLobbiesView(cls, l)
+		nlv := client.NewNewLobbyView(cls, l)
+		slv := client.NewShowLobbyView(cls, l)
 
-		rs := client.NewRouterStore(d, u, ls, wr, g, l)
+		rs := client.NewRouterStore(d, u, ros, wr, g, lv, nlv, slv, l)
 
 		ctx := context.Background()
 		// We need to run this in a goroutine so when it's compiled to WASM

@@ -149,7 +149,7 @@ func (ac *ActionDispatcher) RemovePlayer(pid string) {
 	rpa := action.NewRemovePlayer(pid)
 	ac.wsSend(rpa)
 	ac.Dispatch(rpa)
-	ac.Dispatch(action.NewNavigateTo(cutils.LobbyRoute))
+	ac.Dispatch(action.NewNavigateTo(cutils.RootRoute))
 }
 
 // OpenTowerMenu when a tower is clicked and the menu of
