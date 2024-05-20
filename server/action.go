@@ -8,8 +8,6 @@ import (
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	cutils "github.com/xescugc/maze-wars/client/utils"
-	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
 	"nhooyr.io/websocket"
 )
@@ -50,8 +48,9 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	case action.DeleteLobby:
 		l := ac.store.Lobbies.FindByID(a.DeleteLobby.LobbyID)
 		ac.dispatcher.Dispatch(a)
-		ac.notifyPlayersLobbyDeleted(l.PlayersSlice())
+		ac.notifyPlayersLobbyDeleted(l.Players)
 	case action.UserSignOut:
+		// TODO: Kill the bot
 		u, _ := ac.store.Users.FindByUsername(a.UserSignOut.Username)
 		l := ac.store.Lobbies.FindByID(u.CurrentLobbyID)
 		ac.dispatcher.Dispatch(a)
@@ -59,7 +58,7 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 			nl := ac.store.Lobbies.FindByID(u.CurrentLobbyID)
 			// It has been deleted
 			if nl == nil {
-				ac.notifyPlayersLobbyDeleted(l.PlayersSlice())
+				ac.notifyPlayersLobbyDeleted(l.Players)
 			}
 		}
 	case action.StartLobby:
@@ -75,7 +74,7 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	}
 }
 
-func (ac *ActionDispatcher) notifyPlayersLobbyDeleted(uns []string) {
+func (ac *ActionDispatcher) notifyPlayersLobbyDeleted(uns map[string]bool) {
 	lbs := ac.store.Lobbies.List()
 	albs := make([]*action.LobbyPayload, 0, len(lbs))
 	for _, l := range lbs {
@@ -83,14 +82,18 @@ func (ac *ActionDispatcher) notifyPlayersLobbyDeleted(uns []string) {
 			ID:         l.ID,
 			Name:       l.Name,
 			MaxPlayers: l.MaxPlayers,
-			Players:    l.PlayersSlice(),
+			Players:    l.Players,
 			Owner:      l.Owner,
 		})
 	}
 	ala := action.NewAddLobbies(&action.AddLobbiesPayload{Lobbies: albs})
-	nto := action.NewNavigateTo(cutils.LobbiesRoute)
+	nto := action.NewNavigateTo(utils.LobbiesRoute)
 
-	for _, un := range uns {
+	for un, ib := range uns {
+		// We skip bots
+		if ib {
+			continue
+		}
 		u, ok := ac.store.Users.FindByUsername(un)
 		if !ok {
 			continue
@@ -126,7 +129,12 @@ func (ac *ActionDispatcher) startGame(roid string) {
 	ac.Dispatch(sra)
 	ac.SyncState(ac.store.Rooms)
 
-	for _, p := range rstate.Rooms[rid].Players {
+	for pid, p := range rstate.Rooms[rid].Players {
+		// We do not need to communicate with the bots
+		if p.IsBot {
+			rstate.Rooms[rid].Bots[pid].Start()
+			continue
+		}
 		err := ac.ws.Write(context.Background(), p.Conn, sga)
 		if err != nil {
 			log.Fatal(err)
@@ -164,16 +172,21 @@ func (ac *ActionDispatcher) UserSignOut(un string) {
 
 func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 	ac.Dispatch(action.NewTPS(time.Now()))
-	rstate := rooms.GetState().(RoomsState)
-	for _, r := range rstate.Rooms {
-		if r.Name == rstate.CurrentWaitingRoom {
+	rms := rooms.List()
+	cwr := rooms.FindCurrentWaitingRoom()
+	for _, r := range rms {
+		if cwr != nil && r.Name == cwr.Name {
 			continue
 		}
 		for id, pc := range r.Players {
+			// We do not want to communicate state to a bot
+			if pc.IsBot {
+				continue
+			}
 			// Players
 			players := make(map[string]*action.SyncStatePlayerPayload)
-			ps := r.Game.Players.GetState().(store.PlayersState)
-			for idp, p := range ps.Players {
+			lplayers := r.Game.Store.Lines.ListPlayers()
+			for _, p := range lplayers {
 				uspp := action.SyncStatePlayerPayload{
 					ID:          p.ID,
 					Name:        p.Name,
@@ -188,15 +201,16 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 				for t, uu := range p.UnitUpdates {
 					uspp.UnitUpdates[t] = action.SyncStatePlayerUnitUpdatePayload(uu)
 				}
-				if id == idp {
+				if id == p.ID {
 					uspp.Current = true
 				}
-				players[idp] = &uspp
+				players[p.ID] = &uspp
 			}
 
 			// Lines
 			lines := make(map[int]*action.SyncStateLinePayload)
-			for i, l := range r.Game.Store.Lines.GetState().(store.LinesState).Lines {
+			llines := r.Game.Store.Lines.ListLines()
+			for i, l := range llines {
 				// Towers
 				towers := make(map[string]*action.SyncStateTowerPayload)
 				for _, t := range l.Towers {
@@ -219,7 +233,7 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 			aus := action.NewSyncState(
 				&action.SyncStatePlayersPayload{
 					Players:     players,
-					IncomeTimer: ps.IncomeTimer,
+					IncomeTimer: r.Game.Store.Lines.GetIncomeTimer(),
 				},
 				&action.SyncStateLinesPayload{
 					Lines: lines,
@@ -273,11 +287,15 @@ func (ac *ActionDispatcher) SyncLobbies(s *Store) {
 			ID:         l.ID,
 			Name:       l.Name,
 			MaxPlayers: l.MaxPlayers,
-			Players:    l.PlayersSlice(),
+			Players:    l.Players,
 			Owner:      l.Owner,
 		}
 		ula := action.NewUpdateLobby(al)
-		for p := range l.Players {
+		for p, ib := range l.Players {
+			// If is bot we skip it
+			if ib {
+				continue
+			}
 			u, ok := s.Users.FindByUsername(p)
 			if ok {
 				err := ac.ws.Write(context.Background(), u.Conn, ula)

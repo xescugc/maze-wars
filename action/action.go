@@ -16,18 +16,13 @@ type Action struct {
 
 	CursorMove           *CursorMovePayload           `json:"cursor_move,omitempty"`
 	SummonUnit           *SummonUnitPayload           `json:"summon_unit,omitempty"`
-	RemoveUnit           *RemoveUnitPayload           `json:"remove_unit,omitempty"`
-	ChangeUnitLine       *ChangeUnitLinePayload       `json:"change_unit_line,omitempty"`
 	UpdateUnit           *UpdateUnitPayload           `json:"update_unit,omitempty"`
 	UpdateTower          *UpdateTowerPayload          `json:"update_tower,omitempty"`
-	StealLive            *StealLivePayload            `json:"steal_live,omitempty"`
 	CameraZoom           *CameraZoomPayload           `json:"camera_zoom,omitempty"`
 	SelectTower          *SelectTowerPayload          `json:"select_tower,omitempty"`
 	PlaceTower           *PlaceTowerPayload           `json:"place_tower,omitempty"`
 	RemoveTower          *RemoveTowerPayload          `json:"remove_tower,omitempty"`
 	SelectedTowerInvalid *SelectedTowerInvalidPayload `json:"selected_tower_invalid,omitempty"`
-	TowerAttack          *TowerAttackPayload          `json:"tower_attack,omitempty"`
-	UnitKilled           *UnitKilledPayload           `json:"unit_killed,omitempty"`
 	WindowResizing       *WindowResizingPayload       `json:"window_resizing,omitempty"`
 	NavigateTo           *NavigateToPayload           `json:"navigate_to,omitempty"`
 	StartGame            *StartGamePayload            `json:"start_game,omitempty"`
@@ -106,45 +101,6 @@ func NewTPS(t time.Time) *Action {
 		Type: TPS,
 		TPS: &TPSPayload{
 			Time: t,
-		},
-	}
-}
-
-type RemoveUnitPayload struct{ UnitID string }
-
-func NewRemoveUnit(uid string) *Action {
-	return &Action{
-		Type: RemoveUnit,
-		RemoveUnit: &RemoveUnitPayload{
-			UnitID: uid,
-		},
-	}
-}
-
-type ChangeUnitLinePayload struct {
-	UnitID string
-}
-
-func NewChangeUnitLine(uid string) *Action {
-	return &Action{
-		Type: ChangeUnitLine,
-		ChangeUnitLine: &ChangeUnitLinePayload{
-			UnitID: uid,
-		},
-	}
-}
-
-type StealLivePayload struct {
-	FromPlayerID string
-	ToPlayerID   string
-}
-
-func NewStealLive(fpid, tpid string) *Action {
-	return &Action{
-		Type: StealLive,
-		StealLive: &StealLivePayload{
-			FromPlayerID: fpid,
-			ToPlayerID:   tpid,
 		},
 	}
 }
@@ -241,36 +197,6 @@ func NewIncomeTick() *Action {
 func NewWaitRoomCountdownTick() *Action {
 	return &Action{
 		Type: WaitRoomCountdownTick,
-	}
-}
-
-type TowerAttackPayload struct {
-	TowerID string
-	UnitID  string
-}
-
-func NewTowerAttack(uid, tid string) *Action {
-	return &Action{
-		Type: TowerAttack,
-		TowerAttack: &TowerAttackPayload{
-			UnitID:  uid,
-			TowerID: tid,
-		},
-	}
-}
-
-type UnitKilledPayload struct {
-	PlayerID string
-	UnitID   string
-}
-
-func NewUnitKilled(pid, uid string) *Action {
-	return &Action{
-		Type: UnitKilled,
-		UnitKilled: &UnitKilledPayload{
-			PlayerID: pid,
-			UnitID:   uid,
-		},
 	}
 }
 
@@ -665,14 +591,16 @@ func NewDeleteLobby(lid string) *Action {
 type JoinLobbyPayload struct {
 	LobbyID  string
 	Username string
+	IsBot    bool
 }
 
-func NewJoinLobby(lid, un string) *Action {
+func NewJoinLobby(lid, un string, ib bool) *Action {
 	return &Action{
 		Type: JoinLobby,
 		JoinLobby: &JoinLobbyPayload{
 			LobbyID:  lid,
 			Username: un,
+			IsBot:    ib,
 		},
 	}
 }
@@ -686,7 +614,7 @@ type LobbyPayload struct {
 	Name       string
 	MaxPlayers int
 
-	Players []string
+	Players map[string]bool
 
 	Owner string
 }

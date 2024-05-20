@@ -110,7 +110,7 @@ func (m *Map) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.StartGame:
-		mstate.Players = len(m.store.Players.List())
+		mstate.Players = len(m.store.Lines.ListPlayers())
 		mstate.Image, ok = MapImages[mstate.Players]
 		if !ok {
 			log.Fatalf("The map for the number of players %d is not available", mstate.Players)

@@ -12,7 +12,6 @@ import (
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/server/models"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
@@ -60,7 +59,7 @@ func (ac *ActionDispatcher) NavigateTo(route string) {
 	nt := action.NewNavigateTo(route)
 	// If we are going to the LobbiesRoute we need to
 	// preload the data
-	if route == cutils.LobbiesRoute {
+	if route == utils.LobbiesRoute {
 		ac.RefreshLobbies()
 	}
 	ac.Dispatch(nt)
@@ -166,7 +165,7 @@ func (ac *ActionDispatcher) SignUpSubmit(un string) {
 
 	go wsHandler(ctx)
 
-	ac.Dispatch(action.NewNavigateTo(cutils.RootRoute))
+	ac.Dispatch(action.NewNavigateTo(utils.RootRoute))
 }
 
 // GoHome will move the camera to the current player home line
@@ -179,14 +178,14 @@ func (ac *ActionDispatcher) JoinWaitingRoom(un string) {
 	jwra := action.NewJoinWaitingRoom(un)
 	wsSend(jwra)
 
-	ac.Dispatch(action.NewNavigateTo(cutils.WaitingRoomRoute))
+	ac.Dispatch(action.NewNavigateTo(utils.WaitingRoomRoute))
 }
 
 func (ac *ActionDispatcher) ExitWaitingRoom(un string) {
 	ewra := action.NewExitWaitingRoom(un)
 	wsSend(ewra)
 
-	ac.Dispatch(action.NewNavigateTo(cutils.RootRoute))
+	ac.Dispatch(action.NewNavigateTo(utils.RootRoute))
 }
 
 func (ac *ActionDispatcher) CreateLobby(lid, o, ln string, lmp int) {
@@ -212,8 +211,8 @@ func (ac *ActionDispatcher) LeaveLobby(lid, un string) {
 	ac.Dispatch(lla)
 }
 
-func (ac *ActionDispatcher) JoinLobby(lid, un string) {
-	jla := action.NewJoinLobby(lid, un)
+func (ac *ActionDispatcher) JoinLobby(lid, un string, ib bool) {
+	jla := action.NewJoinLobby(lid, un, ib)
 	wsSend(jla)
 	ac.Dispatch(jla)
 }

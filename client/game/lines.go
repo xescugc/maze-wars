@@ -12,7 +12,6 @@ import (
 	"github.com/xescugc/maze-wars/assets"
 	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
-	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
 )
@@ -64,53 +63,6 @@ func (ls *Lines) Update() error {
 	b := time.Now()
 	defer utils.LogTime(ls.game.Logger, b, "lines update")
 
-	cp := ls.game.Store.Players.FindCurrent()
-	l := ls.game.Store.Lines.FindByID(cp.LineID)
-	for _, t := range l.Towers {
-		if t.PlayerID != cp.ID {
-			continue
-		}
-		var (
-			minDist     float64 = 0
-			minDistUnit string
-		)
-		for _, u := range l.Units {
-			if u.CurrentLineID != cp.LineID || !t.CanTarget(unit.Units[u.Type].Environment) {
-				continue
-			}
-			d := t.PDistance(u.Object)
-			if minDist == 0 {
-				minDist = d
-			}
-			if d <= tower.Towers[t.Type].Range && d <= minDist {
-				minDist = d
-				minDistUnit = u.ID
-			}
-		}
-		if minDistUnit != "" {
-			actionDispatcher.TowerAttack(minDistUnit, t.ID)
-		}
-	}
-
-	for _, u := range l.Units {
-		// Only dispatch events from your own line
-		if u.Health == 0 {
-			p := ls.game.Store.Players.FindByLineID(u.CurrentLineID)
-			actionDispatcher.UnitKilled(p.ID, u.ID)
-			actionDispatcher.RemoveUnit(u.ID)
-			continue
-		}
-		if n := l.Graph.GetNodeOf(u.X, u.Y); n != nil && n.IsDeathZone {
-			p := ls.game.Store.Players.FindByLineID(u.CurrentLineID)
-			nlid := ls.game.Store.Map.GetNextLineID(u.CurrentLineID)
-			actionDispatcher.StealLive(p.ID, u.PlayerID)
-			if nlid == u.PlayerLineID {
-				actionDispatcher.RemoveUnit(u.ID)
-			} else {
-				actionDispatcher.ChangeUnitLine(u.ID)
-			}
-		}
-	}
 	return nil
 }
 
@@ -118,7 +70,7 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(ls.game.Logger, b, "lines draw")
 
-	for _, l := range ls.game.Store.Lines.List() {
+	for _, l := range ls.game.Store.Lines.ListLines() {
 		for _, t := range l.Towers {
 			ls.DrawTower(screen, ls.game.Camera, t)
 		}

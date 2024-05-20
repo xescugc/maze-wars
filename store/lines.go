@@ -16,6 +16,14 @@ import (
 
 const (
 	atScale = true
+
+	incomeTimer = 15
+
+	// It's 10% so we use 1.1 to get the increment
+	updateFactor = 1.1
+
+	// It's 100% more
+	updateCostFactor = 100
 )
 
 var (
@@ -31,7 +39,11 @@ type Lines struct {
 }
 
 type LinesState struct {
-	Lines map[int]*Line
+	Lines   map[int]*Line
+	Players map[string]*Player
+
+	// IncomeTimer is the internal counter that goes from 15 to 0
+	IncomeTimer int
 }
 
 type Line struct {
@@ -98,19 +110,60 @@ type Unit struct {
 func (u *Unit) FacesetKey() string { return unit.Units[u.Type].FacesetKey() }
 func (u *Unit) SpriteKey() string  { return unit.Units[u.Type].SpriteKey() }
 
+type Player struct {
+	ID      string
+	Name    string
+	Lives   int
+	LineID  int
+	Income  int
+	Gold    int
+	Current bool
+	Winner  bool
+
+	// UnitUpdates holds the current unit level
+	UnitUpdates map[string]UnitUpdate
+}
+
+type UnitUpdate struct {
+	// Current is the current unit
+	Current unit.Stats
+
+	// Level is the number of the unit level
+	// which is basically the number of times
+	// it has been updated
+	Level int
+
+	UpdateCost int
+
+	// Is how the unit will look after the next update
+	Next unit.Stats
+}
+
+func (p Player) CanSummonUnit(ut string) bool {
+	return (p.Gold - unit.Units[ut].Gold) >= 0
+}
+func (p Player) CanUpdateUnit(ut string) bool {
+	return (p.Gold - p.UnitUpdates[ut].UpdateCost) >= 0
+}
+func (p Player) CanPlaceTower(tt string) bool {
+	return (p.Gold - tower.Towers[tt].Gold) >= 0
+}
+
 func NewLines(d *flux.Dispatcher, s *Store) *Lines {
 	l := &Lines{
 		store: s,
 	}
 
 	l.ReduceStore = flux.NewReduceStore(d, l.Reduce, LinesState{
-		Lines: make(map[int]*Line),
+		Lines:       make(map[int]*Line),
+		Players:     make(map[string]*Player),
+		IncomeTimer: incomeTimer,
 	})
 
 	return l
 }
 
-func (ls *Lines) List() []*Line {
+func (ls *Lines) ListLines() []*Line {
 	ls.mxLines.RLock()
 	defer ls.mxLines.RUnlock()
 
@@ -133,7 +186,7 @@ func (ls *Lines) List() []*Line {
 	return lines
 }
 
-func (ls *Lines) FindByID(id int) *Line {
+func (ls *Lines) FindLineByID(id int) *Line {
 	ls.mxLines.RLock()
 	defer ls.mxLines.RUnlock()
 
@@ -154,6 +207,64 @@ func (ls *Lines) FindByID(id int) *Line {
 	return &ll
 }
 
+// ListPlayers returns the players list and it's meant for reading only purposes
+func (ls *Lines) ListPlayers() []*Player {
+	ls.mxLines.RLock()
+	defer ls.mxLines.RUnlock()
+
+	mlines := ls.GetState().(LinesState)
+	players := make([]*Player, 0, len(mlines.Players))
+	for _, p := range mlines.Players {
+		players = append(players, p)
+	}
+	return players
+}
+
+func (ls *Lines) FindCurrentPlayer() Player {
+	ls.mxLines.RLock()
+	defer ls.mxLines.RUnlock()
+	for _, p := range ls.GetState().(LinesState).Players {
+		if p.Current {
+			return *p
+		}
+	}
+	return Player{}
+}
+
+func (ls *Lines) FindPlayerByID(id string) Player {
+	ls.mxLines.RLock()
+	defer ls.mxLines.RUnlock()
+	p, ok := ls.GetState().(LinesState).Players[id]
+	if !ok {
+		return Player{}
+	}
+	return *p
+}
+
+func (ls *Lines) FindPlayerByLineID(lid int) Player {
+	ls.mxLines.RLock()
+	defer ls.mxLines.RUnlock()
+
+	return ls.findPlayerByLineID(lid)
+}
+
+func (ls *Lines) findPlayerByLineID(lid int) Player {
+	for _, p := range ls.GetState().(LinesState).Players {
+		if p.LineID == lid {
+			return *p
+		}
+	}
+	return Player{}
+}
+
+func (ls *Lines) GetIncomeTimer() int {
+	ls.mxLines.RLock()
+	defer ls.mxLines.RUnlock()
+
+	lsstate := ls.GetState().(LinesState)
+	return lsstate.IncomeTimer
+}
+
 func (ls *Lines) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)
 	if !ok {
@@ -166,22 +277,71 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 	}
 
 	switch act.Type {
+	case action.IncomeTick:
+		ls.mxLines.Lock()
+		defer ls.mxLines.Unlock()
+
+		lstate.IncomeTimer -= 1
+		if lstate.IncomeTimer == 0 {
+			lstate.IncomeTimer = incomeTimer
+			for _, p := range lstate.Players {
+				p.Gold += p.Income
+			}
+		}
+	case action.AddPlayer:
+		ls.mxLines.Lock()
+		defer ls.mxLines.Unlock()
+
+		var found bool
+		for _, p := range lstate.Players {
+			if p.Name == act.AddPlayer.Name {
+				found = true
+				break
+			}
+		}
+
+		if found {
+			break
+		}
+
+		p := &Player{
+			ID:     act.AddPlayer.ID,
+			Name:   act.AddPlayer.Name,
+			Lives:  20,
+			LineID: act.AddPlayer.LineID,
+			Income: 25,
+			Gold:   40,
+
+			UnitUpdates: make(map[string]UnitUpdate),
+		}
+		for _, u := range unit.Units {
+			p.UnitUpdates[u.Type.String()] = UnitUpdate{
+				Current:    u.Stats,
+				Level:      1,
+				UpdateCost: updateCostFactor * u.Gold,
+				Next:       unitUpdate(2, u.Type.String(), u.Stats),
+			}
+		}
+
+		lstate.Players[act.AddPlayer.ID] = p
 	case action.StartGame:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
-		for _, p := range ls.store.Players.List() {
+		for _, p := range lstate.Players {
 			lstate.Lines[p.LineID] = ls.newLine(p.LineID)
 		}
 	case action.PlaceTower:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
-		p := ls.store.Players.FindByID(act.PlaceTower.PlayerID)
+		p := lstate.Players[act.PlaceTower.PlayerID]
 
 		if !p.CanPlaceTower(act.PlaceTower.Type) {
 			break
 		}
+
+		p.Gold -= tower.Towers[act.PlaceTower.Type].Gold
 
 		var w, h int = 16 * 2, 16 * 2
 		tid := uuid.Must(uuid.NewV4())
@@ -204,61 +364,58 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 
 		l.Towers[tw.ID] = tw
 
-		recalculateLineUnitSteps(l)
+		ls.recalculateLineUnitSteps(lstate, p.LineID)
 	case action.UpdateTower:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
-		p := ls.store.Players.FindByID(act.UpdateTower.PlayerID)
+		p := lstate.Players[act.UpdateTower.PlayerID]
 		l := lstate.Lines[p.LineID]
 		t := l.Towers[act.UpdateTower.TowerID]
+
 		tu := tower.FindUpdateByLevel(t.Type, t.Level+1)
 		if tu != nil {
 			if p.Gold-tu.UpdateCost > 0 {
 				t.Stats = tu.Stats
 				t.Level += 1
+				p.Gold -= tu.UpdateCost
 			}
 		}
 
 	case action.RemoveTower:
-		// We wait so the players store can get the tower before we remove it
-		ls.GetDispatcher().WaitFor(ls.store.Players.GetDispatcherToken())
-
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
+		p := lstate.Players[act.RemoveTower.PlayerID]
+		l := lstate.Lines[p.LineID]
+		t := l.Towers[act.RemoveTower.TowerID]
+
+		removeTowerGoldReturn := tower.Towers[t.Type].Gold / 2
+		tc := tower.FindUpdateByLevel(t.Type, t.Level)
+		if tc != nil {
+			removeTowerGoldReturn = tc.UpdateCost / 2
+		}
+		lstate.Players[act.RemoveTower.PlayerID].Gold += removeTowerGoldReturn
+
 		// TODO: Add the LineID
-		for _, l := range lstate.Lines {
+		for lid, l := range lstate.Lines {
 			if ok := l.Graph.RemoveTower(act.RemoveTower.TowerID); ok {
 				delete(l.Towers, act.RemoveTower.TowerID)
-				recalculateLineUnitSteps(l)
-			}
-		}
-	case action.TowerAttack:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
-
-		// TODO: Add the LineID
-		for _, l := range lstate.Lines {
-			if u, ok := l.Units[act.TowerAttack.UnitID]; ok {
-				tw := l.Towers[act.TowerAttack.TowerID]
-				u.Health -= tw.Stats.Damage
-				if u.Health <= 0 {
-					u.Health = 0
-				}
-				break
+				ls.recalculateLineUnitSteps(lstate, lid)
 			}
 		}
 	case action.SummonUnit:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
-		p := ls.store.Players.FindByID(act.SummonUnit.PlayerID)
-		if !p.CanSummonUnit(act.SummonUnit.Type) {
+		cp := lstate.Players[act.SummonUnit.PlayerID]
+		if !cp.CanSummonUnit(act.SummonUnit.Type) {
 			break
 		}
+		lstate.Players[act.SummonUnit.PlayerID].Income += cp.UnitUpdates[act.SummonUnit.Type].Current.Income
+		lstate.Players[act.SummonUnit.PlayerID].Gold -= cp.UnitUpdates[act.SummonUnit.Type].Current.Gold
 
-		uu := p.UnitUpdates[act.SummonUnit.Type]
+		uu := cp.UnitUpdates[act.SummonUnit.Type]
 		bu := unit.Units[act.SummonUnit.Type]
 
 		l := lstate.Lines[act.SummonUnit.CurrentLineID]
@@ -287,57 +444,18 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
-	case action.ChangeUnitLine:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
-
-		// TODO: Add the unit LineID
-		for lid, l := range lstate.Lines {
-			if u, ok := l.Units[act.ChangeUnitLine.UnitID]; ok {
-				// As we are gonna move it to another line
-				// we remove it
-				delete(l.Units, u.ID)
-
-				u.CurrentLineID = ls.store.Map.GetNextLineID(lid)
-
-				nl := lstate.Lines[u.CurrentLineID]
-
-				n := nl.Graph.GetRandomSpawnNode()
-				u.X = n.X
-				u.Y = n.Y
-
-				u.Path = nl.Graph.AStar(u.X, u.Y, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
-				u.HashPath = graph.HashSteps(u.Path)
-
-				u.CreatedAt = time.Now()
-				nl.Units[u.ID] = u
-
-				break
-			}
-		}
-	case action.RemoveUnit:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
-
-		// As I don't know which line is it
-		// we just remove it from all
-		// TODO: Add the LineID on the action
-		for _, l := range lstate.Lines {
-			delete(l.Units, act.RemoveUnit.UnitID)
-		}
-
 	case action.TPS:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
-		for _, l := range lstate.Lines {
-			moveLineUnitsTo(l, act.TPS.Time)
+		for lid := range lstate.Lines {
+			ls.moveLineUnitsTo(lstate, lid, act.TPS.Time)
 		}
 	case action.RemovePlayer:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
-		p := ls.store.Players.FindByID(act.RemovePlayer.ID)
+		p := lstate.Players[act.RemovePlayer.ID]
 
 		// TODO: Add LineID
 		delete(lstate.Lines, p.LineID)
@@ -349,10 +467,36 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 				}
 			}
 		}
+
+		delete(lstate.Players, act.RemovePlayer.ID)
+		if len(lstate.Players) == 1 {
+			for _, p := range lstate.Players {
+				// As there is only 1 we can do it this way
+				p.Winner = true
+			}
+		}
+
+	case action.UpdateUnit:
+		u := unit.Units[act.UpdateUnit.Type]
+		buu := lstate.Players[act.UpdateUnit.PlayerID].UnitUpdates[act.UpdateUnit.Type]
+
+		if !lstate.Players[act.UpdateUnit.PlayerID].CanUpdateUnit(act.UpdateUnit.Type) {
+			break
+		}
+
+		lstate.Players[act.UpdateUnit.PlayerID].Gold -= buu.UpdateCost
+		lstate.Players[act.UpdateUnit.PlayerID].UnitUpdates[act.UpdateUnit.Type] = UnitUpdate{
+			Current:    buu.Next,
+			Level:      buu.Level + 1,
+			UpdateCost: updateCostFactor * buu.Next.Gold,
+			Next:       unitUpdate(buu.Level+2, u.Type.String(), u.Stats),
+		}
+
 	case action.SyncState:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
+		// Sync Lines
 		for lid, l := range act.SyncState.Lines.Lines {
 			cl, ok := lstate.Lines[lid]
 			if !ok {
@@ -371,6 +515,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 				ou, ok := cl.Units[id]
 
 				if ok {
+					_ = ou
 					//If the unit already exists and have the same Hash then ignore the server
 					//coordinates and path
 					if ou.HashPath == nu.HashPath {
@@ -409,48 +554,143 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 				cl.Graph.AddTower(id, t.X, t.Y, t.W, t.H)
 			}
 		}
+
+		// Sync Players
+		pids := make(map[string]struct{})
+		for id := range lstate.Players {
+			pids[id] = struct{}{}
+		}
+		for id, p := range act.SyncState.Players.Players {
+			delete(pids, id)
+			np := Player{
+				ID:          p.ID,
+				Name:        p.Name,
+				Lives:       p.Lives,
+				LineID:      p.LineID,
+				Income:      p.Income,
+				Gold:        p.Gold,
+				Current:     p.Current,
+				Winner:      p.Winner,
+				UnitUpdates: make(map[string]UnitUpdate),
+			}
+			for t, uu := range p.UnitUpdates {
+				np.UnitUpdates[t] = UnitUpdate(uu)
+			}
+			lstate.Players[id] = &np
+		}
+		for id := range pids {
+			delete(lstate.Players, id)
+		}
+		lstate.IncomeTimer = act.SyncState.Players.IncomeTimer
 	}
 
 	return lstate
 }
 
-func recalculateLineUnitSteps(l *Line) {
+func (ls *Lines) recalculateLineUnitSteps(lstate LinesState, lid int) {
 	t := time.Now()
-	moveLineUnitsTo(l, t)
+	ls.moveLineUnitsTo(lstate, lid, t)
 
+	l := lstate.Lines[lid]
 	for _, u := range l.Units {
 		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 	}
 }
 
-func moveLineUnitsTo(l *Line, t time.Time) {
+func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
+	l := lstate.Lines[lid]
 	lmoves := 1
 	if !t.IsZero() && !l.UpdatedAt.IsZero() {
 		lmoves = int(t.Sub(l.UpdatedAt).Milliseconds() / tpsMS)
 	}
-	for _, u := range l.Units {
-		if len(u.Path) > 0 {
-			umoves := lmoves
+	// We'll move all the Units 1 by 1 so we can calculate if they have
+	// an aura around and if they have been attacked/killed and if they
+	// reached the end to steal a live and change lines
+	for i := 1; i < lmoves+1; i++ {
+		for _, u := range l.Units {
+			// If a unit was added in between the TPS checks
+			// we only need to move partially
 			if !t.IsZero() && !u.CreatedAt.IsZero() {
-				umoves = int(t.Sub(u.CreatedAt).Milliseconds() / tpsMS)
+				um := int(t.Sub(u.CreatedAt).Milliseconds() / tpsMS)
+				// We only want to consider this unit move when
+				// it should do it
+				// If for some reason it gets desynchronized even just for
+				// 1 ms then the unit it'll be too old to ever get moved
+				// so if the expected time to move is too big we just move it
+				if um != (lmoves-i) && um < lmoves {
+					continue
+				}
 				// This way we mean it's up to date now
 				u.CreatedAt = time.Time{}
 			}
-			// If we have less moves remaining that the expected amount
-			// we just move to the last position
-			if len(u.Path) < umoves {
-				umoves = len(u.Path) - 1
+			// TODO: Investigate why this is a case to check
+			// as if it's 0 it should be read for the next if
+			// and delete/change line
+			if len(u.Path) != 0 {
+				nextStep := u.Path[0]
+				u.Path = u.Path[1:]
+				u.MovingCount += 1
+				u.Y = nextStep.Y
+				u.X = nextStep.X
+				u.Facing = nextStep.Facing
 			}
-			if umoves == 0 {
-				continue
+
+			// We reached the end of the line
+			if len(u.Path) == 0 {
+				var fpID string
+				for pid, p := range lstate.Players {
+					if p.LineID == lid {
+						fpID = pid
+						break
+					}
+				}
+				// We steal a Live
+				ls.stealLive(lstate, fpID, u.PlayerID)
+				nlid := ls.store.Map.GetNextLineID(u.CurrentLineID)
+				// If the next line is the owner of the Unit we remove it
+				// If not then we change the unit to the next line
+				if nlid == u.PlayerLineID {
+					delete(lstate.Lines[lid].Units, u.ID)
+				} else {
+					ls.changeUnitLine(lstate, u, nlid)
+				}
 			}
-			nextStep := u.Path[umoves-1]
-			u.Path = u.Path[umoves:]
-			u.MovingCount += umoves
-			u.Y = nextStep.Y
-			u.X = nextStep.X
-			u.Facing = nextStep.Facing
+		}
+		// Now that the unit has moved we'll calculate if any
+		// tower can attack any Unit in their new positions
+		for _, t := range l.Towers {
+			// Get the closes unit to the current tower to attack it
+			var (
+				minDist     float64 = 0
+				minDistUnit *Unit
+			)
+			for _, u := range l.Units {
+				if !t.CanTarget(unit.Units[u.Type].Environment) {
+					continue
+				}
+				d := t.PDistance(u.Object)
+				if minDist == 0 {
+					minDist = d
+				}
+				if d <= tower.Towers[t.Type].Range && d <= minDist {
+					minDist = d
+					minDistUnit = u
+				}
+			}
+			if minDistUnit != nil {
+				// Tower Attack
+				minDistUnit.Health -= t.Stats.Damage
+				if minDistUnit.Health <= 0 {
+					minDistUnit.Health = 0
+					// Delete Unit
+					delete(lstate.Lines[lid].Units, minDistUnit.ID)
+
+					// Unit Killed by player so we give gold to the player
+					cp := lstate.Players[t.PlayerID]
+					cp.Gold += unitUpdate(minDistUnit.Level, minDistUnit.Type, unit.Units[minDistUnit.Type].Stats).Income
+				}
+			}
 		}
 	}
 	l.UpdatedAt = t
@@ -467,4 +707,69 @@ func (ls *Lines) newLine(lid int) *Line {
 		Units:  make(map[string]*Unit),
 		Graph:  g,
 	}
+}
+
+func unitUpdate(nlvl int, ut string, u unit.Stats) unit.Stats {
+	bu := unit.Units[ut]
+
+	u.Health = float64(levelToValue(nlvl, int(bu.Health)))
+	u.Gold = levelToValue(nlvl, bu.Gold)
+	u.Income = levelToValue(nlvl, bu.Income)
+
+	return u
+}
+
+func levelToValue(lvl, base int) int {
+	fb := float64(base)
+	for i := 1; i < lvl; i++ {
+		fb = fb * updateFactor
+	}
+	return int(fb)
+}
+
+func (ls *Lines) stealLive(lstate LinesState, fpID, tpID string) {
+	fp := lstate.Players[fpID]
+	tp := lstate.Players[tpID]
+
+	fp.Lives -= 1
+	if fp.Lives < 0 {
+		fp.Lives = 0
+	} else {
+		tp.Lives += 1
+	}
+
+	var stillPlayersLeft bool
+	for _, p := range lstate.Players {
+		if stillPlayersLeft {
+			continue
+		}
+		if p.Lives != 0 && p.ID != tp.ID {
+			stillPlayersLeft = true
+		}
+	}
+
+	if !stillPlayersLeft {
+		tp.Winner = true
+	}
+}
+
+func (ls *Lines) changeUnitLine(lstate LinesState, u *Unit, nlid int) {
+	cl := lstate.Lines[u.CurrentLineID]
+	// As we are gonna move it to another line
+	// we remove it
+	delete(cl.Units, u.ID)
+
+	u.CurrentLineID = nlid
+
+	nl := lstate.Lines[u.CurrentLineID]
+
+	n := nl.Graph.GetRandomSpawnNode()
+	u.X = n.X
+	u.Y = n.Y
+
+	u.Path = nl.Graph.AStar(u.X, u.Y, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
+	u.HashPath = graph.HashSteps(u.Path)
+
+	u.CreatedAt = time.Now()
+	nl.Units[u.ID] = u
 }

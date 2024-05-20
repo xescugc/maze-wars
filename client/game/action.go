@@ -6,7 +6,6 @@ import (
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
 )
@@ -68,21 +67,6 @@ func (ac *ActionDispatcher) TPS() {
 	ac.Dispatch(tpsa)
 }
 
-// RemoveUnit removes the unit with the id 'uid'
-func (ac *ActionDispatcher) RemoveUnit(uid string) {
-	rua := action.NewRemoveUnit(uid)
-	ac.wsSend(rua)
-	ac.Dispatch(rua)
-}
-
-// StealLive removes one live from the player with id 'fpid' and
-// adds it to the player with id 'tpid'
-func (ac *ActionDispatcher) StealLive(fpid, tpid string) {
-	sla := action.NewStealLive(fpid, tpid)
-	ac.wsSend(sla)
-	ac.Dispatch(sla)
-}
-
 // CameraZoom zooms the camera the direction 'd'
 func (ac *ActionDispatcher) CameraZoom(d int) {
 	cza := action.NewCameraZoom(d)
@@ -92,8 +76,8 @@ func (ac *ActionDispatcher) CameraZoom(d int) {
 // PlaceTower places the tower 't' on the position X and Y of the player pid
 func (ac *ActionDispatcher) PlaceTower(t, pid string, x, y int) {
 	// TODO: Add the LineID in the action
-	p := ac.store.Players.FindByID(pid)
-	if l := ac.store.Lines.FindByID(p.LineID); l != nil && l.Graph.CanAddTower(x, y, 32, 32) {
+	p := ac.store.Lines.FindPlayerByID(pid)
+	if l := ac.store.Lines.FindLineByID(p.LineID); l != nil && l.Graph.CanAddTower(x, y, 32, 32) {
 		pta := action.NewPlaceTower(t, pid, x, y)
 		ac.wsSend(pta)
 	}
@@ -131,25 +115,11 @@ func (ac *ActionDispatcher) IncomeTick() {
 	ac.Dispatch(it)
 }
 
-// TowerAttack issues a attack to the Unit with uid
-func (ac *ActionDispatcher) TowerAttack(uid, tid string) {
-	ta := action.NewTowerAttack(uid, tid)
-	ac.wsSend(ta)
-	ac.Dispatch(ta)
-}
-
-// UnitKilled adds gold to the user
-func (ac *ActionDispatcher) UnitKilled(pid, uid string) {
-	uk := action.NewUnitKilled(pid, uid)
-	ac.wsSend(uk)
-	ac.Dispatch(uk)
-}
-
 func (ac *ActionDispatcher) RemovePlayer(pid string) {
 	rpa := action.NewRemovePlayer(pid)
 	ac.wsSend(rpa)
 	ac.Dispatch(rpa)
-	ac.Dispatch(action.NewNavigateTo(cutils.RootRoute))
+	ac.Dispatch(action.NewNavigateTo(utils.RootRoute))
 }
 
 // OpenTowerMenu when a tower is clicked and the menu of
@@ -163,13 +133,6 @@ func (ac *ActionDispatcher) OpenTowerMenu(tid string) {
 func (ac *ActionDispatcher) CloseTowerMenu() {
 	ctm := action.NewCloseTowerMenu()
 	ac.Dispatch(ctm)
-}
-
-// ChangeUnitLine will move the unit to the next line
-func (ac *ActionDispatcher) ChangeUnitLine(uid string) {
-	cula := action.NewChangeUnitLine(uid)
-	ac.wsSend(cula)
-	ac.Dispatch(cula)
 }
 
 func (ac *ActionDispatcher) ToggleStats() {

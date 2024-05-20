@@ -15,6 +15,10 @@ import (
 	"github.com/xescugc/maze-wars/utils"
 )
 
+const (
+	isBot = true
+)
+
 type LobbiesView struct {
 	Store  *Store
 	Logger *slog.Logger
@@ -152,7 +156,7 @@ func (lv *LobbiesView) buildUI() {
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			actionDispatcher.NavigateTo(cutils.NewLobbyRoute)
+			actionDispatcher.NavigateTo(utils.NewLobbyRoute)
 		}),
 	)
 
@@ -214,7 +218,7 @@ func (lv *LobbiesView) buildUI() {
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			actionDispatcher.NavigateTo(cutils.RootRoute)
+			actionDispatcher.NavigateTo(utils.RootRoute)
 		}),
 	)
 
@@ -282,9 +286,9 @@ func (lv *LobbiesView) buildUI() {
 			if len(lb.Players)+1 > lb.MaxPlayers {
 				return
 			}
-			actionDispatcher.JoinLobby(l.ID, un)
+			actionDispatcher.JoinLobby(l.ID, un, !isBot)
 			actionDispatcher.SelectLobby(l.ID)
-			actionDispatcher.NavigateTo(cutils.ShowLobbyRoute)
+			actionDispatcher.NavigateTo(utils.ShowLobbyRoute)
 		}),
 	)
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log/slog"
+	"sort"
 	"time"
 
 	"github.com/ebitenui/ebitenui"
@@ -28,6 +29,7 @@ type ShowLobbyView struct {
 	startBtnW    *widget.Button
 	deleteBtnW   *widget.Button
 	leaveBtnW    *widget.Button
+	botsC        *widget.Container
 }
 
 func NewShowLobbyView(s *Store, l *slog.Logger) *ShowLobbyView {
@@ -61,26 +63,35 @@ func (sl *ShowLobbyView) Draw(screen *ebiten.Image) {
 		sl.playersTextW.Label = fmt.Sprintf("Players: %d/%d", len(cl.Players), cl.MaxPlayers)
 
 		entries := make([]any, 0, len(cl.Players))
-		for _, p := range cl.PlayersSlice() {
+		for p := range cl.Players {
 			entries = append(entries, ListEntry{
 				ID:   p,
 				Text: p,
 			})
 		}
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].(ListEntry).ID > entries[j].(ListEntry).ID
+		})
 		if !EqualListEntries(entries, sl.playersListW.Entries().([]any)) {
 			sl.playersListW.SetEntries(entries)
 		}
 
 		if sl.Store.Users.Username() == cl.Owner {
 			sl.startBtnW.GetWidget().Visibility = widget.Visibility_Show
+			sl.startBtnW.GetWidget().Disabled = len(cl.Players) < 2
+
 			sl.deleteBtnW.GetWidget().Visibility = widget.Visibility_Show
 
 			sl.leaveBtnW.GetWidget().Visibility = widget.Visibility_Hide
+
+			sl.botsC.GetWidget().Visibility = widget.Visibility_Show
 		} else {
 			sl.startBtnW.GetWidget().Visibility = widget.Visibility_Hide
 			sl.deleteBtnW.GetWidget().Visibility = widget.Visibility_Hide
 
 			sl.leaveBtnW.GetWidget().Visibility = widget.Visibility_Show
+
+			sl.botsC.GetWidget().Visibility = widget.Visibility_Hide
 		}
 	}
 
@@ -145,6 +156,105 @@ func (sl *ShowLobbyView) buildUI() {
 			widget.WidgetOpts.MinSize(100, 100),
 		),
 	)
+
+	botsTextW := widget.NewText(
+		widget.TextOpts.Text("Bots", cutils.NormalFont, color.White),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+			widget.WidgetOpts.MinSize(100, 100),
+		),
+	)
+	addBotBtnW := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  false,
+			}),
+		),
+
+		// specify the images to sle
+		widget.ButtonOpts.Image(cutils.ButtonImage),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("+", cutils.SmallFont, &widget.ButtonTextColor{
+			Idle:     color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+			Disabled: color.NRGBA{R: 200, G: 200, B: 200, A: 255},
+		}),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   30,
+			Right:  30,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			cl := sl.Store.Lobbies.FindCurrent()
+			if len(cl.Players)+1 > cl.MaxPlayers {
+				return
+			}
+			actionDispatcher.JoinLobby(cl.ID, fmt.Sprintf("Bot-%d", len(cl.Players)+1), isBot)
+		}),
+	)
+	removeBotBtnW := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  false,
+			}),
+		),
+
+		// specify the images to sle
+		widget.ButtonOpts.Image(cutils.ButtonImage),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("-", cutils.SmallFont, &widget.ButtonTextColor{
+			Idle:     color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+			Disabled: color.NRGBA{R: 200, G: 200, B: 200, A: 255},
+		}),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   30,
+			Right:  30,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			cl := sl.Store.Lobbies.FindCurrent()
+			for p, ib := range cl.Players {
+				if ib {
+					actionDispatcher.LeaveLobby(cl.ID, p)
+					break
+				}
+			}
+		}),
+	)
+	botsC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(20),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+	botsC.AddChild(botsTextW)
+	botsC.AddChild(removeBotBtnW)
+	botsC.AddChild(addBotBtnW)
+
 	entries := make([]any, 0, 0)
 	playersListW := widget.NewList(
 		// Set how wide the list should be
@@ -270,7 +380,7 @@ func (sl *ShowLobbyView) buildUI() {
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 			cl := sl.Store.Lobbies.FindCurrent()
 			actionDispatcher.DeleteLobby(cl.ID)
-			actionDispatcher.NavigateTo(cutils.LobbiesRoute)
+			actionDispatcher.NavigateTo(utils.LobbiesRoute)
 		}),
 	)
 
@@ -305,7 +415,7 @@ func (sl *ShowLobbyView) buildUI() {
 			cl := sl.Store.Lobbies.FindCurrent()
 			un := sl.Store.Users.Username()
 			actionDispatcher.LeaveLobby(cl.ID, un)
-			actionDispatcher.NavigateTo(cutils.LobbiesRoute)
+			actionDispatcher.NavigateTo(utils.LobbiesRoute)
 		}),
 	)
 
@@ -328,6 +438,7 @@ func (sl *ShowLobbyView) buildUI() {
 	sl.startBtnW = startBtnW
 	sl.deleteBtnW = deleteBtnW
 	sl.leaveBtnW = leaveBtnW
+	sl.botsC = botsC
 
 	buttonsC.AddChild(leaveBtnW)
 	buttonsC.AddChild(deleteBtnW)
@@ -336,6 +447,7 @@ func (sl *ShowLobbyView) buildUI() {
 	mainContainer.AddChild(nameW)
 	mainContainer.AddChild(ownerW)
 	mainContainer.AddChild(playersTextW)
+	mainContainer.AddChild(botsC)
 	mainContainer.AddChild(playersListW)
 	mainContainer.AddChild(buttonsC)
 

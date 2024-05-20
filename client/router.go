@@ -8,7 +8,6 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/client/game"
-	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/utils"
 )
 
@@ -44,7 +43,7 @@ func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ros *RootStore, wr *Wai
 	}
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RouterState{
-		Route: cutils.SignUpRoute,
+		Route: utils.SignUpRoute,
 	})
 
 	return rs
@@ -56,19 +55,19 @@ func (rs *RouterStore) Update() error {
 
 	rstate := rs.GetState().(RouterState)
 	switch rstate.Route {
-	case cutils.SignUpRoute:
+	case utils.SignUpRoute:
 		rs.signUp.Update()
-	case cutils.RootRoute:
+	case utils.RootRoute:
 		rs.root.Update()
-	case cutils.WaitingRoomRoute:
+	case utils.WaitingRoomRoute:
 		rs.waitingRoom.Update()
-	case cutils.LobbiesRoute:
+	case utils.LobbiesRoute:
 		rs.lobbies.Update()
-	case cutils.NewLobbyRoute:
+	case utils.NewLobbyRoute:
 		rs.newLobby.Update()
-	case cutils.ShowLobbyRoute:
+	case utils.ShowLobbyRoute:
 		rs.showLobby.Update()
-	case cutils.GameRoute:
+	case utils.GameRoute:
 		rs.game.Update()
 	}
 	return nil
@@ -80,19 +79,19 @@ func (rs *RouterStore) Draw(screen *ebiten.Image) {
 
 	rstate := rs.GetState().(RouterState)
 	switch rstate.Route {
-	case cutils.SignUpRoute:
+	case utils.SignUpRoute:
 		rs.signUp.Draw(screen)
-	case cutils.RootRoute:
+	case utils.RootRoute:
 		rs.root.Draw(screen)
-	case cutils.WaitingRoomRoute:
+	case utils.WaitingRoomRoute:
 		rs.waitingRoom.Draw(screen)
-	case cutils.LobbiesRoute:
+	case utils.LobbiesRoute:
 		rs.lobbies.Draw(screen)
-	case cutils.NewLobbyRoute:
+	case utils.NewLobbyRoute:
 		rs.newLobby.Draw(screen)
-	case cutils.ShowLobbyRoute:
+	case utils.ShowLobbyRoute:
 		rs.showLobby.Draw(screen)
-	case cutils.GameRoute:
+	case utils.GameRoute:
 		rs.game.Draw(screen)
 	}
 }
@@ -120,7 +119,7 @@ func (rs *RouterStore) Reduce(state, a interface{}) interface{} {
 	case action.NavigateTo:
 		rstate.Route = act.NavigateTo.Route
 	case action.StartGame:
-		rstate.Route = cutils.GameRoute
+		rstate.Route = utils.GameRoute
 	}
 
 	return rstate

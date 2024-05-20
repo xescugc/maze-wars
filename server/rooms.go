@@ -1,12 +1,14 @@
 package server
 
 import (
+	"context"
 	"log/slog"
 	"sync"
 
 	"github.com/gofrs/uuid"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/server/bot"
 	"nhooyr.io/websocket"
 )
 
@@ -31,6 +33,10 @@ type Room struct {
 
 	Connections map[string]string
 
+	Context         context.Context
+	ContextCancelFn context.CancelFunc
+	Bots            map[string]*bot.Bot
+
 	Size      int
 	Countdown int
 
@@ -40,6 +46,7 @@ type Room struct {
 type PlayerConn struct {
 	Conn       *websocket.Conn
 	RemoteAddr string
+	IsBot      bool
 }
 
 func NewRoomsStore(d *flux.Dispatcher, s *Store, l *slog.Logger) *RoomsStore {
@@ -113,11 +120,19 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 
 		rd := flux.NewDispatcher()
 		g := NewGame(rd, rs.logger)
-		rstate.Rooms[rid].Game = g
+		cr := rstate.Rooms[rid]
+		ctx := context.Background()
+		cr.Context, cr.ContextCancelFn = context.WithCancel(ctx)
+		cr.Game = g
 		pcount := 0
 		for pid, pc := range rstate.Rooms[rid].Players {
-			u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
-			g.Dispatch(action.NewAddPlayer(pid, u.Username, pcount))
+			if pc.IsBot {
+				g.Dispatch(action.NewAddPlayer(pid, pid, pcount))
+				cr.Bots[pid] = bot.New(cr.Context, rd, g.Store, pid)
+			} else {
+				u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
+				g.Dispatch(action.NewAddPlayer(pid, u.Username, pcount))
+			}
 			pcount++
 		}
 		if rid == rstate.CurrentWaitingRoom {
@@ -130,12 +145,19 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			Name:        l.ID,
 			Players:     make(map[string]PlayerConn),
 			Connections: make(map[string]string),
+			Bots:        make(map[string]*bot.Bot),
 
 			Size:      l.MaxPlayers,
 			Countdown: 10,
 		}
 
-		for p := range l.Players {
+		for p, ib := range l.Players {
+			if ib {
+				r.Players[p] = PlayerConn{
+					IsBot: true,
+				}
+				continue
+			}
 			us, _ := rs.Store.Users.FindByUsername(p)
 			r.Players[us.ID] = PlayerConn{
 				Conn:       us.Conn,
@@ -243,7 +265,26 @@ func removePlayer(rstate *RoomsState, pid, room string) {
 
 	rstate.Rooms[room].Game.Dispatch(action.NewRemovePlayer(pid))
 
+	if pc.IsBot {
+		rstate.Rooms[room].Bots[pid].Stop()
+		delete(rstate.Rooms[room].Bots, pid)
+	}
+
 	if len(rstate.Rooms[room].Players) == 0 {
+		delete(rstate.Rooms, room)
+	}
+	var humanFound bool
+	for _, pc := range rstate.Rooms[room].Players {
+		if !pc.IsBot {
+			humanFound = true
+			break
+		}
+	}
+	// If no human was found left alive we just remove the room
+	if !humanFound {
+		for _, b := range rstate.Rooms[room].Bots {
+			b.Stop()
+		}
 		delete(rstate.Rooms, room)
 	}
 }

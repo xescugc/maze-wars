@@ -44,7 +44,7 @@ func (m *Map) Draw(screen *ebiten.Image) {
 	screen.DrawImage(imagesCache.Get(m.game.Store.Map.GetImageKey()).SubImage(image.Rect(s.X, s.Y, int(float64((s.X+s.W))*inverseZoom), int(float64((s.Y+s.H))*inverseZoom))).(*ebiten.Image), op)
 
 	cs := m.game.Camera.GetState().(CameraState)
-	cp := m.game.Store.Players.FindCurrent()
+	cp := m.game.Store.Lines.FindCurrentPlayer()
 	x, y := m.game.Store.Map.GetHomeCoordinates(cp.LineID)
 	// Color TOP and Bottom
 	for i := x - 4; i <= x+(18*16)+3; i++ {

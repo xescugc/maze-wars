@@ -130,8 +130,8 @@ func (hs *HUDStore) Update() error {
 	cs := hs.game.Camera.GetState().(CameraState)
 	hst := hs.GetState().(HUDState)
 	x, y := ebiten.CursorPosition()
-	cp := hs.game.Store.Players.FindCurrent()
-	cl := hs.game.Store.Lines.FindByID(cp.LineID)
+	cp := hs.game.Store.Lines.FindCurrentPlayer()
+	cl := hs.game.Store.Lines.FindLineByID(cp.LineID)
 	tws := cl.Towers
 	// Only send a CursorMove when the curso has actually moved
 	if hst.LastCursorPosition.X != x || hst.LastCursorPosition.Y != y {
@@ -241,9 +241,9 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 	hst := hs.GetState().(HUDState)
 	cs := hs.game.Camera.GetState().(CameraState)
-	cp := hs.game.Store.Players.FindCurrent()
+	cp := hs.game.Store.Lines.FindCurrentPlayer()
 
-	psit := hs.game.Store.Players.GetState().(store.PlayersState).IncomeTimer
+	psit := hs.game.Store.Lines.GetState().(store.LinesState).IncomeTimer
 	entries := make([]any, 0, 0)
 	entries = append(entries,
 		fmt.Sprintf("%s %s %s",
@@ -253,7 +253,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	)
 
 	var sortedPlayers = make([]*store.Player, 0, 0)
-	for _, p := range hs.game.Store.Players.List() {
+	for _, p := range hs.game.Store.Lines.ListPlayers() {
 		sortedPlayers = append(sortedPlayers, p)
 	}
 	sort.Slice(sortedPlayers, func(i, j int) bool {
@@ -366,8 +366,7 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.SelectTower:
-		hs.GetDispatcher().WaitFor(hs.game.Store.Players.GetDispatcherToken())
-		cp := hs.game.Store.Players.FindCurrent()
+		cp := hs.game.Store.Lines.FindCurrentPlayer()
 		cs := hs.game.Camera.GetState().(CameraState)
 		x, y := fixPosition(cs, act.SelectTower.X, act.SelectTower.Y)
 		hstate.SelectedTower = &SelectedTower{
@@ -421,7 +420,7 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 }
 
 func (hs *HUDStore) findTowerByID(tid string) *store.Tower {
-	for _, l := range hs.game.Store.Lines.List() {
+	for _, l := range hs.game.Store.Lines.ListLines() {
 		if t, ok := l.Towers[tid]; ok {
 			return t
 		}
@@ -476,7 +475,7 @@ func sortedTowers() []*tower.Tower {
 }
 
 func (hs *HUDStore) buildUI() {
-	cp := hs.game.Store.Players.FindCurrent()
+	cp := hs.game.Store.Lines.FindCurrentPlayer()
 	topRightContainer := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
@@ -700,7 +699,7 @@ func (hs *HUDStore) buildUI() {
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
 				return func(args *widget.ButtonClickedEventArgs) {
-					cp := hs.game.Store.Players.FindCurrent()
+					cp := hs.game.Store.Lines.FindCurrentPlayer()
 					actionDispatcher.SummonUnit(u.Type.String(), cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
 				}
 			}(u)),
@@ -843,7 +842,7 @@ func (hs *HUDStore) buildUI() {
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
 				return func(args *widget.ButtonClickedEventArgs) {
-					cp := hs.game.Store.Players.FindCurrent()
+					cp := hs.game.Store.Lines.FindCurrentPlayer()
 					actionDispatcher.UpdateUnit(cp.ID, u.Type.String())
 				}
 			}(u)),
@@ -913,7 +912,7 @@ func (hs *HUDStore) buildUI() {
 		}),
 
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			u := hs.game.Store.Players.FindCurrent()
+			u := hs.game.Store.Lines.FindCurrentPlayer()
 			actionDispatcher.RemovePlayer(u.ID)
 		}),
 	)
@@ -1018,7 +1017,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
 			return func(args *widget.ButtonClickedEventArgs) {
-				cp := hs.game.Store.Players.FindCurrent()
+				cp := hs.game.Store.Lines.FindCurrentPlayer()
 				otm := hs.GetState().(HUDState).OpenTowerMenu
 				actionDispatcher.RemoveTower(cp.ID, otm.ID)
 				actionDispatcher.CloseTowerMenu()
@@ -1068,7 +1067,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
 			return func(args *widget.ButtonClickedEventArgs) {
-				cp := hs.game.Store.Players.FindCurrent()
+				cp := hs.game.Store.Lines.FindCurrentPlayer()
 				tomid := hs.GetState().(HUDState).OpenTowerMenu.ID
 				actionDispatcher.UpdateTower(cp.ID, tomid)
 			}

@@ -11,7 +11,8 @@ type LobbyResponse struct {
 
 	// Players holds the usernames
 	// including the owner one
-	Players []string `json:"players"`
+	// The value is if it's a bot or not
+	Players map[string]bool `json:"players"`
 
 	// The username of the owner
 	Owner string `json:"owner"`
