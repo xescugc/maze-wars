@@ -1,12 +1,11 @@
 package store
 
 import (
-	"sort"
 	"sync"
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	cutils "github.com/xescugc/maze-wars/client/utils"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type Lobbies struct {
@@ -24,20 +23,13 @@ type Lobby struct {
 	Name       string
 	MaxPlayers int
 	// Players holds the usernames
-	// including the owner one
-	Players map[string]struct{}
+	// including the owner one.
+	// And the bool value represents
+	// if it's a "bot" or not
+	Players map[string]bool
 	// The username of the owner
 	Owner   string
 	Current bool
-}
-
-func (l Lobby) PlayersSlice() []string {
-	pls := make([]string, 0, len(l.Players))
-	for p := range l.Players {
-		pls = append(pls, p)
-	}
-	sort.Strings(pls)
-	return pls
 }
 
 func NewLobbies(d *flux.Dispatcher) *Lobbies {
@@ -104,7 +96,7 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 			Name:       act.CreateLobby.LobbyName,
 			MaxPlayers: act.CreateLobby.LobbyMaxPlayers,
 			Owner:      act.CreateLobby.Owner,
-			Players:    map[string]struct{}{act.CreateLobby.Owner: struct{}{}},
+			Players:    map[string]bool{act.CreateLobby.Owner: false},
 		}
 	case action.DeleteLobby:
 		ls.mxLobbies.Lock()
@@ -115,7 +107,7 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		lstate.Lobbies[act.JoinLobby.LobbyID].Players[act.JoinLobby.Username] = struct{}{}
+		lstate.Lobbies[act.JoinLobby.LobbyID].Players[act.JoinLobby.Username] = act.JoinLobby.IsBot
 	case action.LeaveLobby:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
@@ -135,12 +127,9 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 				Name:       al.Name,
 				MaxPlayers: al.MaxPlayers,
 				Owner:      al.Owner,
-				Players:    make(map[string]struct{}),
+				Players:    al.Players,
 			}
 
-			for _, p := range al.Players {
-				l.Players[p] = struct{}{}
-			}
 			lstate.Lobbies[l.ID] = l
 			delete(clbs, al.ID)
 		}
@@ -153,7 +142,7 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 
 		// If we navigate out of the Show page we should
 		// unset the current
-		if act.NavigateTo.Route != cutils.ShowLobbyRoute {
+		if act.NavigateTo.Route != utils.ShowLobbyRoute {
 			for _, l := range lstate.Lobbies {
 				l.Current = false
 			}
@@ -175,12 +164,9 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 			ID:         ulp.ID,
 			Name:       ulp.Name,
 			MaxPlayers: ulp.MaxPlayers,
-			Players:    make(map[string]struct{}),
+			Players:    ulp.Players,
 			Owner:      ulp.Owner,
 			Current:    l.Current,
-		}
-		for _, p := range ulp.Players {
-			ul.Players[p] = struct{}{}
 		}
 		lstate.Lobbies[ul.ID] = ul
 	case action.UserSignOut:

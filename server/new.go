@@ -160,7 +160,7 @@ func listLobbiesHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 				Name:       l.Name,
 				MaxPlayers: l.MaxPlayers,
 				Owner:      l.Owner,
-				Players:    l.PlayersSlice(),
+				Players:    l.Players,
 			}
 			respLobbies.Lobbies = append(respLobbies.Lobbies, lr)
 		}

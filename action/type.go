@@ -11,8 +11,6 @@ const (
 	UpdateUnit
 	UpdateTower
 	TPS
-	RemoveUnit
-	StealLive
 	PlaceTower
 	RemoveTower
 	SelectTower
@@ -20,15 +18,12 @@ const (
 	SelectedTowerInvalid
 	DeselectTower
 	IncomeTick
-	TowerAttack
-	UnitKilled
 	WindowResizing
 	NavigateTo
 	StartGame
 	OpenTowerMenu
 	CloseTowerMenu
 	GoHome
-	ChangeUnitLine
 	SignUpError
 	UserSignUp
 	UserSignIn

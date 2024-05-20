@@ -145,12 +145,17 @@ func (us *UsersStore) Reduce(state, a interface{}) interface{} {
 		us.mxUsers.Lock()
 		defer us.mxUsers.Unlock()
 
+		if act.JoinLobby.IsBot {
+			break
+		}
 		ustate.Users[act.JoinLobby.Username].CurrentLobbyID = act.JoinLobby.LobbyID
 	case action.LeaveLobby:
 		us.mxUsers.Lock()
 		defer us.mxUsers.Unlock()
 
-		ustate.Users[act.LeaveLobby.Username].CurrentLobbyID = ""
+		if un, ok := ustate.Users[act.LeaveLobby.Username]; ok {
+			un.CurrentLobbyID = ""
+		}
 	case action.DeleteLobby:
 		us.mxUsers.Lock()
 		defer us.mxUsers.Unlock()

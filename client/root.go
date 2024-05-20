@@ -190,7 +190,7 @@ func (rs *RootStore) buildUI() {
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			actionDispatcher.NavigateTo(cutils.LobbiesRoute)
+			actionDispatcher.NavigateTo(utils.LobbiesRoute)
 		}),
 	)
 

@@ -21,7 +21,9 @@ type NewLobbyView struct {
 	Store  *Store
 	Logger *slog.Logger
 
-	ui *ebitenui.UI
+	ui         *ebitenui.UI
+	createBtnW *widget.Button
+	nameInputW *widget.TextInput
 }
 
 func NewNewLobbyView(s *Store, l *slog.Logger) *NewLobbyView {
@@ -46,6 +48,8 @@ func (nl *NewLobbyView) Update() error {
 func (nl *NewLobbyView) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(nl.Logger, b, "new_lobby draw")
+
+	nl.createBtnW.GetWidget().Disabled = len(nl.nameInputW.GetText()) == 0
 
 	nl.ui.Draw(screen)
 }
@@ -245,7 +249,7 @@ func (nl *NewLobbyView) buildUI() {
 
 			actionDispatcher.CreateLobby(lid, nl.Store.Users.Username(), nameInputW.GetText(), playersSliderW.Current)
 			actionDispatcher.SelectLobby(lid)
-			actionDispatcher.NavigateTo(cutils.ShowLobbyRoute)
+			actionDispatcher.NavigateTo(utils.ShowLobbyRoute)
 		}),
 	)
 
@@ -277,7 +281,7 @@ func (nl *NewLobbyView) buildUI() {
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			actionDispatcher.NavigateTo(cutils.LobbiesRoute)
+			actionDispatcher.NavigateTo(utils.LobbiesRoute)
 		}),
 	)
 
@@ -293,6 +297,8 @@ func (nl *NewLobbyView) buildUI() {
 		),
 	)
 
+	nl.createBtnW = createBtnW
+	nl.nameInputW = nameInputW
 	nameInputW.Focus(true)
 
 	buttonsC.AddChild(backBtnW)
