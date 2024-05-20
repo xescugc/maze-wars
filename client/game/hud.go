@@ -244,12 +244,14 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	cp := hs.game.Store.Lines.FindCurrentPlayer()
 
 	psit := hs.game.Store.Lines.GetState().(store.LinesState).IncomeTimer
-	entries := make([]any, 0, 0)
+	entries := make([]any, 0, len(hs.game.Store.Lines.ListPlayers())+1)
 	entries = append(entries,
-		fmt.Sprintf("%s %s %s",
-			cutils.FillIn("Name", 10),
-			cutils.FillIn("Lives", 8),
-			cutils.FillIn("Income", 8)),
+		cutils.ListEntry{
+			Text: fmt.Sprintf("%s %s %s",
+				cutils.FillIn("Name", 10),
+				cutils.FillIn("Lives", 8),
+				cutils.FillIn("Income", 8)),
+		},
 	)
 
 	var sortedPlayers = make([]*store.Player, 0, 0)
@@ -266,13 +268,18 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	})
 	for _, p := range sortedPlayers {
 		entries = append(entries,
-			fmt.Sprintf("%s %s %s",
-				cutils.FillIn(p.Name, 10),
-				cutils.FillIn(strconv.Itoa(p.Lives), 8),
-				cutils.FillIn(strconv.Itoa(p.Income), 8)),
+			cutils.ListEntry{
+				ID: p.ID,
+				Text: fmt.Sprintf("%s %s %s",
+					cutils.FillIn(p.Name, 10),
+					cutils.FillIn(strconv.Itoa(p.Lives), 8),
+					cutils.FillIn(strconv.Itoa(p.Income), 8)),
+			},
 		)
 	}
-	hs.statsListW.SetEntries(entries)
+	if !cutils.EqualListEntries(entries, hs.statsListW.Entries().([]any)) {
+		hs.statsListW.SetEntries(entries)
+	}
 
 	visibility := widget.Visibility_Show
 	if !hst.ShowStats {
@@ -607,7 +614,7 @@ func (hs *HUDStore) buildUI() {
 		}),
 		// This required function returns the string displayed in the list
 		widget.ListOpts.EntryLabelFunc(func(e interface{}) string {
-			return e.(string)
+			return e.(cutils.ListEntry).Text
 		}),
 		// Padding for each entry
 		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(5)),

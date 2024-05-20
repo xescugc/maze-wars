@@ -27,24 +27,6 @@ type LobbiesView struct {
 	lobbiesListW *widget.List
 }
 
-func EqualListEntries(le, nle []any) bool {
-	if len(le) != len(nle) {
-		return false
-	} else {
-		for i, e := range nle {
-			if le[i].(ListEntry) != e.(ListEntry) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-type ListEntry struct {
-	ID   string
-	Text string
-}
-
 func NewLobbiesView(s *Store, l *slog.Logger) *LobbiesView {
 	lv := &LobbiesView{
 		Store:  s,
@@ -72,7 +54,7 @@ func (lv *LobbiesView) Draw(screen *ebiten.Image) {
 
 	entries := make([]any, 0, len(lbs))
 	for _, l := range lbs {
-		le := ListEntry{
+		le := cutils.ListEntry{
 			ID: l.ID,
 			Text: fmt.Sprintf("%s %s %s",
 				cutils.FillIn(l.Name, 10),
@@ -83,9 +65,9 @@ func (lv *LobbiesView) Draw(screen *ebiten.Image) {
 		entries = append(entries, le)
 	}
 	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].(ListEntry).ID > entries[j].(ListEntry).ID
+		return entries[i].(cutils.ListEntry).ID > entries[j].(cutils.ListEntry).ID
 	})
-	if !EqualListEntries(entries, lv.lobbiesListW.Entries().([]any)) {
+	if !cutils.EqualListEntries(entries, lv.lobbiesListW.Entries().([]any)) {
 		lv.lobbiesListW.SetEntries(entries)
 	}
 
@@ -271,7 +253,7 @@ func (lv *LobbiesView) buildUI() {
 		}),
 		// This required function returns the string displayed in the list
 		widget.ListOpts.EntryLabelFunc(func(e interface{}) string {
-			l := e.(ListEntry)
+			l := e.(cutils.ListEntry)
 			return l.Text
 		}),
 		// Padding for each entry
@@ -280,7 +262,7 @@ func (lv *LobbiesView) buildUI() {
 		widget.ListOpts.EntryTextPosition(widget.TextPositionStart, widget.TextPositionCenter),
 		// This handler defines what function to run when a list item is selected.
 		widget.ListOpts.EntrySelectedHandler(func(args *widget.ListEntrySelectedEventArgs) {
-			l := args.Entry.(ListEntry)
+			l := args.Entry.(cutils.ListEntry)
 			un := lv.Store.Users.Username()
 			lb := lv.Store.Lobbies.FindByID(l.ID)
 			if len(lb.Players)+1 > lb.MaxPlayers {
