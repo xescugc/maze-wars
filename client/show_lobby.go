@@ -64,15 +64,15 @@ func (sl *ShowLobbyView) Draw(screen *ebiten.Image) {
 
 		entries := make([]any, 0, len(cl.Players))
 		for p := range cl.Players {
-			entries = append(entries, ListEntry{
+			entries = append(entries, cutils.ListEntry{
 				ID:   p,
 				Text: p,
 			})
 		}
 		sort.Slice(entries, func(i, j int) bool {
-			return entries[i].(ListEntry).ID > entries[j].(ListEntry).ID
+			return entries[i].(cutils.ListEntry).ID > entries[j].(cutils.ListEntry).ID
 		})
-		if !EqualListEntries(entries, sl.playersListW.Entries().([]any)) {
+		if !cutils.EqualListEntries(entries, sl.playersListW.Entries().([]any)) {
 			sl.playersListW.SetEntries(entries)
 		}
 
@@ -304,7 +304,7 @@ func (sl *ShowLobbyView) buildUI() {
 		}),
 		// This required function returns the string displayed in the list
 		widget.ListOpts.EntryLabelFunc(func(e interface{}) string {
-			return e.(ListEntry).Text
+			return e.(cutils.ListEntry).Text
 		}),
 		// Padding for each entry
 		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(5)),
