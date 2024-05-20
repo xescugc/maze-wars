@@ -52,28 +52,28 @@ func (b *Bot) Node() bht.Node {
 	return bht.New(
 		bht.Shuffle(bht.Selector, nil),
 		// Units
-		//bht.New(
-		//bht.Selector,
-		//// Update
-		//bht.New(
-		//bht.Selector,
-		//b.updateUnits()...,
-		//),
-		//// Summon
-		//bht.New(
-		//bht.Shuffle(bht.Selector, nil),
-		//b.summonUnits()...,
-		//),
-		//),
+		bht.New(
+			bht.Selector,
+			// Update
+			bht.New(
+				bht.Selector,
+				b.updateUnits()...,
+			),
+			// Summon
+			bht.New(
+				bht.Shuffle(bht.Selector, nil),
+				b.summonUnits()...,
+			),
+		),
 		// Towers
 		bht.New(
 			bht.Shuffle(bht.Selector, nil),
 			// Update
-			//bht.New(
-			//bht.Sequence,
-			//bht.New(b.findTowerToUpdate()),
-			//bht.New(b.updateTower()),
-			//),
+			bht.New(
+				bht.Sequence,
+				bht.New(b.findTowerToUpdate()),
+				bht.New(b.updateTower()),
+			),
 			// Place
 			bht.New(
 				bht.Shuffle(bht.Selector, nil),
