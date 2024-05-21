@@ -18,6 +18,9 @@ import (
 	"github.com/xescugc/maze-wars/server/assets"
 	"github.com/xescugc/maze-wars/server/models"
 	"github.com/xescugc/maze-wars/server/templates"
+
+	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 )
 
 var (
@@ -33,6 +36,18 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	actionDispatcher = ad
 
 	go startLoop(ctx, s)
+
+	// To initialize Sentry's handler, you need to initialize Sentry itself beforehand
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn: "https://23c84ec9b6be647cd894cef01d883bb2@o4507290827751424.ingest.de.sentry.io/4507293420617808",
+		// Set TracesSampleRate to 1.0 to capture 100%
+		// of transactions for performance monitoring.
+		// We recommend adjusting this value in production,
+		TracesSampleRate: 1.0,
+		EnableTracing:    true,
+	}); err != nil {
+		return fmt.Errorf("Sentry initialization failed: %v\n", err)
+	}
 
 	r := mux.NewRouter()
 
@@ -59,9 +74,11 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	hmux.Handle("/wasm/", http.FileServer(http.FS(assets.Assets)))
 	hmux.Handle("/images/", http.FileServer(http.FS(assets.Assets)))
 
+	handler := sentryhttp.New(sentryhttp.Options{}).Handle(hmux)
+
 	svr := &http.Server{
 		Addr:    fmt.Sprintf(":%s", opt.Port),
-		Handler: handlers.LoggingHandler(os.Stdout, hmux),
+		Handler: handlers.LoggingHandler(os.Stdout, handler),
 	}
 
 	log.Printf("Staring server at %s\n", opt.Port)
@@ -235,6 +252,31 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 }
 
 func startLoop(ctx context.Context, s *Store) {
+	// Clone the current hub so that modifications of the scope are visible only
+	// within this function.
+	hub := sentry.CurrentHub().Clone()
+
+	// See https://golang.org/ref/spec#Handling_panics.
+	// This will recover from runtime panics and then panic again after
+	// reporting to Sentry.
+	defer func() {
+		if x := recover(); x != nil {
+			// Create an event and enqueue it for reporting.
+			hub.Recover(x)
+			// Because the goroutine running this code is going to crash the
+			// program, call Flush to send the event to Sentry before it is too
+			// late. Set the timeout to an appropriate value depending on your
+			// program. The value is the maximum time to wait before giving up
+			// and dropping the event.
+			hub.Flush(2 * time.Second)
+			// Note that if multiple goroutines panic, possibly only the first
+			// one to call Flush will succeed in sending the event. If you want
+			// to capture multiple panics and still crash the program
+			// afterwards, you need to coordinate error reporting and
+			// termination differently.
+			panic(x)
+		}
+	}()
 	secondTicker := time.NewTicker(time.Second)
 	stateTicker := time.NewTicker(time.Second / 4)
 	// The default TPS on of Ebiten client if 60 so to

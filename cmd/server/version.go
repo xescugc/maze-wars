@@ -9,7 +9,7 @@ import (
 var (
 	// version is the value of the current version, this
 	// is set via -ldflags
-	version string
+	version string = "development"
 
 	versionCmd = &cobra.Command{
 		Use:   "version",

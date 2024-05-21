@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/adrg/xdg v0.4.0
 	github.com/ebitenui/ebitenui v0.5.6-0.20240228194824-a73d28dc4078
+	github.com/getsentry/sentry-go v0.27.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/handlers v1.5.2
