@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"path"
+	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
@@ -114,9 +117,23 @@ func init() {
 }
 
 func main() {
-	if err := clientCmd.Execute(); err != nil {
+	err := sentry.Init(sentry.ClientOptions{
+		// Either set your DSN here or set the SENTRY_DSN environment variable.
+		Dsn: "https://23c84ec9b6be647cd894cef01d883bb2@o4507290827751424.ingest.de.sentry.io/4507293420617808",
+		// Enable printing of SDK debug messages.
+		// Useful when getting started or trying to figure something out.
+		EnableTracing: true,
+		Release:       version,
+	})
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+	// Flush buffered events before the program terminates.
+	// Set the timeout to the maximum duration the program can afford to wait.
+	defer sentry.Flush(2 * time.Second)
+
+	if err = clientCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-
 	}
 }

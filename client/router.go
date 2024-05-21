@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
@@ -53,6 +54,32 @@ func (rs *RouterStore) Update() error {
 	b := time.Now()
 	defer utils.LogTime(rs.logger, b, "router update")
 
+	// Clone the current hub so that modifications of the scope are visible only
+	// within this function.
+	hub := sentry.CurrentHub().Clone()
+
+	// See https://golang.org/ref/spec#Handling_panics.
+	// This will recover from runtime panics and then panic again after
+	// reporting to Sentry.
+	defer func() {
+		if x := recover(); x != nil {
+			// Create an event and enqueue it for reporting.
+			hub.Recover(x)
+			// Because the goroutine running this code is going to crash the
+			// program, call Flush to send the event to Sentry before it is too
+			// late. Set the timeout to an appropriate value depending on your
+			// program. The value is the maximum time to wait before giving up
+			// and dropping the event.
+			hub.Flush(2 * time.Second)
+			// Note that if multiple goroutines panic, possibly only the first
+			// one to call Flush will succeed in sending the event. If you want
+			// to capture multiple panics and still crash the program
+			// afterwards, you need to coordinate error reporting and
+			// termination differently.
+			panic(x)
+		}
+	}()
+
 	rstate := rs.GetState().(RouterState)
 	switch rstate.Route {
 	case utils.SignUpRoute:
@@ -76,6 +103,32 @@ func (rs *RouterStore) Update() error {
 func (rs *RouterStore) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(rs.logger, b, "router draw")
+
+	// Clone the current hub so that modifications of the scope are visible only
+	// within this function.
+	hub := sentry.CurrentHub().Clone()
+
+	// See https://golang.org/ref/spec#Handling_panics.
+	// This will recover from runtime panics and then panic again after
+	// reporting to Sentry.
+	defer func() {
+		if x := recover(); x != nil {
+			// Create an event and enqueue it for reporting.
+			hub.Recover(x)
+			// Because the goroutine running this code is going to crash the
+			// program, call Flush to send the event to Sentry before it is too
+			// late. Set the timeout to an appropriate value depending on your
+			// program. The value is the maximum time to wait before giving up
+			// and dropping the event.
+			hub.Flush(2 * time.Second)
+			// Note that if multiple goroutines panic, possibly only the first
+			// one to call Flush will succeed in sending the event. If you want
+			// to capture multiple panics and still crash the program
+			// afterwards, you need to coordinate error reporting and
+			// termination differently.
+			panic(x)
+		}
+	}()
 
 	rstate := rs.GetState().(RouterState)
 	switch rstate.Route {
