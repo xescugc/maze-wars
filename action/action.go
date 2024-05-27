@@ -482,12 +482,15 @@ type SyncStateUnitPayload struct {
 
 	Health        float64
 	MovementSpeed float64
+	Bounty        int
 
 	Level int
 
 	Path      []graph.Step
 	HashPath  string
 	CreatedAt time.Time
+
+	AbilitiesMetadata map[string]interface{}
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated

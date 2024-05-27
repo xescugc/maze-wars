@@ -10,6 +10,7 @@ import (
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
+	"github.com/xescugc/maze-wars/unit/ability"
 	"github.com/xescugc/maze-wars/unit/environment"
 	"github.com/xescugc/maze-wars/utils"
 	"github.com/xescugc/maze-wars/utils/graph"
@@ -93,6 +94,7 @@ type Unit struct {
 
 	Health        float64
 	MovementSpeed float64
+	Bounty        int
 
 	// The current level of the unit from the PlayerID
 	Level int
@@ -105,10 +107,19 @@ type Unit struct {
 	// the diff amount and then it'll be set to 'nil'
 	// so we know it's on sync
 	CreatedAt time.Time
+
+	// AbilitiesMetadata stores data from the abilities that
+	// the unit has and need to be kept in check, for example
+	// if it's a slime which is the other unit and if it died
+	// then give the bounty. Or if the unit already resurected
+	// The key is an ability.Ability.String() and the value is
+	// a type that is specific for the ability.
+	AbilitiesMetadata map[string]interface{}
 }
 
-func (u *Unit) FacesetKey() string { return unit.Units[u.Type].FacesetKey() }
-func (u *Unit) WalkKey() string    { return unit.Units[u.Type].WalkKey() }
+func (u *Unit) FacesetKey() string                { return unit.Units[u.Type].FacesetKey() }
+func (u *Unit) WalkKey() string                   { return unit.Units[u.Type].WalkKey() }
+func (u *Unit) HasAbility(a ability.Ability) bool { return unit.Units[u.Type].HasAbility(a) }
 
 type Player struct {
 	ID      string
@@ -439,6 +450,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Health:        float64(uu.Current.Health),
 			Level:         uu.Level,
 			MovementSpeed: uu.Current.MovementSpeed,
+			Bounty:        uu.Current.Income,
 			CreatedAt:     time.Now(),
 		}
 
@@ -492,7 +504,6 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			UpdateCost: updateCostFactor * buu.Next.Gold,
 			Next:       unitUpdate(buu.Level+2, u.Type.String(), u.Stats),
 		}
-		//lstate.PlayerID[act.UnitUpdate.PlayerID].UnitUpdate[act.UnitUpdate.Type].
 
 	case action.SyncState:
 		ls.mxLines.Lock()
@@ -684,13 +695,72 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				// Tower Attack
 				minDistUnit.Health -= t.Stats.Damage
 				if minDistUnit.Health <= 0 {
-					minDistUnit.Health = 0
+					if minDistUnit.HasAbility(ability.Split) {
+						if minDistUnit.AbilitiesMetadata != nil {
+							if as, ok := minDistUnit.AbilitiesMetadata[ability.Split.String()].(AbilitySplit); ok {
+								// TODO: Check if it moved into another line
+								if _, ok := l.Units[as.UnitID]; !ok {
+									minDistUnit.Health = 0
+
+									// Unit Killed by player so we give gold to the player
+									cp := lstate.Players[t.PlayerID]
+									cp.Gold += minDistUnit.Bounty
+								}
+							}
+						} else {
+							// TODO: This should only be done on the server not on the client port
+							u1 := *minDistUnit
+							u2 := *minDistUnit
+
+							u1.ID = uuid.Must(uuid.NewV4()).String()
+							u2.ID = uuid.Must(uuid.NewV4()).String()
+
+							bu := unit.Units[minDistUnit.Type]
+
+							h := float64(levelToValue(minDistUnit.Level, int(bu.Health))) / 2
+
+							u1.Health = h
+							u2.Health = h
+
+							u1.MovementSpeed = u1.MovementSpeed * 1.20
+							u2.MovementSpeed = u2.MovementSpeed * 1.20
+
+							// The second unit created we move it 10 positions forward if possible
+							for i := 0; i < 20; i++ {
+								if len(u2.Path) != 0 {
+									nextStep := u2.Path[0]
+									u2.Path = u2.Path[1:]
+									u2.MovingCount += 1
+									u2.Y = nextStep.Y
+									u2.X = nextStep.X
+									u2.Facing = nextStep.Facing
+								}
+							}
+
+							if u1.AbilitiesMetadata == nil {
+								u1.AbilitiesMetadata = make(map[string]interface{})
+								u2.AbilitiesMetadata = make(map[string]interface{})
+							}
+							u1.AbilitiesMetadata[ability.Split.String()] = AbilitySplit{
+								UnitID: u2.ID,
+							}
+							u2.AbilitiesMetadata[ability.Split.String()] = AbilitySplit{
+								UnitID: u1.ID,
+							}
+
+							l.Units[u1.ID] = &u1
+							l.Units[u2.ID] = &u2
+						}
+					} else {
+						minDistUnit.Health = 0
+
+						// Unit Killed by player so we give gold to the player
+						cp := lstate.Players[t.PlayerID]
+						cp.Gold += minDistUnit.Bounty
+					}
+
 					// Delete Unit
 					delete(lstate.Lines[lid].Units, minDistUnit.ID)
-
-					// Unit Killed by player so we give gold to the player
-					cp := lstate.Players[t.PlayerID]
-					cp.Gold += unitUpdate(minDistUnit.Level, minDistUnit.Type, unit.Units[minDistUnit.Type].Stats).Income
 				}
 			}
 		}
