@@ -110,17 +110,17 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	sx := directionToTile[u.Facing] * u.W
 	i := (u.MovingCount / 5) % 4
 	sy := i * u.H
-	screen.DrawImage(imagesCache.Get(u.SpriteKey()).SubImage(image.Rect(sx, sy, sx+u.W, sy+u.H)).(*ebiten.Image), op)
+	screen.DrawImage(imagesCache.Get(u.WalkKey()).SubImage(image.Rect(sx, sy, sx+u.W, sy+u.H)).(*ebiten.Image), op)
 
 	// Only draw the Health bar if the unit has been hit
 	h := unit.Units[u.Type].Health
 	if unit.Units[u.Type].Health != u.Health {
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(u.X-cs.X), float64(u.Y-cs.Y-ls.lifeBarUnder.Bounds().Dy()))
+		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(ls.lifeBarUnder.Bounds().Dy()))
 		screen.DrawImage(ls.lifeBarUnder.(*ebiten.Image), op)
 
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(u.X-cs.X), float64(u.Y-cs.Y-ls.lifeBarProgress.Bounds().Dy()))
+		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(ls.lifeBarProgress.Bounds().Dy()))
 		screen.DrawImage(ls.lifeBarProgress.(*ebiten.Image).SubImage(image.Rect(0, 0, int(float64(ls.lifeBarProgress.Bounds().Dx())*(u.Health/h)), ls.lifeBarProgress.Bounds().Dy())).(*ebiten.Image), op)
 	}
 }

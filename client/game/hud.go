@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	unitToolTipTmpl       = "Gold: %d\nHP: %.0f\nIncome: %d\nEnv: %s\nKeybind: %s"
-	unitUpdateToolTipTmpl = "Cost: %d\nGold: %d\nHP: %.0f\nIncome: %d"
+	unitToolTipTmpl       = "Lvl: %d\nGold: %d\nHP: %.0f\nSpeed: %.f\nIncome: %d\nEnv: %s\nKeybind: %s"
+	unitUpdateToolTipTmpl = "Lvl: %d\nCost: %d\nGold: %d\nHP: %.0f\nIncome: %d"
 
 	towerRemoveToolTipTmpl = "Gold back: %d\nKeybind: %s"
 	towerUpdateToolTipTmpl = "Cost: %d\nDamage: %.1f\nKeybind: %s"
@@ -134,7 +134,7 @@ func (hs *HUDStore) Update() error {
 	cl := hs.game.Store.Lines.FindLineByID(cp.LineID)
 	tws := cl.Towers
 	// Only send a CursorMove when the curso has actually moved
-	if hst.LastCursorPosition.X != x || hst.LastCursorPosition.Y != y {
+	if int(hst.LastCursorPosition.X) != x || int(hst.LastCursorPosition.Y) != y {
 		actionDispatcher.CursorMove(x, y)
 	}
 	// If the Current player is dead or has no more lives there are no
@@ -144,13 +144,13 @@ func (hs *HUDStore) Update() error {
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		clickAbsolute := utils.Object{
-			X: x + cs.X,
-			Y: y + cs.Y,
+			X: float64(x) + cs.X,
+			Y: float64(y) + cs.Y,
 			W: 1, H: 1,
 		}
 
 		if hst.SelectedTower != nil && !hst.SelectedTower.Invalid {
-			actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, hst.SelectedTower.X+cs.X, hst.SelectedTower.Y+cs.Y)
+			actionDispatcher.PlaceTower(hst.SelectedTower.Type, cp.ID, int(hst.SelectedTower.X+cs.X), int(hst.SelectedTower.Y+cs.Y))
 			return nil
 		}
 		for _, t := range tws {
@@ -214,7 +214,7 @@ func (hs *HUDStore) Update() error {
 			neo.Y += cs.Y
 
 			if !invalid {
-				invalid = !cl.Graph.CanAddTower(neo.X, neo.Y, neo.W, neo.H)
+				invalid = !cl.Graph.CanAddTower(int(neo.X), int(neo.Y), neo.W, neo.H)
 			}
 
 			if !invalid {
@@ -292,14 +292,14 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	for i, u := range sortedUnits() {
 		uu := cp.UnitUpdates[u.Type.String()]
 		wuts[i].GetWidget().Disabled = !cp.CanSummonUnit(u.Type.String())
-		hs.unitsTooltip[u.Type.String()].Label = fmt.Sprintf(unitToolTipTmpl, uu.Current.Gold, uu.Current.Health, uu.Current.Income, u.Environment, u.Keybind)
+		hs.unitsTooltip[u.Type.String()].Label = fmt.Sprintf(unitToolTipTmpl, uu.Level, uu.Current.Gold, uu.Current.Health, uu.Current.MovementSpeed, uu.Current.Income, u.Environment, u.Keybind)
 	}
 
 	wuuts := hs.unitUpdatesC.Children()
 	for i, u := range sortedUnits() {
 		uu := cp.UnitUpdates[u.Type.String()]
 		wuuts[i].GetWidget().Disabled = !cp.CanUpdateUnit(u.Type.String())
-		hs.unitUpdatesTooltip[u.Type.String()].Label = fmt.Sprintf(unitUpdateToolTipTmpl, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income)
+		hs.unitUpdatesTooltip[u.Type.String()].Label = fmt.Sprintf(unitUpdateToolTipTmpl, uu.Level+1, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income)
 	}
 
 	wtws := hs.towersC.Children()
@@ -394,8 +394,8 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		nx := act.CursorMove.X
 		ny := act.CursorMove.Y
 
-		hstate.LastCursorPosition.X = nx
-		hstate.LastCursorPosition.Y = ny
+		hstate.LastCursorPosition.X = float64(nx)
+		hstate.LastCursorPosition.Y = float64(ny)
 
 		if hstate.SelectedTower != nil {
 			cs := hs.game.Camera.GetState().(CameraState)
@@ -435,9 +435,9 @@ func (hs *HUDStore) findTowerByID(tid string) *store.Tower {
 	return nil
 }
 
-func fixPosition(cs CameraState, x, y int) (int, int) {
-	absnx := x + cs.X
-	absny := y + cs.Y
+func fixPosition(cs CameraState, x, y int) (float64, float64) {
+	absnx := x + int(cs.X)
+	absny := y + int(cs.Y)
 	// We find the closes multiple in case the cursor moves too fast, between FPS reloads,
 	// and lands in a position not 'multiple' which means the position of the SelectedTower
 	// is not updated and the result is the cursor far away from the Drawing of the SelectedTower
@@ -448,25 +448,22 @@ func fixPosition(cs CameraState, x, y int) (int, int) {
 	if absnx%multiple == 0 {
 		x -= 16
 	} else {
-		x = utils.ClosestMultiple(absnx, multiple) - 16 - cs.X
+		x = utils.ClosestMultiple(absnx, multiple) - 16 - int(cs.X)
 	}
 	if absny%multiple == 0 {
 		y -= 16
 	} else {
-		y = utils.ClosestMultiple(absny, multiple) - 16 - cs.Y
+		y = utils.ClosestMultiple(absny, multiple) - 16 - int(cs.Y)
 	}
 
-	return x, y
+	return float64(x), float64(y)
 }
 
 func sortedUnits() []*unit.Unit {
 	us := make([]*unit.Unit, 0, 0)
-	for _, u := range unit.Units {
-		us = append(us, u)
+	for _, u := range unit.TypeStrings() {
+		us = append(us, unit.Units[u])
 	}
-	sort.Slice(us, func(i, j int) bool {
-		return us[i].Gold < us[j].Gold
-	})
 	return us
 }
 
@@ -673,7 +670,7 @@ func (hs *HUDStore) buildUI() {
 
 		toolTxt := widget.NewText(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Text(fmt.Sprintf(unitToolTipTmpl, uu.Current.Gold, uu.Current.Health, uu.Current.Income, u.Environment, u.Keybind), cutils.SmallFont, color.White),
+			widget.TextOpts.Text(fmt.Sprintf(unitToolTipTmpl, uu.Level, uu.Current.Gold, uu.Current.Health, uu.Current.MovementSpeed, uu.Current.Income, u.Environment, u.Keybind), cutils.SmallFont, color.White),
 			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 		)
 		hs.unitsTooltip[u.Type.String()] = toolTxt
@@ -775,7 +772,7 @@ func (hs *HUDStore) buildUI() {
 			widget.ButtonOpts.ClickedHandler(func(t *tower.Tower) func(args *widget.ButtonClickedEventArgs) {
 				return func(args *widget.ButtonClickedEventArgs) {
 					hst := hs.GetState().(HUDState)
-					actionDispatcher.SelectTower(t.Type.String(), hst.LastCursorPosition.X, hst.LastCursorPosition.Y)
+					actionDispatcher.SelectTower(t.Type.String(), int(hst.LastCursorPosition.X), int(hst.LastCursorPosition.Y))
 				}
 			}(t)),
 		)
@@ -816,7 +813,7 @@ func (hs *HUDStore) buildUI() {
 
 		toolTxt := widget.NewText(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Text(fmt.Sprintf(unitUpdateToolTipTmpl, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income), cutils.SmallFont, color.White),
+			widget.TextOpts.Text(fmt.Sprintf(unitUpdateToolTipTmpl, uu.Level+1, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income), cutils.SmallFont, color.White),
 			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 		)
 		hs.unitUpdatesTooltip[u.Type.String()] = toolTxt

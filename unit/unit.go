@@ -21,45 +21,46 @@ type Unit struct {
 	Keybind string
 
 	Faceset image.Image
-	Sprite  image.Image
+	Walk    image.Image
 }
 
 type Stats struct {
-	Health float64 `json:"health"`
-	Income int     `json:"income"`
-	Gold   int     `json:"gold"`
+	Health        float64 `json:"health"`
+	Income        int     `json:"income"`
+	Gold          int     `json:"gold"`
+	MovementSpeed float64 `json:"movement_speed"`
 }
 
 func (u *Unit) FacesetKey() string { return fmt.Sprintf("u-f-%s", u.Type) }
-func (u *Unit) SpriteKey() string  { return fmt.Sprintf("u-s-%s", u.Type) }
+func (u *Unit) WalkKey() string    { return fmt.Sprintf("u-w-%s", u.Type) }
 
 var (
 	Units map[string]*Unit
 
-	sprites = map[Type][]byte{
-		Spirit:    assets.SpiritSprite_png,
-		Flam:      assets.FlamSprite_png,
-		Raccon:    assets.RacoonSprite_png,
-		Cyclope:   assets.CyclopeSprite_png,
-		Eye:       assets.EyeSprite_png,
-		Beast:     assets.BeastSprite_png,
-		Butterfly: assets.ButterflySprite_png,
-		Mole:      assets.MoleSprite_png,
-		Skull:     assets.SkullSprite_png,
-		Snake:     assets.SnakeSprite_png,
+	walks = map[Type][]byte{
+		Ninja:         assets.NinjaWalk_png,
+		Statue:        assets.StatueWalk_png,
+		Hunter:        assets.HunterWalk_png,
+		Slime:         assets.SlimeWalk_png,
+		Mole:          assets.MoleWalk_png,
+		SkeletonDemon: assets.SkeletonDemonWalk_png,
+		Butterfly:     assets.ButterflyWalk_png,
+		NinjaMasked:   assets.NinjaMaskedWalk_png,
+		Robot:         assets.RobotWalk_png,
+		MonkeyBoxer:   assets.MonkeyBoxerWalk_png,
 	}
 
 	facesets = map[Type][]byte{
-		Spirit:    assets.SpiritFaceset_png,
-		Flam:      assets.FlamFaceset_png,
-		Raccon:    assets.RacoonFaceset_png,
-		Cyclope:   assets.CyclopeFaceset_png,
-		Eye:       assets.EyeFaceset_png,
-		Beast:     assets.BeastFaceset_png,
-		Butterfly: assets.ButterflyFaceset_png,
-		Mole:      assets.MoleFaceset_png,
-		Skull:     assets.SkullFaceset_png,
-		Snake:     assets.SnakeFaceset_png,
+		Ninja:         assets.NinjaFaceset_png,
+		Statue:        assets.StatueFaceset_png,
+		Hunter:        assets.HunterFaceset_png,
+		Slime:         assets.SlimeFaceset_png,
+		Mole:          assets.MoleFaceset_png,
+		SkeletonDemon: assets.SkeletonDemonFaceset_png,
+		Butterfly:     assets.ButterflyFaceset_png,
+		NinjaMasked:   assets.NinjaMaskedFaceset_png,
+		Robot:         assets.RobotFaceset_png,
+		MonkeyBoxer:   assets.MonkeyBoxerFaceset_png,
 	}
 )
 
@@ -84,17 +85,18 @@ func init() {
 			log.Fatal(err)
 		}
 
-		sb, ok := sprites[ty]
+		wb, ok := walks[ty]
 		if !ok {
-			log.Fatalf("Type %s does not have an sprite assigned", ty)
+			log.Fatalf("Type %s does not have an walk assigned", ty)
 		}
-		si, _, err := image.Decode(bytes.NewReader(sb))
+		wi, _, err := image.Decode(bytes.NewReader(wb))
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		u.Sprite = si
+		u.Walk = wi
 		u.Faceset = fi
 		u.Type = ty
+		u.Stats.Income = u.Stats.Gold / 5
 	}
 }

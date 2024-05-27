@@ -7,65 +7,65 @@ import (
 
 // UNITS
 
-//go:embed units/cyclope/faceset.png
-var CyclopeFaceset_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/NinjaGreen/SeparateAnim/Walk.png
+var NinjaWalk_png []byte
 
-//go:embed units/cyclope/sprite.png
-var CyclopeSprite_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/NinjaGreen/Faceset.png
+var NinjaFaceset_png []byte
 
-//go:embed units/flam/faceset.png
-var FlamFaceset_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/Statue/SeparateAnim/Walk.png
+var StatueWalk_png []byte
 
-//go:embed units/flam/sprite.png
-var FlamSprite_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/Statue/Faceset.png
+var StatueFaceset_png []byte
 
-//go:embed units/racoon/faceset.png
-var RacoonFaceset_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/Hunter/SeparateAnim/Walk.png
+var HunterWalk_png []byte
 
-//go:embed units/racoon/sprite.png
-var RacoonSprite_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/Hunter/Faceset.png
+var HunterFaceset_png []byte
 
-//go:embed units/spirit/faceset.png
-var SpiritFaceset_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Monsters/Slime4/Slime4.png
+var SlimeWalk_png []byte
 
-//go:embed units/spirit/sprite.png
-var SpiritSprite_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Monsters/Slime4/Faceset.png
+var SlimeFaceset_png []byte
 
-//go:embed units/eye/faceset.png
-var EyeFaceset_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Monsters/Mole/Mole.png
+var MoleWalk_png []byte
 
-//go:embed units/eye/sprite.png
-var EyeSprite_png []byte
-
-//go:embed units/beast/faceset.png
-var BeastFaceset_png []byte
-
-//go:embed units/beast/sprite.png
-var BeastSprite_png []byte
-
-//go:embed units/butterfly/faceset.png
-var ButterflyFaceset_png []byte
-
-//go:embed units/butterfly/sprite.png
-var ButterflySprite_png []byte
-
-//go:embed units/mole/faceset.png
+//go:embed ninja_adventure_asset_pack/Actor/Monsters/Mole/Faceset.png
 var MoleFaceset_png []byte
 
-//go:embed units/mole/sprite.png
-var MoleSprite_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/SkeletonDemon/SeparateAnim/Walk.png
+var SkeletonDemonWalk_png []byte
 
-//go:embed units/skull/faceset.png
-var SkullFaceset_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/SkeletonDemon/Faceset.png
+var SkeletonDemonFaceset_png []byte
 
-//go:embed units/skull/sprite.png
-var SkullSprite_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Monsters/Butterfly/SpriteSheet.png
+var ButterflyWalk_png []byte
 
-//go:embed units/snake/faceset.png
-var SnakeFaceset_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Monsters/Butterfly/Faceset.png
+var ButterflyFaceset_png []byte
 
-//go:embed units/snake/sprite.png
-var SnakeSprite_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/NinjaMasked/SeparateAnim/Walk.png
+var NinjaMaskedWalk_png []byte
+
+//go:embed ninja_adventure_asset_pack/Actor/Characters/NinjaMasked/Faceset.png
+var NinjaMaskedFaceset_png []byte
+
+//go:embed ninja_adventure_asset_pack/Actor/Characters/RobotGrey/SeparateAnim/Walk.png
+var RobotWalk_png []byte
+
+//go:embed ninja_adventure_asset_pack/Actor/Characters/RobotGrey/Faceset.png
+var RobotFaceset_png []byte
+
+//go:embed ninja_adventure_asset_pack/Actor/Characters/MonkeyBoxerRed/SeparateAnim/Walk.png
+var MonkeyBoxerWalk_png []byte
+
+//go:embed ninja_adventure_asset_pack/Actor/Characters/MonkeyBoxerRed/Faceset.png
+var MonkeyBoxerFaceset_png []byte
 
 // END UNITS
 

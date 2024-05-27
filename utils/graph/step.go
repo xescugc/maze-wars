@@ -14,13 +14,13 @@ type Step struct {
 	// be nil when the AStar has the flag 'AtScale'
 	Node *Node
 
-	X, Y int
+	X, Y float64
 
 	Facing utils.Direction
 }
 
 func (s Step) String() string {
-	return fmt.Sprintf("X:%d, Y:%d, F:%s", s.X, s.Y, s.Facing.String())
+	return fmt.Sprintf("X:%.2f, Y:%.2f, F:%s", s.X, s.Y, s.Facing.String())
 }
 
 func HashSteps(ss []Step) string {

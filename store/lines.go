@@ -1,6 +1,7 @@
 package store
 
 import (
+	"math"
 	"sync"
 	"time"
 
@@ -19,11 +20,9 @@ const (
 
 	incomeTimer = 15
 
-	// It's 10% so we use 1.1 to get the increment
-	updateFactor = 1.1
-
-	// It's 100% more
-	updateCostFactor = 100
+	updateFactor     = 0.1
+	updateCostFactor = 5
+	incomeFactor     = 5
 )
 
 var (
@@ -92,7 +91,8 @@ type Unit struct {
 	PlayerLineID  int
 	CurrentLineID int
 
-	Health float64
+	Health        float64
+	MovementSpeed float64
 
 	// The current level of the unit from the PlayerID
 	Level int
@@ -108,7 +108,7 @@ type Unit struct {
 }
 
 func (u *Unit) FacesetKey() string { return unit.Units[u.Type].FacesetKey() }
-func (u *Unit) SpriteKey() string  { return unit.Units[u.Type].SpriteKey() }
+func (u *Unit) WalkKey() string    { return unit.Units[u.Type].WalkKey() }
 
 type Player struct {
 	ID      string
@@ -348,7 +348,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		tw := &Tower{
 			ID: tid.String(),
 			Object: utils.Object{
-				X: act.PlaceTower.X, Y: act.PlaceTower.Y,
+				X: float64(act.PlaceTower.X), Y: float64(act.PlaceTower.Y),
 				W: w, H: h,
 			},
 			Type:     act.PlaceTower.Type,
@@ -360,7 +360,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 
 		l := lstate.Lines[p.LineID]
 		// TODO: Check this errors
-		_ = l.Graph.AddTower(tw.ID, tw.X, tw.Y, tw.W, tw.H)
+		_ = l.Graph.AddTower(tw.ID, act.PlaceTower.X, act.PlaceTower.Y, tw.W, tw.H)
 
 		l.Towers[tw.ID] = tw
 
@@ -426,7 +426,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		u := &Unit{
 			MovingObject: utils.MovingObject{
 				Object: utils.Object{
-					X: n.X, Y: n.Y,
+					X: float64(n.X), Y: float64(n.Y),
 					W: w, H: h,
 				},
 				Facing: utils.Down,
@@ -438,10 +438,11 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			CurrentLineID: act.SummonUnit.CurrentLineID,
 			Health:        float64(uu.Current.Health),
 			Level:         uu.Level,
+			MovementSpeed: uu.Current.MovementSpeed,
 			CreatedAt:     time.Now(),
 		}
 
-		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, atScale)
+		u.Path = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.TPS:
@@ -491,6 +492,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			UpdateCost: updateCostFactor * buu.Next.Gold,
 			Next:       unitUpdate(buu.Level+2, u.Type.String(), u.Stats),
 		}
+		//lstate.PlayerID[act.UnitUpdate.PlayerID].UnitUpdate[act.UnitUpdate.Type].
 
 	case action.SyncState:
 		ls.mxLines.Lock()
@@ -551,7 +553,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			}
 			for id := range atws {
 				t := cl.Towers[id]
-				cl.Graph.AddTower(id, t.X, t.Y, t.W, t.H)
+				cl.Graph.AddTower(id, int(t.X), int(t.Y), t.W, t.H)
 			}
 		}
 
@@ -593,7 +595,7 @@ func (ls *Lines) recalculateLineUnitSteps(lstate LinesState, lid int) {
 
 	l := lstate.Lines[lid]
 	for _, u := range l.Units {
-		u.Path = l.Graph.AStar(u.X, u.Y, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
+		u.Path = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 	}
 }
@@ -714,7 +716,7 @@ func unitUpdate(nlvl int, ut string, u unit.Stats) unit.Stats {
 
 	u.Health = float64(levelToValue(nlvl, int(bu.Health)))
 	u.Gold = levelToValue(nlvl, bu.Gold)
-	u.Income = levelToValue(nlvl, bu.Income)
+	u.Income = int(math.Round(float64(u.Gold) / float64(incomeFactor)))
 
 	return u
 }
@@ -722,9 +724,9 @@ func unitUpdate(nlvl int, ut string, u unit.Stats) unit.Stats {
 func levelToValue(lvl, base int) int {
 	fb := float64(base)
 	for i := 1; i < lvl; i++ {
-		fb = fb * updateFactor
+		fb = math.Round(fb) * math.Pow(math.E, updateFactor)
 	}
-	return int(fb)
+	return int(math.Round(fb))
 }
 
 func (ls *Lines) stealLive(lstate LinesState, fpID, tpID string) {
@@ -764,10 +766,10 @@ func (ls *Lines) changeUnitLine(lstate LinesState, u *Unit, nlid int) {
 	nl := lstate.Lines[u.CurrentLineID]
 
 	n := nl.Graph.GetRandomSpawnNode()
-	u.X = n.X
-	u.Y = n.Y
+	u.X = float64(n.X)
+	u.Y = float64(n.Y)
 
-	u.Path = nl.Graph.AStar(u.X, u.Y, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
+	u.Path = nl.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
 	u.HashPath = graph.HashSteps(u.Path)
 
 	u.CreatedAt = time.Now()

@@ -35,7 +35,7 @@ func init() {
 
 	for _, u := range unit.Units {
 		imagesCache.images[u.FacesetKey()] = ebiten.NewImageFromImage(u.Faceset)
-		imagesCache.images[u.SpriteKey()] = ebiten.NewImageFromImage(u.Sprite)
+		imagesCache.images[u.WalkKey()] = ebiten.NewImageFromImage(u.Walk)
 	}
 	for _, t := range tower.Towers {
 		imagesCache.images[t.FacesetKey()] = ebiten.NewImageFromImage(t.Faceset)

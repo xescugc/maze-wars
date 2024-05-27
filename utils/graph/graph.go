@@ -231,7 +231,7 @@ func (g *Graph) canAddTower(x, y, w, h int) ([]*Node, error) {
 
 	// Validates that adding the tower will not block the path
 	// from top to bottom
-	if len(g.AStar(g.OffsetX, g.OffsetY, utils.Down, g.DeathNode.X, g.DeathNode.Y, environment.Terrestrial, !atScale)) == 0 {
+	if len(g.AStar(float64(g.OffsetX), float64(g.OffsetY), basicTPS, utils.Down, g.DeathNode.X, g.DeathNode.Y, environment.Terrestrial, !atScale)) == 0 {
 		return nil, ErrInvalidBlockingPath
 	}
 
