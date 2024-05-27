@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/xescugc/maze-wars/assets"
+	"github.com/xescugc/maze-wars/unit/ability"
 	"github.com/xescugc/maze-wars/unit/environment"
 )
 
@@ -17,6 +18,7 @@ type Unit struct {
 	Stats
 
 	Environment environment.Environment `json:"environment"`
+	Abilities   []ability.Ability       `json:"abilities"`
 
 	Keybind string
 
@@ -33,6 +35,14 @@ type Stats struct {
 
 func (u *Unit) FacesetKey() string { return fmt.Sprintf("u-f-%s", u.Type) }
 func (u *Unit) WalkKey() string    { return fmt.Sprintf("u-w-%s", u.Type) }
+func (u *Unit) HasAbility(a ability.Ability) bool {
+	for _, ab := range u.Abilities {
+		if a == ab {
+			return true
+		}
+	}
+	return false
+}
 
 var (
 	Units map[string]*Unit

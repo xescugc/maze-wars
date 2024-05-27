@@ -25,7 +25,8 @@
     "gold": 20,
     "keybind":"4",
     "environment":"terrestrial",
-    "movement_speed": 50
+    "movement_speed": 50,
+    "abilities": ["split"]
   },
   "mole":{
     "health": 10,
