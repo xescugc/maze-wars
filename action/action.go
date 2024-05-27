@@ -480,7 +480,8 @@ type SyncStateUnitPayload struct {
 	PlayerLineID  int
 	CurrentLineID int
 
-	Health float64
+	Health        float64
+	MovementSpeed float64
 
 	Level int
 

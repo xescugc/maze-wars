@@ -69,3 +69,9 @@ func abs(x int) int {
 	}
 	return x
 }
+func absF(f float64) float64 {
+	if f < 0 {
+		return -f
+	}
+	return f
+}

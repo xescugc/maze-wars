@@ -43,9 +43,9 @@ func TestGraph_AStar(t *testing.T) {
 			}
 			enodes := make([]*graph.Node, 0, 0)
 			for _, s := range esteps {
-				enodes = append(enodes, g.GetNode(s.X, s.Y))
+				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
-			steps := g.AStar(0, 0, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			steps := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -62,7 +62,121 @@ func TestGraph_AStar(t *testing.T) {
 
 			// There is no way for me to know if the NextStep logic is used
 			// so I'm gonna force another AStar so it uses it
-			steps = g.AStar(0, 0, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			steps = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			require.NotNil(t, steps)
+			require.NotEmpty(t, steps)
+			require.Len(t, steps, len(esteps))
+			assert.Equal(t, esteps, steps)
+		})
+		t.Run("WithSlowerMS", func(t *testing.T) {
+			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
+			require.NoError(t, err)
+			g.AddTower("id", 0, 1, 1, 1)
+
+			esteps := []graph.Step{
+				{
+					X: 0, Y: 0,
+					Facing: utils.Down,
+				},
+				{
+					X: 0.5, Y: 0,
+					Facing: utils.Right,
+				},
+				{
+					X: 1, Y: 0,
+					Facing: utils.Right,
+				},
+				{
+					X: 1, Y: 0.5,
+					Facing: utils.Down,
+				},
+				{
+					X: 1, Y: 1,
+					Facing: utils.Down,
+				},
+				{
+					X: 1, Y: 1.5,
+					Facing: utils.Down,
+				},
+				{
+					X: 1, Y: 2,
+					Facing: utils.Down,
+				},
+				{
+					X: 0.5, Y: 2,
+					Facing: utils.Left,
+				},
+				{
+					X: 0, Y: 2,
+					Facing: utils.Left,
+				},
+			}
+			steps := g.AStar(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, atScale)
+			require.NotNil(t, steps)
+			require.NotEmpty(t, steps)
+			require.Len(t, steps, len(esteps))
+			assert.Equal(t, esteps, steps)
+
+			// There is no way for me to know if the NextStep logic is used
+			// so I'm gonna force another AStar so it uses it
+			steps = g.AStar(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, atScale)
+			require.NotNil(t, steps)
+			require.NotEmpty(t, steps)
+			require.Len(t, steps, len(esteps))
+			assert.Equal(t, esteps, steps)
+		})
+		t.Run("WithFasterMS", func(t *testing.T) {
+			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
+			require.NoError(t, err)
+			g.AddTower("id", 0, 1, 1, 1)
+
+			esteps := []graph.Step{
+				{
+					X: 0, Y: 0,
+					Facing: utils.Down,
+				},
+				{
+					X: 0.5, Y: 0,
+					Facing: utils.Right,
+				},
+				{
+					X: 1, Y: 0,
+					Facing: utils.Right,
+				},
+				{
+					X: 1, Y: 0.5,
+					Facing: utils.Down,
+				},
+				{
+					X: 1, Y: 1,
+					Facing: utils.Down,
+				},
+				{
+					X: 1, Y: 1.5,
+					Facing: utils.Down,
+				},
+				{
+					X: 1, Y: 2,
+					Facing: utils.Down,
+				},
+				{
+					X: 0.5, Y: 2,
+					Facing: utils.Left,
+				},
+				{
+					X: 0, Y: 2,
+					Facing: utils.Left,
+				},
+			}
+			steps := g.AStar(0, 0, 90, utils.Down, 0, 2, environment.Terrestrial, atScale)
+			require.NotNil(t, steps)
+			require.NotEmpty(t, steps)
+			require.Len(t, steps, len(esteps))
+			assert.Equal(t, esteps, steps)
+
+			// There is no way for me to know if the NextStep logic is used
+			// so I'm gonna force another AStar so it uses it
+			steps = g.AStar(0, 0, 90, utils.Down, 0, 2, environment.Terrestrial, atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -89,9 +203,9 @@ func TestGraph_AStar(t *testing.T) {
 			}
 			enodes := make([]*graph.Node, 0, 0)
 			for _, s := range esteps {
-				enodes = append(enodes, g.GetNode(s.X, s.Y))
+				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
-			steps := g.AStar(0, 0, utils.Down, 0, 2, environment.Aerial, !atScale)
+			steps := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Aerial, !atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -148,7 +262,7 @@ func TestGraph_AStar(t *testing.T) {
 					Facing: utils.Left,
 				},
 			}
-			steps := g.AStar(10, 10, utils.Down, 10, 14, environment.Terrestrial, atScale)
+			steps := g.AStar(10, 10, 60, utils.Down, 10, 14, environment.Terrestrial, atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -197,7 +311,7 @@ func TestGraph_AStar(t *testing.T) {
 					Facing: utils.Left,
 				},
 			}
-			steps := g.AStar(11, 10, utils.Down, 10, 14, environment.Terrestrial, atScale)
+			steps := g.AStar(11, 10, 60, utils.Down, 10, 14, environment.Terrestrial, atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -207,7 +321,7 @@ func TestGraph_AStar(t *testing.T) {
 			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
 			require.NoError(t, err)
 
-			_ = g.AStar(0, 0, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			_ = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
 			g.AddTower("id", 0, 1, 1, 1)
 			for _, yn := range g.Nodes {
 				for _, n := range yn {
@@ -220,7 +334,7 @@ func TestGraph_AStar(t *testing.T) {
 			require.NoError(t, err)
 
 			g.AddTower("id", 0, 1, 1, 1)
-			_ = g.AStar(0, 0, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			_ = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
 			g.RemoveTower("id")
 			for _, yn := range g.Nodes {
 				for _, n := range yn {
@@ -257,10 +371,10 @@ func TestGraph_AStar(t *testing.T) {
 			}
 			enodes := make([]*graph.Node, 0, 0)
 			for _, s := range esteps {
-				enodes = append(enodes, g.GetNode(s.X, s.Y))
+				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
 
-			steps := g.AStar(0, 0, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			steps := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
 			g.RemoveTower("not-found")
 
 			require.NotNil(t, steps)

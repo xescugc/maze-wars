@@ -94,23 +94,23 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 	switch act.Type {
 	case action.CursorMove:
 		// We update the last seen cursor position to not resend unnecessary events
-		cstate.LastCursorPosition.X = act.CursorMove.X
-		cstate.LastCursorPosition.Y = act.CursorMove.Y
+		cstate.LastCursorPosition.X = float64(act.CursorMove.X)
+		cstate.LastCursorPosition.Y = float64(act.CursorMove.Y)
 	case action.TPS:
 		// If the X or Y exceed the current Height or Width then
 		// it means the cursor is moving out of boundaries so we
 		// increase the camera X/Y at a ratio of the cameraSpeed
 		// so we move it around on the map
-		if cstate.LastCursorPosition.Y >= (cstate.H - leeway) {
-			cstate.Y += cs.cameraSpeed
+		if int(cstate.LastCursorPosition.Y) >= (cstate.H - leeway) {
+			cstate.Y += float64(cs.cameraSpeed)
 		} else if cstate.LastCursorPosition.Y <= (0 + leeway) {
-			cstate.Y -= cs.cameraSpeed
+			cstate.Y -= float64(cs.cameraSpeed)
 		}
 
-		if cstate.LastCursorPosition.X >= (cstate.W - leeway) {
-			cstate.X += cs.cameraSpeed
-		} else if cstate.LastCursorPosition.X <= (0 + leeway) {
-			cstate.X -= cs.cameraSpeed
+		if int(cstate.LastCursorPosition.X) >= (cstate.W - leeway) {
+			cstate.X += float64(cs.cameraSpeed)
+		} else if int(cstate.LastCursorPosition.X) <= (0 + leeway) {
+			cstate.X -= float64(cs.cameraSpeed)
 		}
 
 		// If any of the X or Y values exceeds the boundaries
@@ -118,13 +118,13 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 		// values as we cannot go out of the map
 		if cstate.X <= 0 {
 			cstate.X = 0
-		} else if cstate.X >= cs.Store.Map.GetX() {
-			cstate.X = cs.Store.Map.GetX()
+		} else if int(cstate.X) >= cs.Store.Map.GetX() {
+			cstate.X = float64(cs.Store.Map.GetX())
 		}
 		if cstate.Y <= 0 {
 			cstate.Y = 0
-		} else if cstate.Y >= cs.Store.Map.GetY() {
-			cstate.Y = cs.Store.Map.GetY()
+		} else if int(cstate.Y) >= cs.Store.Map.GetY() {
+			cstate.Y = float64(cs.Store.Map.GetY())
 		}
 	//case action.CameraZoom:
 	//cstate.Zoom += act.CameraZoom.Direction * zoomScale
@@ -135,7 +135,7 @@ func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
 		cp := cs.Store.Lines.FindCurrentPlayer()
 		x, y := cs.Store.Map.GetHomeCoordinates(cp.LineID)
 		x -= (cstate.W / 2) - ((18 * 16) / 2)
-		cstate.X, cstate.Y = x, y
+		cstate.X, cstate.Y = float64(x), float64(y)
 	}
 
 	return cstate

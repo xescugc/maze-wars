@@ -1,72 +1,72 @@
 {
-  "spirit":{
-    "health": 100,
-    "income": 1,
-    "gold": 10,
+  "ninja":{
+    "health": 15,
+    "gold": 5,
     "keybind":"1",
-    "environment":"terrestrial"
+    "environment":"terrestrial",
+    "movement_speed": 60
   },
-  "eye":{
-    "health": 200,
-    "income": 2,
-    "gold": 20,
+  "statue":{
+    "health": 40,
+    "gold": 10,
     "keybind":"2",
-    "environment":"terrestrial"
+    "environment":"terrestrial",
+    "movement_speed": 40
   },
-  "flam":{
-    "health": 300,
-    "income": 3,
-    "gold": 30,
+  "hunter":{
+    "health": 5,
+    "gold": 5,
     "keybind":"3",
-    "environment":"terrestrial"
+    "environment":"terrestrial",
+    "movement_speed": 90
   },
-  "skull":{
-    "health": 400,
-    "income": 4,
-    "gold": 40,
+  "slime":{
+    "health": 10,
+    "gold": 20,
     "keybind":"4",
-    "environment":"terrestrial"
+    "environment":"terrestrial",
+    "movement_speed": 50
   },
   "mole":{
-    "health": 500,
-    "income": 5,
-    "gold": 50,
+    "health": 10,
+    "gold": 10,
     "keybind":"5",
-    "environment":"terrestrial"
+    "environment":"terrestrial",
+    "movement_speed": 50
   },
-  "snake":{
-    "health": 600,
-    "income": 6,
-    "gold": 60,
+  "skeleton_demon":{
+    "health": 7,
+    "gold": 10,
     "keybind":"6",
-    "environment":"terrestrial"
-  },
-  "raccon":{
-    "health": 700,
-    "income": 7,
-    "gold": 70,
-    "keybind":"7",
-    "environment":"terrestrial"
-  },
-  "beast":{
-    "health": 800,
-    "income": 8,
-    "gold": 80,
-    "keybind":"8",
-    "environment":"terrestrial"
-  },
-  "cyclope":{
-    "health": 900,
-    "income": 9,
-    "gold": 90,
-    "keybind":"9",
-    "environment":"terrestrial"
+    "environment":"terrestrial",
+    "movement_speed": 50
   },
   "butterfly":{
-    "health": 300,
-    "income":3,
-    "gold": 100,
+    "health": 10,
+    "gold": 20,
+    "keybind":"7",
+    "environment":"aerial",
+    "movement_speed": 30
+  },
+  "ninja_masked":{
+    "health": 10,
+    "gold": 15,
+    "keybind":"8",
+    "environment":"terrestrial",
+    "movement_speed": 50
+  },
+  "robot":{
+    "health": 10,
+    "gold": 10,
+    "keybind":"9",
+    "environment":"terrestrial",
+    "movement_speed": 50
+  },
+  "monkey_boxer":{
+    "health": 10,
+    "gold": 30,
     "keybind":"0",
-    "environment":"aerial"
+    "environment":"terrestrial",
+    "movement_speed": 40
   }
 }

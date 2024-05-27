@@ -5,15 +5,14 @@ package unit
 type Type int
 
 const (
-	Spirit Type = iota
-	Flam
-	Octopus
-	Raccon
-	Cyclope
-	Eye
-	Beast
-	Butterfly
+	Ninja Type = iota
+	Statue
+	Hunter
+	Slime
 	Mole
-	Skull
-	Snake
+	SkeletonDemon
+	Butterfly
+	NinjaMasked
+	Robot
+	MonkeyBoxer
 )

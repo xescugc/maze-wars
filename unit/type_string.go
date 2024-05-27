@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "spiritflamoctopusracconcyclopeeyebeastbutterflymoleskullsnake"
+const _TypeName = "ninjastatuehunterslimemoleskeleton_demonbutterflyninja_maskedrobotmonkey_boxer"
 
-var _TypeIndex = [...]uint8{0, 6, 10, 17, 23, 30, 33, 38, 47, 51, 56, 61}
+var _TypeIndex = [...]uint8{0, 5, 11, 17, 22, 26, 40, 49, 61, 66, 78}
 
-const _TypeLowerName = "spiritflamoctopusracconcyclopeeyebeastbutterflymoleskullsnake"
+const _TypeLowerName = "ninjastatuehunterslimemoleskeleton_demonbutterflyninja_maskedrobotmonkey_boxer"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -24,58 +24,54 @@ func (i Type) String() string {
 // Re-run the stringer command to generate them again.
 func _TypeNoOp() {
 	var x [1]struct{}
-	_ = x[Spirit-(0)]
-	_ = x[Flam-(1)]
-	_ = x[Octopus-(2)]
-	_ = x[Raccon-(3)]
-	_ = x[Cyclope-(4)]
-	_ = x[Eye-(5)]
-	_ = x[Beast-(6)]
-	_ = x[Butterfly-(7)]
-	_ = x[Mole-(8)]
-	_ = x[Skull-(9)]
-	_ = x[Snake-(10)]
+	_ = x[Ninja-(0)]
+	_ = x[Statue-(1)]
+	_ = x[Hunter-(2)]
+	_ = x[Slime-(3)]
+	_ = x[Mole-(4)]
+	_ = x[SkeletonDemon-(5)]
+	_ = x[Butterfly-(6)]
+	_ = x[NinjaMasked-(7)]
+	_ = x[Robot-(8)]
+	_ = x[MonkeyBoxer-(9)]
 }
 
-var _TypeValues = []Type{Spirit, Flam, Octopus, Raccon, Cyclope, Eye, Beast, Butterfly, Mole, Skull, Snake}
+var _TypeValues = []Type{Ninja, Statue, Hunter, Slime, Mole, SkeletonDemon, Butterfly, NinjaMasked, Robot, MonkeyBoxer}
 
 var _TypeNameToValueMap = map[string]Type{
-	_TypeName[0:6]:        Spirit,
-	_TypeLowerName[0:6]:   Spirit,
-	_TypeName[6:10]:       Flam,
-	_TypeLowerName[6:10]:  Flam,
-	_TypeName[10:17]:      Octopus,
-	_TypeLowerName[10:17]: Octopus,
-	_TypeName[17:23]:      Raccon,
-	_TypeLowerName[17:23]: Raccon,
-	_TypeName[23:30]:      Cyclope,
-	_TypeLowerName[23:30]: Cyclope,
-	_TypeName[30:33]:      Eye,
-	_TypeLowerName[30:33]: Eye,
-	_TypeName[33:38]:      Beast,
-	_TypeLowerName[33:38]: Beast,
-	_TypeName[38:47]:      Butterfly,
-	_TypeLowerName[38:47]: Butterfly,
-	_TypeName[47:51]:      Mole,
-	_TypeLowerName[47:51]: Mole,
-	_TypeName[51:56]:      Skull,
-	_TypeLowerName[51:56]: Skull,
-	_TypeName[56:61]:      Snake,
-	_TypeLowerName[56:61]: Snake,
+	_TypeName[0:5]:        Ninja,
+	_TypeLowerName[0:5]:   Ninja,
+	_TypeName[5:11]:       Statue,
+	_TypeLowerName[5:11]:  Statue,
+	_TypeName[11:17]:      Hunter,
+	_TypeLowerName[11:17]: Hunter,
+	_TypeName[17:22]:      Slime,
+	_TypeLowerName[17:22]: Slime,
+	_TypeName[22:26]:      Mole,
+	_TypeLowerName[22:26]: Mole,
+	_TypeName[26:40]:      SkeletonDemon,
+	_TypeLowerName[26:40]: SkeletonDemon,
+	_TypeName[40:49]:      Butterfly,
+	_TypeLowerName[40:49]: Butterfly,
+	_TypeName[49:61]:      NinjaMasked,
+	_TypeLowerName[49:61]: NinjaMasked,
+	_TypeName[61:66]:      Robot,
+	_TypeLowerName[61:66]: Robot,
+	_TypeName[66:78]:      MonkeyBoxer,
+	_TypeLowerName[66:78]: MonkeyBoxer,
 }
 
 var _TypeNames = []string{
-	_TypeName[0:6],
-	_TypeName[6:10],
-	_TypeName[10:17],
-	_TypeName[17:23],
-	_TypeName[23:30],
-	_TypeName[30:33],
-	_TypeName[33:38],
-	_TypeName[38:47],
-	_TypeName[47:51],
-	_TypeName[51:56],
-	_TypeName[56:61],
+	_TypeName[0:5],
+	_TypeName[5:11],
+	_TypeName[11:17],
+	_TypeName[17:22],
+	_TypeName[22:26],
+	_TypeName[26:40],
+	_TypeName[40:49],
+	_TypeName[49:61],
+	_TypeName[61:66],
+	_TypeName[66:78],
 }
 
 // TypeString retrieves an enum value from the enum constants string name.

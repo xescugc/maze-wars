@@ -2,9 +2,14 @@ package graph
 
 import (
 	"container/heap"
+	"math"
 
 	"github.com/xescugc/maze-wars/unit/environment"
 	"github.com/xescugc/maze-wars/utils"
+)
+
+const (
+	basicTPS float64 = 60
 )
 
 // stepMap is a collection of steps for quick reference
@@ -35,10 +40,11 @@ type queueItem struct {
 }
 
 // AStar calculates the shortest path between between Source(sx,sy)
-// to Target(tx,ty) with W,H equal to the Scale in the designed Environment(env).
+// to Target(tx,ty) with the Movement Speed(ms) and starting on the Direction(d)
+// with W,H equal to the Scale in the designed Environment(env).
 // If atScale is true it'll return the 1:1 result, if not it'll return
 // the 1:Scale result
-func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, env environment.Environment, atScale bool) []Step {
+func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env environment.Environment, atScale bool) []Step {
 	nm := stepMap{}
 	nq := &queue{}
 	heap.Init(nq)
@@ -46,10 +52,10 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, env environment
 		sn, tn *Node
 	)
 	if atScale {
-		sn = g.GetNodeOf(sx, sy)
+		sn = g.GetNodeOf(int(sx), int(sy))
 		tn = g.GetNodeOf(tx, ty)
 	} else {
-		sn = g.GetNode(sx, sy)
+		sn = g.GetNode(int(sx), int(sy))
 		tn = g.GetNode(tx, ty)
 	}
 
@@ -114,12 +120,13 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, env environment
 				}
 			}
 			// Found a path to the goal.
+			// And it's on reverse order
 			p := []Step{}
 			curr := current
 			for curr != nil {
 				s := curr.step
-				s.X = s.Node.X
-				s.Y = s.Node.Y
+				s.X = float64(s.Node.X)
+				s.Y = float64(s.Node.Y)
 				curr = curr.parent
 				// If it's the first node of the path it has
 				// no parent so we have to check it
@@ -134,33 +141,48 @@ func (g *Graph) AStar(sx, sy int, d utils.Direction, tx, ty int, env environment
 				p = append(p, s)
 				if atScale {
 					if curr != nil {
-						dx := s.X - curr.step.Node.X
-						dy := s.Y - curr.step.Node.Y
-						for i := 1; i < abs(dx); i++ {
+						dx := s.X - float64(curr.step.Node.X)
+						dy := s.Y - float64(curr.step.Node.Y)
+
+						// We calculate the number of movements needed to reach
+						// with the MS defined and on the basicTPS
+						msdx := (absF(dx) * basicTPS) / ms
+						msdy := (absF(dy) * basicTPS) / ms
+
+						// We calculate the actual distance it has to move to reach
+						// the position with the MS
+						distx := absF(dx) / msdx
+						disty := absF(dy) / msdy
+						// As diagonal moves do not exist I just need
+						// to move the difference between nodes in
+						// X and Y, which is the DX and DY
+						// Moving in X position
+						for i := 1; i < int(absF(math.Round(msdx))); i++ {
 							if dx > 0 {
-								s.X -= 1
+								s.X -= distx
 							} else {
-								s.X += 1
+								s.X += distx
 							}
 							p = append(p, s)
 
 							// We check if the current step is the one we passed
 							// as source so we can return as it as it was at Scale
-							if s.X == sx && s.Y == sy {
+							if math.Round(s.X) == sx && math.Round(s.Y) == sy {
 								goto REVERSE_PATH
 							}
 						}
-						for i := 1; i < abs(dy); i++ {
+						// Moving in Y position
+						for i := 1; i < int(absF(math.Round(msdy))); i++ {
 							if dy > 0 {
-								s.Y -= 1
+								s.Y -= disty
 							} else {
-								s.Y += 1
+								s.Y += disty
 							}
 							p = append(p, s)
 
 							// We check if the current step is the one we passed
 							// as source so we can return as it as it was at Scale
-							if s.X == sx && s.Y == sy {
+							if math.Round(s.X) == sx && math.Round(s.Y) == sy {
 								goto REVERSE_PATH
 							}
 						}

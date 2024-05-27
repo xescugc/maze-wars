@@ -51,7 +51,7 @@ func (b *Bot) Stop() {
 func (b *Bot) Node() bht.Node {
 	return bht.New(
 		bht.Shuffle(bht.Selector, nil),
-		// Units
+		//Units
 		bht.New(
 			bht.Selector,
 			// Update
