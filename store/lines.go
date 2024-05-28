@@ -92,6 +92,7 @@ type Unit struct {
 	PlayerLineID  int
 	CurrentLineID int
 
+	MaxHealth     float64
 	Health        float64
 	MovementSpeed float64
 	Bounty        int
@@ -447,6 +448,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			PlayerID:      act.SummonUnit.PlayerID,
 			PlayerLineID:  act.SummonUnit.PlayerLineID,
 			CurrentLineID: act.SummonUnit.CurrentLineID,
+			MaxHealth:     float64(uu.Current.Health),
 			Health:        float64(uu.Current.Health),
 			Level:         uu.Level,
 			MovementSpeed: uu.Current.MovementSpeed,
@@ -715,11 +717,11 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 							u1.ID = uuid.Must(uuid.NewV4()).String()
 							u2.ID = uuid.Must(uuid.NewV4()).String()
 
-							bu := unit.Units[minDistUnit.Type]
+							h := minDistUnit.MaxHealth / 2
 
-							h := float64(levelToValue(minDistUnit.Level, int(bu.Health))) / 2
-
+							u1.MaxHealth = h
 							u1.Health = h
+							u2.MaxHealth = h
 							u2.Health = h
 
 							u1.MovementSpeed = u1.MovementSpeed * 1.20
