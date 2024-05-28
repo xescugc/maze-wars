@@ -1,16 +1,21 @@
 package store
 
 import (
+	"fmt"
+	"log"
 	"math"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/gofrs/uuid"
+	"github.com/mitchellh/mapstructure"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/unit/ability"
+	"github.com/xescugc/maze-wars/unit/buff"
 	"github.com/xescugc/maze-wars/unit/environment"
 	"github.com/xescugc/maze-wars/utils"
 	"github.com/xescugc/maze-wars/utils/graph"
@@ -64,6 +69,15 @@ type Line struct {
 	UpdatedAt time.Time
 }
 
+func (l *Line) ListSortedUnits() []*Unit {
+	res := make([]*Unit, 0, len(l.Units))
+	for _, u := range l.Units {
+		res = append(res, u)
+	}
+	sort.Slice(res, func(i, j int) bool { return res[i].ID > res[j].ID })
+	return res
+}
+
 type Tower struct {
 	utils.Object
 
@@ -85,6 +99,7 @@ func (t *Tower) CanTarget(env environment.Environment) bool {
 
 type Unit struct {
 	utils.MovingObject
+	AnimationCount int
 
 	ID            string
 	Type          string
@@ -109,18 +124,97 @@ type Unit struct {
 	// so we know it's on sync
 	CreatedAt time.Time
 
-	// AbilitiesMetadata stores data from the abilities that
+	// Abilities stores data from the abilities that
 	// the unit has and need to be kept in check, for example
 	// if it's a slime which is the other unit and if it died
 	// then give the bounty. Or if the unit already resurected
 	// The key is an ability.Ability.String() and the value is
 	// a type that is specific for the ability.
-	AbilitiesMetadata map[string]interface{}
+	Abilities map[string]interface{}
+	Buffs     map[string]interface{}
 }
 
 func (u *Unit) FacesetKey() string                { return unit.Units[u.Type].FacesetKey() }
 func (u *Unit) WalkKey() string                   { return unit.Units[u.Type].WalkKey() }
 func (u *Unit) HasAbility(a ability.Ability) bool { return unit.Units[u.Type].HasAbility(a) }
+
+func (u *Unit) AddBuff(b buff.Buff) {
+	if u.Buffs == nil {
+		u.Buffs = make(map[string]interface{})
+	}
+	u.Buffs[b.String()] = nil
+}
+func (u *Unit) HasBuff(b buff.Buff) bool { _, ok := u.Buffs[b.String()]; return ok }
+func (u *Unit) RemoveBuff(b buff.Buff) {
+	delete(u.Buffs, b.String())
+}
+func (u *Unit) MustUnburrow(t time.Time) bool {
+	// As it should have the buff but it does not we just
+	// say yes
+	if u.Abilities == nil {
+		return true
+	}
+	amb, ok := u.Abilities[ability.Burrow.String()]
+	if !ok {
+		return true
+	}
+	ab, ok := amb.(AbilityBurrow)
+	if !ok {
+		return true
+	}
+	return ab.MustUnburrow(t)
+}
+
+func (u *Unit) CanUnburrow(t time.Time) bool {
+	// As it should have the buff but it does not we just
+	// say yes
+	if u.Abilities == nil {
+		return true
+	}
+	amb, ok := u.Abilities[ability.Burrow.String()]
+	if !ok {
+		return true
+	}
+	ab, ok := amb.(AbilityBurrow)
+	if !ok {
+		return true
+	}
+	return ab.CanUnburrow(t)
+}
+
+func (u *Unit) Unburrow() {
+	u.RemoveBuff(buff.Burrowoed)
+	amb, ok := u.Abilities[ability.Burrow.String()]
+	if !ok {
+		return
+	}
+
+	ab, ok := amb.(AbilityBurrow)
+	if !ok {
+		return
+	}
+
+	ab.Unburrowed = true
+	u.Abilities[ability.Burrow.String()] = ab
+	u.AnimationCount = 0
+}
+
+func (u *Unit) WasBurrowed() bool {
+	// As it should have the buff but it does not we just
+	// say yes
+	if u.Abilities == nil {
+		return false
+	}
+	amb, ok := u.Abilities[ability.Burrow.String()]
+	if !ok {
+		return false
+	}
+	ab, ok := amb.(AbilityBurrow)
+	if !ok {
+		return false
+	}
+	return ab.Unburrowed
+}
 
 type Player struct {
 	ID      string
@@ -322,7 +416,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Lives:  20,
 			LineID: act.AddPlayer.LineID,
 			Income: 25,
-			Gold:   40,
+			Gold:   400000,
 
 			UnitUpdates: make(map[string]UnitUpdate),
 		}
@@ -539,8 +633,41 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 						nu.Y = ou.Y
 					}
 				}
-				cl.Units[id] = &nu
+				if nu.Abilities != nil {
+					for k, v := range nu.Abilities {
+						switch k {
+						case ability.Split.String():
+							var a AbilitySplit
+							_ = mapstructure.Decode(v, &a)
+							nu.Abilities[k] = a
+						case ability.Burrow.String():
+							var a AbilityBurrow
+							d, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+								DecodeHook:       mapstructure.StringToTimeHookFunc(time.RFC3339Nano),
+								WeaklyTypedInput: true,
+								Result:           &a,
+							})
+							_ = d.Decode(v)
+							nu.Abilities[k] = a
+						default:
+							log.Fatal(fmt.Sprintf("ability %s not found", k))
+						}
+					}
+				}
+				if nu.Buffs != nil {
+					for k, v := range nu.Buffs {
+						switch k {
+						case buff.Burrowoed.String():
+							var b BuffBurrowed
+							_ = mapstructure.Decode(v, &b)
+							nu.Buffs[k] = b
+						default:
+							log.Fatal(fmt.Sprintf("buff %s not found", k))
+						}
+					}
+				}
 
+				cl.Units[id] = &nu
 			}
 			for id := range uids {
 				delete(cl.Units, id)
@@ -619,11 +746,27 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 	if !t.IsZero() && !l.UpdatedAt.IsZero() {
 		lmoves = int(t.Sub(l.UpdatedAt).Milliseconds() / tpsMS)
 	}
+	// First of all we need to get all the units that could be Unburrowed
+	// in this TPS so then we can check if any unit after moving is steping
+	// on one of them and unburrow it
+	burrowedUnits := make(map[string]*Unit)
+	for _, u := range l.Units {
+		if u.CanUnburrow(t) {
+			burrowedUnits[u.ID] = u
+		}
+	}
 	// We'll move all the Units 1 by 1 so we can calculate if they have
 	// an aura around and if they have been attacked/killed and if they
 	// reached the end to steal a live and change lines
 	for i := 1; i < lmoves+1; i++ {
 		for _, u := range l.Units {
+			if u.HasBuff(buff.Burrowoed) {
+				if !u.MustUnburrow(t) {
+					u.AnimationCount += 1
+					continue
+				}
+				u.Unburrow()
+			}
 			// If a unit was added in between the TPS checks
 			// we only need to move partially
 			if !t.IsZero() && !u.CreatedAt.IsZero() {
@@ -649,6 +792,13 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				u.Y = nextStep.Y
 				u.X = nextStep.X
 				u.Facing = nextStep.Facing
+			}
+
+			for bid, bu := range burrowedUnits {
+				if u.IsColliding(bu.Object) {
+					bu.Unburrow()
+					delete(burrowedUnits, bid)
+				}
 			}
 
 			// We reached the end of the line
@@ -681,7 +831,7 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				minDistUnit *Unit
 			)
 			for _, u := range l.Units {
-				if !t.CanTarget(unit.Units[u.Type].Environment) {
+				if !t.CanTarget(unit.Units[u.Type].Environment) || u.HasBuff(buff.Burrowoed) {
 					continue
 				}
 				d := t.PDistance(u.Object)
@@ -696,10 +846,20 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 			if minDistUnit != nil {
 				// Tower Attack
 				minDistUnit.Health -= t.Stats.Damage
+				if minDistUnit.Health <= minDistUnit.MaxHealth/2 && minDistUnit.HasAbility(ability.Burrow) && !minDistUnit.WasBurrowed() {
+					if minDistUnit.Abilities == nil {
+						minDistUnit.Abilities = make(map[string]interface{})
+					}
+					minDistUnit.Abilities[ability.Burrow.String()] = AbilityBurrow{
+						BurrowAt: time.Now(),
+					}
+					minDistUnit.AddBuff(buff.Burrowoed)
+				}
+				// Unit is killed
 				if minDistUnit.Health <= 0 {
 					if minDistUnit.HasAbility(ability.Split) {
-						if minDistUnit.AbilitiesMetadata != nil {
-							if as, ok := minDistUnit.AbilitiesMetadata[ability.Split.String()].(AbilitySplit); ok {
+						if minDistUnit.Abilities != nil {
+							if as, ok := minDistUnit.Abilities[ability.Split.String()].(AbilitySplit); ok {
 								// TODO: Check if it moved into another line
 								if _, ok := l.Units[as.UnitID]; !ok {
 									minDistUnit.Health = 0
@@ -739,14 +899,15 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 								}
 							}
 
-							if u1.AbilitiesMetadata == nil {
-								u1.AbilitiesMetadata = make(map[string]interface{})
-								u2.AbilitiesMetadata = make(map[string]interface{})
+							if u1.Abilities == nil {
+								u1.Abilities = make(map[string]interface{})
+								u2.Abilities = make(map[string]interface{})
 							}
-							u1.AbilitiesMetadata[ability.Split.String()] = AbilitySplit{
+
+							u1.Abilities[ability.Split.String()] = AbilitySplit{
 								UnitID: u2.ID,
 							}
-							u2.AbilitiesMetadata[ability.Split.String()] = AbilitySplit{
+							u2.Abilities[ability.Split.String()] = AbilitySplit{
 								UnitID: u1.ID,
 							}
 

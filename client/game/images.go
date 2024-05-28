@@ -19,6 +19,9 @@ var (
 const (
 	crossImageKey string = "cross-image"
 	arrowImageKey string = "arrow"
+
+	buffBurrowedKey      string = "buff-burrowed"
+	buffBurrowedReadyKey string = "buff-burrowed-ready"
 )
 
 // ImagesCache is a simple cache for all the images, so instead
@@ -56,6 +59,13 @@ func init() {
 
 	imagesCache.images[crossImageKey] = ebiten.NewImageFromImage(ebiten.NewImageFromImage(tli).SubImage(image.Rect(4*16, 5*16, 4*16+16, 5*16+16)))
 	imagesCache.images[arrowImageKey] = ebiten.NewImageFromImage(ai)
+
+	tsn, _, err := image.Decode(bytes.NewReader(assets.TilesetNature_png))
+	if err != nil {
+		panic(err)
+	}
+	imagesCache.images[buffBurrowedReadyKey] = ebiten.NewImageFromImage(ebiten.NewImageFromImage(tsn).SubImage(image.Rect(4*16, 17*16, 4*16+16, 17*16+16)))
+	imagesCache.images[buffBurrowedKey] = ebiten.NewImageFromImage(ebiten.NewImageFromImage(tsn).SubImage(image.Rect(6*16, 17*16, 6*16+16, 17*16+16)))
 }
 
 // Get will return the image from 'key', if it does not

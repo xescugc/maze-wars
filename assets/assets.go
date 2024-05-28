@@ -37,6 +37,16 @@ var MoleWalk_png []byte
 //go:embed ninja_adventure_asset_pack/Actor/Monsters/Mole/Faceset.png
 var MoleFaceset_png []byte
 
+// go:embed ninja_adventure_asset_pack/FX/Particle/Rock.png
+//
+// go:embed ninja_adventure_asset_pack/FX/Smoke/Smoke/SpriteSheet.png
+//
+// go:embed ninja_adventure_asset_pack/Backgrounds/Animated/QuickSand/QuickSand32x32.png
+// var MoleBurrowed_png []byte
+//
+//go:embed ninja_adventure_asset_pack/Backgrounds/Tilesets/TilesetNature.png
+var TilesetNature_png []byte
+
 //go:embed ninja_adventure_asset_pack/Actor/Characters/SkeletonDemon/SeparateAnim/Walk.png
 var SkeletonDemonWalk_png []byte
 

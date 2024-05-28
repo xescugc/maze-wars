@@ -157,9 +157,11 @@ func (b *Bot) findTowerToUpdate() func(children []bht.Node) (bht.Status, error) 
 		cp := b.store.Lines.FindPlayerByID(b.playerID)
 		for _, t := range b.store.Lines.FindLineByID(cp.LineID).Towers {
 			tu := tower.FindUpdateByLevel(t.Type, t.Level+1)
-			if cp.Gold-tu.UpdateCost > 0 {
-				b.towerIDToUpdate = t.ID
-				return bht.Success, nil
+			if tu != nil {
+				if cp.Gold-tu.UpdateCost > 0 {
+					b.towerIDToUpdate = t.ID
+					return bht.Success, nil
+				}
 			}
 		}
 		return bht.Failure, nil

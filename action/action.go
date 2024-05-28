@@ -473,6 +473,7 @@ type SyncStateTowerPayload struct {
 
 type SyncStateUnitPayload struct {
 	utils.MovingObject
+	AnimationCount int
 
 	ID            string
 	Type          string
@@ -491,7 +492,8 @@ type SyncStateUnitPayload struct {
 	HashPath  string
 	CreatedAt time.Time
 
-	AbilitiesMetadata map[string]interface{}
+	Abilities map[string]interface{}
+	Buffs     map[string]interface{}
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated

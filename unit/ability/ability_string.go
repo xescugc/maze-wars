@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _AbilityName = "split"
+const _AbilityName = "splitburrow"
 
-var _AbilityIndex = [...]uint8{0, 5}
+var _AbilityIndex = [...]uint8{0, 5, 11}
 
-const _AbilityLowerName = "split"
+const _AbilityLowerName = "splitburrow"
 
 func (i Ability) String() string {
 	if i < 0 || i >= Ability(len(_AbilityIndex)-1) {
@@ -26,17 +26,21 @@ func (i Ability) String() string {
 func _AbilityNoOp() {
 	var x [1]struct{}
 	_ = x[Split-(0)]
+	_ = x[Burrow-(1)]
 }
 
-var _AbilityValues = []Ability{Split}
+var _AbilityValues = []Ability{Split, Burrow}
 
 var _AbilityNameToValueMap = map[string]Ability{
-	_AbilityName[0:5]:      Split,
-	_AbilityLowerName[0:5]: Split,
+	_AbilityName[0:5]:       Split,
+	_AbilityLowerName[0:5]:  Split,
+	_AbilityName[5:11]:      Burrow,
+	_AbilityLowerName[5:11]: Burrow,
 }
 
 var _AbilityNames = []string{
 	_AbilityName[0:5],
+	_AbilityName[5:11],
 }
 
 // AbilityString retrieves an enum value from the enum constants string name.

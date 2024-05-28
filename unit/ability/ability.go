@@ -6,4 +6,5 @@ type Ability int
 
 const (
 	Split Ability = iota
+	Burrow
 )
