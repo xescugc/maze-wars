@@ -480,6 +480,7 @@ type SyncStateUnitPayload struct {
 	PlayerLineID  int
 	CurrentLineID int
 
+	MaxHealth     float64
 	Health        float64
 	MovementSpeed float64
 	Bounty        int
