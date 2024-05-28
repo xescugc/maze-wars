@@ -33,7 +33,8 @@
     "gold": 10,
     "keybind":"5",
     "environment":"terrestrial",
-    "movement_speed": 50
+    "movement_speed": 50,
+    "abilities": ["burrow"]
   },
   "skeleton_demon":{
     "health": 7,
