@@ -6,4 +6,5 @@ type Buff int
 
 const (
 	Burrowoed Buff = iota
+	Resurrecting
 )

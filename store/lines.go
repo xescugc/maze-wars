@@ -29,6 +29,8 @@ const (
 	updateFactor     = 0.1
 	updateCostFactor = 5
 	incomeFactor     = 5
+
+	resurrectionRank1 = 0.25
 )
 
 var (
@@ -214,6 +216,59 @@ func (u *Unit) WasBurrowed() bool {
 		return false
 	}
 	return ab.Unburrowed
+}
+
+func (u *Unit) CanResurrect(t time.Time) bool {
+	// As it should have the buff but it does not we just
+	// say yes
+	if u.Abilities == nil {
+		return true
+	}
+	amb, ok := u.Abilities[ability.Resurrection.String()]
+	if !ok {
+		return true
+	}
+	ab, ok := amb.(AbilityResurrection)
+	if !ok {
+		return true
+	}
+	return ab.CanResurrect(t)
+}
+
+func (u *Unit) Resurrect() {
+	u.RemoveBuff(buff.Resurrecting)
+	ar, ok := u.Abilities[ability.Resurrection.String()]
+	if !ok {
+		return
+	}
+
+	ab, ok := ar.(AbilityResurrection)
+	if !ok {
+		return
+	}
+
+	ab.Resurrected = true
+	u.Abilities[ability.Resurrection.String()] = ab
+	u.AnimationCount = 0
+	// TODO: Figure out when to use the other ranks
+	u.Health = u.MaxHealth * resurrectionRank1
+}
+
+func (u *Unit) WasResurrected() bool {
+	// As it should have the buff but it does not we just
+	// say yes
+	if u.Abilities == nil {
+		return false
+	}
+	amb, ok := u.Abilities[ability.Resurrection.String()]
+	if !ok {
+		return false
+	}
+	ab, ok := amb.(AbilityResurrection)
+	if !ok {
+		return false
+	}
+	return ab.Resurrected
 }
 
 type Player struct {
@@ -649,23 +704,32 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 							})
 							_ = d.Decode(v)
 							nu.Abilities[k] = a
+						case ability.Resurrection.String():
+							var a AbilityResurrection
+							d, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+								DecodeHook:       mapstructure.StringToTimeHookFunc(time.RFC3339Nano),
+								WeaklyTypedInput: true,
+								Result:           &a,
+							})
+							_ = d.Decode(v)
+							nu.Abilities[k] = a
 						default:
 							log.Fatal(fmt.Sprintf("ability %s not found", k))
 						}
 					}
 				}
-				if nu.Buffs != nil {
-					for k, v := range nu.Buffs {
-						switch k {
-						case buff.Burrowoed.String():
-							var b BuffBurrowed
-							_ = mapstructure.Decode(v, &b)
-							nu.Buffs[k] = b
-						default:
-							log.Fatal(fmt.Sprintf("buff %s not found", k))
-						}
-					}
-				}
+				//if nu.Buffs != nil {
+				//for k, v := range nu.Buffs {
+				//switch k {
+				//case buff.Burrowoed.String():
+				//var b BuffBurrowed
+				//_ = mapstructure.Decode(v, &b)
+				//nu.Buffs[k] = b
+				//default:
+				//log.Fatal(fmt.Sprintf("buff %s not found", k))
+				//}
+				//}
+				//}
 
 				cl.Units[id] = &nu
 			}
@@ -766,6 +830,11 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 					continue
 				}
 				u.Unburrow()
+			} else if u.HasBuff(buff.Resurrecting) {
+				if !u.CanResurrect(t) {
+					continue
+				}
+				u.Resurrect()
 			}
 			// If a unit was added in between the TPS checks
 			// we only need to move partially
@@ -824,28 +893,28 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 		}
 		// Now that the unit has moved we'll calculate if any
 		// tower can attack any Unit in their new positions
-		for _, t := range l.Towers {
+		for _, tw := range l.Towers {
 			// Get the closes unit to the current tower to attack it
 			var (
 				minDist     float64 = 0
 				minDistUnit *Unit
 			)
 			for _, u := range l.Units {
-				if !t.CanTarget(unit.Units[u.Type].Environment) || u.HasBuff(buff.Burrowoed) {
+				if !tw.CanTarget(unit.Units[u.Type].Environment) || u.HasBuff(buff.Burrowoed) || u.HasBuff(buff.Resurrecting) {
 					continue
 				}
-				d := t.PDistance(u.Object)
+				d := tw.PDistance(u.Object)
 				if minDist == 0 {
 					minDist = d
 				}
-				if d <= tower.Towers[t.Type].Range && d <= minDist {
+				if d <= tower.Towers[tw.Type].Range && d <= minDist {
 					minDist = d
 					minDistUnit = u
 				}
 			}
 			if minDistUnit != nil {
 				// Tower Attack
-				minDistUnit.Health -= t.Stats.Damage
+				minDistUnit.Health -= tw.Stats.Damage
 				if minDistUnit.Health <= minDistUnit.MaxHealth/2 && minDistUnit.HasAbility(ability.Burrow) && !minDistUnit.WasBurrowed() {
 					if minDistUnit.Abilities == nil {
 						minDistUnit.Abilities = make(map[string]interface{})
@@ -865,7 +934,7 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 									minDistUnit.Health = 0
 
 									// Unit Killed by player so we give gold to the player
-									cp := lstate.Players[t.PlayerID]
+									cp := lstate.Players[tw.PlayerID]
 									cp.Gold += minDistUnit.Bounty
 								}
 							}
@@ -914,11 +983,21 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 							l.Units[u1.ID] = &u1
 							l.Units[u2.ID] = &u2
 						}
+					} else if minDistUnit.HasAbility(ability.Resurrection) && !minDistUnit.WasResurrected() {
+						minDistUnit.Health = 0
+						if minDistUnit.Abilities == nil {
+							minDistUnit.Abilities = make(map[string]interface{})
+						}
+						minDistUnit.Abilities[ability.Resurrection.String()] = AbilityResurrection{
+							KilledAt: t,
+						}
+						minDistUnit.AddBuff(buff.Resurrecting)
+						continue
 					} else {
 						minDistUnit.Health = 0
 
 						// Unit Killed by player so we give gold to the player
-						cp := lstate.Players[t.PlayerID]
+						cp := lstate.Players[tw.PlayerID]
 						cp.Gold += minDistUnit.Bounty
 					}
 

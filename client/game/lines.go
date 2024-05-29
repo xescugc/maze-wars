@@ -116,6 +116,8 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 		} else {
 			screen.DrawImage(imagesCache.Get(buffBurrowedKey), op)
 		}
+	} else if u.HasBuff(buff.Resurrecting) {
+		screen.DrawImage(imagesCache.Get(buffResurrectingKey), op)
 	} else {
 		screen.DrawImage(imagesCache.Get(u.WalkKey()).SubImage(image.Rect(sx, sy, sx+u.W, sy+u.H)).(*ebiten.Image), op)
 	}

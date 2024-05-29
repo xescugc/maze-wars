@@ -32,3 +32,16 @@ func (ab AbilityBurrow) CanUnburrow(t time.Time) bool {
 func (ab AbilityBurrow) MustUnburrow(t time.Time) bool {
 	return t.Sub(ab.BurrowAt) > maxBurrowTime
 }
+
+const (
+	resurrectionTime = time.Second + (time.Second / 2)
+)
+
+type AbilityResurrection struct {
+	KilledAt    time.Time `mapstructure:"killed_at"`
+	Resurrected bool      `mapstructure:"resurrected"`
+}
+
+func (ar AbilityResurrection) CanResurrect(t time.Time) bool {
+	return t.Sub(ar.KilledAt) > resurrectionTime
+}

@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _BuffName = "burrowoed"
+const _BuffName = "burrowoedresurrecting"
 
-var _BuffIndex = [...]uint8{0, 9}
+var _BuffIndex = [...]uint8{0, 9, 21}
 
-const _BuffLowerName = "burrowoed"
+const _BuffLowerName = "burrowoedresurrecting"
 
 func (i Buff) String() string {
 	if i < 0 || i >= Buff(len(_BuffIndex)-1) {
@@ -26,17 +26,21 @@ func (i Buff) String() string {
 func _BuffNoOp() {
 	var x [1]struct{}
 	_ = x[Burrowoed-(0)]
+	_ = x[Resurrecting-(1)]
 }
 
-var _BuffValues = []Buff{Burrowoed}
+var _BuffValues = []Buff{Burrowoed, Resurrecting}
 
 var _BuffNameToValueMap = map[string]Buff{
-	_BuffName[0:9]:      Burrowoed,
-	_BuffLowerName[0:9]: Burrowoed,
+	_BuffName[0:9]:       Burrowoed,
+	_BuffLowerName[0:9]:  Burrowoed,
+	_BuffName[9:21]:      Resurrecting,
+	_BuffLowerName[9:21]: Resurrecting,
 }
 
 var _BuffNames = []string{
 	_BuffName[0:9],
+	_BuffName[9:21],
 }
 
 // BuffString retrieves an enum value from the enum constants string name.
