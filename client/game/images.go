@@ -22,6 +22,8 @@ const (
 
 	buffBurrowedKey      string = "buff-burrowed"
 	buffBurrowedReadyKey string = "buff-burrowed-ready"
+
+	buffResurrectingKey string = "buff-resurrecting"
 )
 
 // ImagesCache is a simple cache for all the images, so instead
@@ -66,6 +68,12 @@ func init() {
 	}
 	imagesCache.images[buffBurrowedReadyKey] = ebiten.NewImageFromImage(ebiten.NewImageFromImage(tsn).SubImage(image.Rect(4*16, 17*16, 4*16+16, 17*16+16)))
 	imagesCache.images[buffBurrowedKey] = ebiten.NewImageFromImage(ebiten.NewImageFromImage(tsn).SubImage(image.Rect(6*16, 17*16, 6*16+16, 17*16+16)))
+
+	sdd, _, err := image.Decode(bytes.NewReader(assets.SkeletonDemonDead_png))
+	if err != nil {
+		panic(err)
+	}
+	imagesCache.images[buffResurrectingKey] = ebiten.NewImageFromImage(sdd)
 }
 
 // Get will return the image from 'key', if it does not

@@ -41,7 +41,8 @@
     "gold": 10,
     "keybind":"6",
     "environment":"terrestrial",
-    "movement_speed": 50
+    "movement_speed": 50,
+    "abilities":["resurrection"]
   },
   "butterfly":{
     "health": 10,

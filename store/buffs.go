@@ -1,7 +1,7 @@
 package store
 
-type Buffs struct {
-	Burrowed *BuffBurrowed
-}
+//type Buffs struct {
+//Burrowed *BuffBurrowed
+//}
 
-type BuffBurrowed struct{}
+//type BuffBurrowed struct{}
