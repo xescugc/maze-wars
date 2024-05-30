@@ -28,6 +28,7 @@ type Unit struct {
 
 type Stats struct {
 	Health        float64 `json:"health"`
+	Shield        float64 `json:"shield"`
 	Income        int     `json:"income"`
 	Gold          int     `json:"gold"`
 	MovementSpeed float64 `json:"movement_speed"`
