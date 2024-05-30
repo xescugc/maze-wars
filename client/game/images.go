@@ -24,6 +24,10 @@ const (
 	buffBurrowedReadyKey string = "buff-burrowed-ready"
 
 	buffResurrectingKey string = "buff-resurrecting"
+
+	lifeBarProgressKey   = "life-bar-progress"
+	lifeBarUnderKey      = "life-bar-under"
+	shieldBarProgressKey = "shield-bar-progress"
 )
 
 // ImagesCache is a simple cache for all the images, so instead
@@ -74,6 +78,24 @@ func init() {
 		panic(err)
 	}
 	imagesCache.images[buffResurrectingKey] = ebiten.NewImageFromImage(sdd)
+
+	lbpi, _, err := image.Decode(bytes.NewReader(assets.LifeBarMiniProgress_png))
+	if err != nil {
+		panic(err)
+	}
+	imagesCache.images[lifeBarProgressKey] = ebiten.NewImageFromImage(lbpi)
+
+	lbui, _, err := image.Decode(bytes.NewReader(assets.LifeBarMiniUnder_png))
+	if err != nil {
+		panic(err)
+	}
+	imagesCache.images[lifeBarUnderKey] = ebiten.NewImageFromImage(lbui)
+
+	sbpi, _, err := image.Decode(bytes.NewReader(assets.ShieldBarMiniProgress_png))
+	if err != nil {
+		panic(err)
+	}
+	imagesCache.images[shieldBarProgressKey] = ebiten.NewImageFromImage(sbpi)
 }
 
 // Get will return the image from 'key', if it does not

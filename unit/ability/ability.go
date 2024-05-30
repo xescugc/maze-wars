@@ -8,4 +8,5 @@ const (
 	Split Ability = iota
 	Burrow
 	Resurrection
+	Hybrid
 )

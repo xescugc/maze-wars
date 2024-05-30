@@ -109,8 +109,12 @@ type Unit struct {
 	PlayerLineID  int
 	CurrentLineID int
 
-	MaxHealth     float64
-	Health        float64
+	MaxHealth float64
+	Health    float64
+
+	MaxShield float64
+	Shield    float64
+
 	MovementSpeed float64
 	Bounty        int
 
@@ -269,6 +273,32 @@ func (u *Unit) WasResurrected() bool {
 		return false
 	}
 	return ab.Resurrected
+}
+
+func (u *Unit) Hybrid(cp, op int) {
+	if cp < op {
+		return
+	}
+	// This is the Percentage Difference
+	// TODO: Potentially show this as a Buff
+	p := float64(((cp - op) / ((cp + op) / 2)) * 100)
+	bu := unit.Units[u.Type]
+	uu := unitUpdate(u.Level, u.Type, bu.Stats)
+
+	var (
+		hp float64 = 1
+		sp float64 = 1
+	)
+	if u.Shield != u.MaxShield {
+		hp = (u.Health / u.MaxHealth)
+		sp = (u.Shield / u.MaxShield)
+	}
+	// base + base * % increase / 100
+	u.MaxHealth = (uu.Health + u.Health*p/100) * hp
+	u.Health = u.MaxHealth * hp
+	u.MovementSpeed = uu.MovementSpeed + uu.MovementSpeed*p/100
+	u.MaxShield = uu.Shield + uu.Shield*p/100
+	u.Shield = u.MaxShield * sp
 }
 
 type Player struct {
@@ -599,10 +629,16 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			CurrentLineID: act.SummonUnit.CurrentLineID,
 			MaxHealth:     float64(uu.Current.Health),
 			Health:        float64(uu.Current.Health),
+			MaxShield:     uu.Current.Shield,
+			Shield:        uu.Current.Shield,
 			Level:         uu.Level,
 			MovementSpeed: uu.Current.MovementSpeed,
 			Bounty:        uu.Current.Income,
 			CreatedAt:     time.Now(),
+		}
+
+		if u.HasAbility(ability.Hybrid) {
+			u.Hybrid(cp.Income, ls.findPlayerByLineID(act.SummonUnit.CurrentLineID).Income)
 		}
 
 		u.Path = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, atScale)
@@ -914,7 +950,14 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 			}
 			if minDistUnit != nil {
 				// Tower Attack
-				minDistUnit.Health -= tw.Stats.Damage
+				if minDistUnit.Shield != 0 {
+					minDistUnit.Shield -= tw.Stats.Damage
+					if minDistUnit.Shield < 0 {
+						minDistUnit.Shield = 0
+					}
+				} else {
+					minDistUnit.Health -= tw.Stats.Damage
+				}
 				if minDistUnit.Health <= minDistUnit.MaxHealth/2 && minDistUnit.HasAbility(ability.Burrow) && !minDistUnit.WasBurrowed() {
 					if minDistUnit.Abilities == nil {
 						minDistUnit.Abilities = make(map[string]interface{})
@@ -1029,6 +1072,7 @@ func unitUpdate(nlvl int, ut string, u unit.Stats) unit.Stats {
 	u.Health = float64(levelToValue(nlvl, int(bu.Health)))
 	u.Gold = levelToValue(nlvl, bu.Gold)
 	u.Income = int(math.Round(float64(u.Gold) / float64(incomeFactor)))
+	u.Shield = float64(levelToValue(nlvl, int(bu.Shield)))
 
 	return u
 }
@@ -1085,5 +1129,8 @@ func (ls *Lines) changeUnitLine(lstate LinesState, u *Unit, nlid int) {
 	u.HashPath = graph.HashSteps(u.Path)
 
 	u.CreatedAt = time.Now()
+	if u.HasAbility(ability.Hybrid) {
+		u.Hybrid(lstate.Players[u.PlayerID].Income, ls.findPlayerByLineID(nlid).Income)
+	}
 	nl.Units[u.ID] = u
 }

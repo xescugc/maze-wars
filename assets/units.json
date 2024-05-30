@@ -59,11 +59,13 @@
     "movement_speed": 50
   },
   "robot":{
-    "health": 10,
-    "gold": 10,
+    "health": 5,
+    "shield":5,
+    "gold": 20,
     "keybind":"9",
     "environment":"terrestrial",
-    "movement_speed": 50
+    "movement_speed": 40,
+    "abilities":["hybrid"]
   },
   "monkey_boxer":{
     "health": 10,

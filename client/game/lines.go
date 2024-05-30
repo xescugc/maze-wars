@@ -20,8 +20,6 @@ type Lines struct {
 	game *Game
 
 	tilesetLogicImage image.Image
-	lifeBarProgress   image.Image
-	lifeBarUnder      image.Image
 }
 
 var (
@@ -39,21 +37,9 @@ func NewLines(g *Game) (*Lines, error) {
 		return nil, err
 	}
 
-	lbpi, _, err := image.Decode(bytes.NewReader(assets.LifeBarMiniProgress_png))
-	if err != nil {
-		return nil, err
-	}
-
-	lbui, _, err := image.Decode(bytes.NewReader(assets.LifeBarMiniUnder_png))
-	if err != nil {
-		return nil, err
-	}
-
 	ls := &Lines{
 		game:              g,
 		tilesetLogicImage: ebiten.NewImageFromImage(tli).SubImage(image.Rect(4*16, 5*16, 4*16+16, 5*16+16)),
-		lifeBarProgress:   ebiten.NewImageFromImage(lbpi),
-		lifeBarUnder:      ebiten.NewImageFromImage(lbui),
 	}
 
 	return ls, nil
@@ -124,13 +110,28 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 
 	// Only draw the Health bar if the unit has been hit
 	if u.Health != u.MaxHealth {
+		lbui := imagesCache.Get(lifeBarUnderKey)
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(ls.lifeBarUnder.Bounds().Dy()))
-		screen.DrawImage(ls.lifeBarUnder.(*ebiten.Image), op)
+		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(lbui.Bounds().Dy()))
+		screen.DrawImage(lbui, op)
 
+		lbpi := imagesCache.Get(lifeBarProgressKey)
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(ls.lifeBarProgress.Bounds().Dy()))
-		screen.DrawImage(ls.lifeBarProgress.(*ebiten.Image).SubImage(image.Rect(0, 0, int(float64(ls.lifeBarProgress.Bounds().Dx())*(u.Health/u.MaxHealth)), ls.lifeBarProgress.Bounds().Dy())).(*ebiten.Image), op)
+		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(lbpi.Bounds().Dy()))
+		screen.DrawImage(lbpi.SubImage(image.Rect(0, 0, int(float64(lbpi.Bounds().Dx())*(u.Health/u.MaxHealth)), lbpi.Bounds().Dy())).(*ebiten.Image), op)
+	}
+
+	// Only draw the Shield bar if the unit has been hit
+	if u.Shield != u.MaxShield && u.Shield != 0 {
+		lbui := imagesCache.Get(lifeBarUnderKey)
+		op = &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(lbui.Bounds().Dy()))
+		screen.DrawImage(lbui, op)
+
+		sbpi := imagesCache.Get(shieldBarProgressKey)
+		op = &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(sbpi.Bounds().Dy()))
+		screen.DrawImage(sbpi.SubImage(image.Rect(0, 0, int(float64(sbpi.Bounds().Dx())*(u.Shield/u.MaxShield)), sbpi.Bounds().Dy())).(*ebiten.Image), op)
 	}
 
 	// TODO: Animation logic
