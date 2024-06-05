@@ -9,4 +9,5 @@ const (
 	Burrow
 	Resurrection
 	Hybrid
+	Camouflage
 )

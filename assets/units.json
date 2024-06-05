@@ -51,12 +51,13 @@
     "environment":"aerial",
     "movement_speed": 30
   },
-  "ninja_masked":{
+  "blend_master":{
     "health": 10,
     "gold": 15,
     "keybind":"8",
     "environment":"terrestrial",
-    "movement_speed": 50
+    "movement_speed": 40,
+    "abilities":["camouflage"]
   },
   "robot":{
     "health": 5,

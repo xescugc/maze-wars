@@ -934,19 +934,36 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 			var (
 				minDist     float64 = 0
 				minDistUnit *Unit
+
+				// The potential Camouflage units
+				minDistCam     float64 = 0
+				minDistCamUnit *Unit
 			)
 			for _, u := range l.Units {
 				if !tw.CanTarget(unit.Units[u.Type].Environment) || u.HasBuff(buff.Burrowoed) || u.HasBuff(buff.Resurrecting) {
 					continue
 				}
 				d := tw.PDistance(u.Object)
-				if minDist == 0 {
-					minDist = d
+				if u.HasAbility(ability.Camouflage) {
+					if minDistCam == 0 {
+						minDistCam = d
+					}
+					if d <= tower.Towers[tw.Type].Range && d <= minDistCam {
+						minDistCam = d
+						minDistCamUnit = u
+					}
+				} else {
+					if minDist == 0 {
+						minDist = d
+					}
+					if d <= tower.Towers[tw.Type].Range && d <= minDist {
+						minDist = d
+						minDistUnit = u
+					}
 				}
-				if d <= tower.Towers[tw.Type].Range && d <= minDist {
-					minDist = d
-					minDistUnit = u
-				}
+			}
+			if minDistUnit == nil && minDistCamUnit != nil {
+				minDistUnit = minDistCamUnit
 			}
 			if minDistUnit != nil {
 				// Tower Attack

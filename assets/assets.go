@@ -55,11 +55,11 @@ var ButterflyWalk_png []byte
 //go:embed ninja_adventure_asset_pack/Actor/Monsters/Butterfly/Faceset.png
 var ButterflyFaceset_png []byte
 
-//go:embed ninja_adventure_asset_pack/Actor/Characters/NinjaMasked/SeparateAnim/Walk.png
-var NinjaMaskedWalk_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/CamouflageRed/SeparateAnim/Walk.png
+var BlendMasterWalk_png []byte
 
-//go:embed ninja_adventure_asset_pack/Actor/Characters/NinjaMasked/Faceset.png
-var NinjaMaskedFaceset_png []byte
+//go:embed ninja_adventure_asset_pack/Actor/Characters/CamouflageRed/Faceset.png
+var BlendMasterFaceset_png []byte
 
 //go:embed ninja_adventure_asset_pack/Actor/Characters/RobotGrey/SeparateAnim/Walk.png
 var RobotWalk_png []byte
