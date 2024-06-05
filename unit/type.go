@@ -12,7 +12,7 @@ const (
 	Mole
 	SkeletonDemon
 	Butterfly
-	NinjaMasked
+	BlendMaster
 	Robot
 	MonkeyBoxer
 )

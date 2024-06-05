@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "ninjastatuehunterslimemoleskeleton_demonbutterflyninja_maskedrobotmonkey_boxer"
+const _TypeName = "ninjastatuehunterslimemoleskeleton_demonbutterflyblend_masterrobotmonkey_boxer"
 
 var _TypeIndex = [...]uint8{0, 5, 11, 17, 22, 26, 40, 49, 61, 66, 78}
 
-const _TypeLowerName = "ninjastatuehunterslimemoleskeleton_demonbutterflyninja_maskedrobotmonkey_boxer"
+const _TypeLowerName = "ninjastatuehunterslimemoleskeleton_demonbutterflyblend_masterrobotmonkey_boxer"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -31,12 +31,12 @@ func _TypeNoOp() {
 	_ = x[Mole-(4)]
 	_ = x[SkeletonDemon-(5)]
 	_ = x[Butterfly-(6)]
-	_ = x[NinjaMasked-(7)]
+	_ = x[BlendMaster-(7)]
 	_ = x[Robot-(8)]
 	_ = x[MonkeyBoxer-(9)]
 }
 
-var _TypeValues = []Type{Ninja, Statue, Hunter, Slime, Mole, SkeletonDemon, Butterfly, NinjaMasked, Robot, MonkeyBoxer}
+var _TypeValues = []Type{Ninja, Statue, Hunter, Slime, Mole, SkeletonDemon, Butterfly, BlendMaster, Robot, MonkeyBoxer}
 
 var _TypeNameToValueMap = map[string]Type{
 	_TypeName[0:5]:        Ninja,
@@ -53,8 +53,8 @@ var _TypeNameToValueMap = map[string]Type{
 	_TypeLowerName[26:40]: SkeletonDemon,
 	_TypeName[40:49]:      Butterfly,
 	_TypeLowerName[40:49]: Butterfly,
-	_TypeName[49:61]:      NinjaMasked,
-	_TypeLowerName[49:61]: NinjaMasked,
+	_TypeName[49:61]:      BlendMaster,
+	_TypeLowerName[49:61]: BlendMaster,
 	_TypeName[61:66]:      Robot,
 	_TypeLowerName[61:66]: Robot,
 	_TypeName[66:78]:      MonkeyBoxer,

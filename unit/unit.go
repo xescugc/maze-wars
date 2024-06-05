@@ -56,7 +56,7 @@ var (
 		Mole:          assets.MoleWalk_png,
 		SkeletonDemon: assets.SkeletonDemonWalk_png,
 		Butterfly:     assets.ButterflyWalk_png,
-		NinjaMasked:   assets.NinjaMaskedWalk_png,
+		BlendMaster:   assets.BlendMasterWalk_png,
 		Robot:         assets.RobotWalk_png,
 		MonkeyBoxer:   assets.MonkeyBoxerWalk_png,
 	}
@@ -69,7 +69,7 @@ var (
 		Mole:          assets.MoleFaceset_png,
 		SkeletonDemon: assets.SkeletonDemonFaceset_png,
 		Butterfly:     assets.ButterflyFaceset_png,
-		NinjaMasked:   assets.NinjaMaskedFaceset_png,
+		BlendMaster:   assets.BlendMasterFaceset_png,
 		Robot:         assets.RobotFaceset_png,
 		MonkeyBoxer:   assets.MonkeyBoxerFaceset_png,
 	}
