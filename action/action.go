@@ -431,6 +431,7 @@ type SyncStateLinesPayload struct {
 }
 
 type SyncStateLinePayload struct {
+	ID     int
 	Towers map[string]*SyncStateTowerPayload
 	Units  map[string]*SyncStateUnitPayload
 }

@@ -187,44 +187,49 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 			players := make(map[string]*action.SyncStatePlayerPayload)
 			lplayers := r.Game.Store.Lines.ListPlayers()
 			for _, p := range lplayers {
+				ap := p
 				uspp := action.SyncStatePlayerPayload{
-					ID:          p.ID,
-					Name:        p.Name,
-					Lives:       p.Lives,
-					LineID:      p.LineID,
-					Income:      p.Income,
-					Gold:        p.Gold,
-					Current:     p.Current,
-					Winner:      p.Winner,
+					ID:          ap.ID,
+					Name:        ap.Name,
+					Lives:       ap.Lives,
+					LineID:      ap.LineID,
+					Income:      ap.Income,
+					Gold:        ap.Gold,
+					Current:     ap.Current,
+					Winner:      ap.Winner,
 					UnitUpdates: make(map[string]action.SyncStatePlayerUnitUpdatePayload),
 				}
-				for t, uu := range p.UnitUpdates {
+				for t, uu := range ap.UnitUpdates {
 					uspp.UnitUpdates[t] = action.SyncStatePlayerUnitUpdatePayload(uu)
 				}
-				if id == p.ID {
+				if id == ap.ID {
 					uspp.Current = true
 				}
-				players[p.ID] = &uspp
+				players[ap.ID] = &uspp
 			}
 
 			// Lines
 			lines := make(map[int]*action.SyncStateLinePayload)
 			llines := r.Game.Store.Lines.ListLines()
-			for i, l := range llines {
+			for _, l := range llines {
+				al := l
 				// Towers
 				towers := make(map[string]*action.SyncStateTowerPayload)
-				for _, t := range l.Towers {
-					ustp := action.SyncStateTowerPayload(*t)
-					towers[t.ID] = &ustp
+				for _, t := range al.Towers {
+					at := t
+					ustp := action.SyncStateTowerPayload(*at)
+					towers[at.ID] = &ustp
 				}
 
 				// Units
 				units := make(map[string]*action.SyncStateUnitPayload)
-				for _, u := range l.Units {
-					usup := action.SyncStateUnitPayload(*u)
-					units[u.ID] = &usup
+				for _, u := range al.Units {
+					au := u
+					usup := action.SyncStateUnitPayload(*au)
+					units[au.ID] = &usup
 				}
-				lines[i] = &action.SyncStateLinePayload{
+				lines[al.ID] = &action.SyncStateLinePayload{
+					ID:     al.ID,
 					Towers: towers,
 					Units:  units,
 				}
