@@ -54,6 +54,7 @@ type LinesState struct {
 }
 
 type Line struct {
+	ID     int
 	Towers map[string]*Tower
 	Units  map[string]*Unit
 
@@ -780,11 +781,12 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			}
 			atws := make(map[string]struct{})
 			for id, t := range l.Towers {
+				at := t
 				if _, ok := tids[id]; !ok {
 					atws[id] = struct{}{}
 				}
 				delete(tids, id)
-				nt := Tower(*t)
+				nt := Tower(*at)
 				cl.Towers[id] = &nt
 			}
 			for id := range tids {
@@ -1077,6 +1079,7 @@ func (ls *Lines) newLine(lid int) *Line {
 		panic(err)
 	}
 	return &Line{
+		ID:     lid,
 		Towers: make(map[string]*Tower),
 		Units:  make(map[string]*Unit),
 		Graph:  g,
