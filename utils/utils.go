@@ -1,9 +1,5 @@
 package utils
 
-import (
-	"math"
-)
-
 type Object struct {
 	X, Y float64
 	W, H int
@@ -39,12 +35,29 @@ func (o Object) IsInside(c Object) bool {
 	return selfRight >= enemyRight && selfLeft <= enemyLeft && selfBottom >= enemyBottom && selfTop <= enemyTop
 }
 
-// PDistance will calculate the Pythagorean distance between the 2 objects
-// based on X and Y position
-func (o Object) PDistance(c Object) float64 {
-	return math.Sqrt(
-		math.Pow(o.X-c.X, 2) + math.Pow(o.Y-c.Y, 2),
-	)
+func (o Object) IsCollidingCircle(c Object, r float64) bool {
+	var cx, cy float64
+
+	if c.X < o.X {
+		cx = o.X
+	} else if c.X > o.X+float64(o.W) {
+		cx = o.X + float64(o.W)
+	} else {
+		cx = c.X
+	}
+
+	if c.Y < o.Y {
+		cy = o.Y
+	} else if c.Y > o.Y+float64(o.H) {
+		cy = o.Y + float64(o.H)
+	} else {
+		cy = c.Y
+	}
+
+	dx := c.X - cx
+	dy := c.Y - cy
+
+	return dx*dx+dy*dy < r*r
 }
 
 type MovingObject struct {

@@ -148,8 +148,8 @@ func (ac *ActionDispatcher) GoHome() {
 }
 
 // GoHome will move the camera to the current player home line
-func (ac *ActionDispatcher) UpdateTower(pid, tid string) {
-	uta := action.NewUpdateTower(pid, tid)
+func (ac *ActionDispatcher) UpdateTower(pid, tid, tt string) {
+	uta := action.NewUpdateTower(pid, tid, tt)
 	ac.wsSend(uta)
 	ac.Dispatch(uta)
 }

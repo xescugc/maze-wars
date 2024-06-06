@@ -2,11 +2,9 @@ package tower
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"image"
 	"log"
-	"math"
 
 	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/unit/environment"
@@ -15,26 +13,22 @@ import (
 type Tower struct {
 	Type Type
 
-	Stats
-
-	Gold  int     `json:"gold"`
-	Range float64 `json:"range"`
+	Damage float64
+	Gold   int
+	// Range is in a reduced version of 16 pixels, so Range == 1 == 16px
+	Range       float64
+	AttackSpeed float64
+	// AoE is the same as the Range, AoE == 1 == 16px
+	AoE       int
+	AoEDamage float64
 
 	Targets []environment.Environment `json:"targets"`
 	targets map[environment.Environment]struct{}
 
-	Keybind string
-
 	Faceset image.Image
-}
 
-type Stats struct {
-	Damage float64 `json:"damage"`
-}
-
-type Update struct {
-	UpdateCost int
-	Stats
+	// The Update Cost is the Tower.Gold
+	Updates []Type
 }
 
 func (t *Tower) FacesetKey() string { return fmt.Sprintf("t-f-%s", t.Type) }
@@ -53,70 +47,189 @@ func (t *Tower) initTargets() {
 }
 
 var (
-	Towers map[string]*Tower
+	Towers = map[string]*Tower{
+		Range1.String(): &Tower{
+			Gold:        7,
+			Damage:      2,
+			AttackSpeed: 0.6,
+			Range:       4,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+				environment.Aerial,
+			},
+			Updates: []Type{
+				Range2,
+			},
+		},
+		Range2.String(): &Tower{
+			Gold:        30,
+			Damage:      7,
+			AttackSpeed: 0.6,
+			Range:       5,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+				environment.Aerial,
+			},
+			Updates: []Type{
+				RangeSingel1,
+				RangeAoE1,
+			},
+		},
+		RangeSingel1.String(): &Tower{
+			Gold:        250,
+			Damage:      40,
+			AttackSpeed: 0.5,
+			Range:       6,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+				environment.Aerial,
+			},
+			Updates: []Type{
+				RangeSingel2,
+			},
+		},
+		RangeSingel2.String(): &Tower{
+			Gold:        500,
+			Damage:      80,
+			AttackSpeed: 0.5,
+			Range:       7,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+				environment.Aerial,
+			},
+		},
+		RangeAoE1.String(): &Tower{
+			Gold:        250,
+			Damage:      150,
+			AttackSpeed: 2,
+			Range:       5,
+			AoE:         3,
+			AoEDamage:   45,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+			},
+			Updates: []Type{
+				RangeAoE2,
+			},
+		},
+		RangeAoE2.String(): &Tower{
+			Gold:        500,
+			Damage:      180,
+			AttackSpeed: 2,
+			Range:       5,
+			AoE:         3,
+			AoEDamage:   54,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+			},
+		},
+		Melee1.String(): &Tower{
+			Gold:        7,
+			Damage:      2,
+			AttackSpeed: 0.3,
+			Range:       1,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+			},
+			Updates: []Type{
+				Melee2,
+			},
+		},
+		Melee2.String(): &Tower{
+			Gold:        30,
+			Damage:      8,
+			AttackSpeed: 0.3,
+			Range:       1,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+			},
+			Updates: []Type{
+				MeleeSingle1,
+				MeleeAoE1,
+			},
+		},
+		MeleeSingle1.String(): &Tower{
+			Gold:        250,
+			Damage:      50,
+			AttackSpeed: 0.3,
+			Range:       1,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+			},
+			Updates: []Type{
+				MeleeSingle2,
+			},
+		},
+		MeleeSingle2.String(): &Tower{
+			Gold:        500,
+			Damage:      100,
+			AttackSpeed: 0.3,
+			Range:       1,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+			},
+		},
+		MeleeAoE1.String(): &Tower{
+			Gold:        250,
+			Damage:      100,
+			AttackSpeed: 2,
+			Range:       1,
+			AoE:         3,
+			AoEDamage:   30,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+				environment.Aerial,
+			},
+			Updates: []Type{
+				MeleeAoE2,
+			},
+		},
+		MeleeAoE2.String(): &Tower{
+			Gold:        500,
+			Damage:      130,
+			AttackSpeed: 2,
+			Range:       1,
+			AoE:         3,
+			AoEDamage:   39,
+			Targets: []environment.Environment{
+				environment.Terrestrial,
+				environment.Aerial,
+			},
+		},
+	}
 
-	towerUpdates = make(map[string]map[int]Update)
-
-	updateCostBase   = 100
-	updateCostFactor = 0.5
-
-	updateStateDamageFactor = 1.5
+	FirstTowers = []*Tower{
+		Towers[Range1.String()],
+		Towers[Melee1.String()],
+	}
 )
 
 func init() {
-	err := json.Unmarshal(assets.Towers_json, &Towers)
+	img, _, err := image.Decode(bytes.NewReader(assets.Towers_png))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	i, _, err := image.Decode(bytes.NewReader(assets.TilesetHouse_png))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for t, tw := range Towers {
-		ty, err := TypeString(t)
-		if err != nil {
-			log.Fatal(err)
+	wh := 32
+	for i, ty := range TypeValues() {
+		y := i / 6
+		if y != 0 {
+			y += 1
 		}
-		switch ty {
-		case Soldier:
-			tw.Faceset = i.(SubImager).SubImage(image.Rect(5*16, 17*16, 5*16+16*2, 17*16+16*2))
-		case Monk:
-			tw.Faceset = i.(SubImager).SubImage(image.Rect(5*16, 15*16, 5*16+16*2, 15*16+16*2))
-		default:
-			log.Fatalf("failed to load tower %q\n", t)
+		x := i % 6
+		if x == 4 {
+			y += 1
+			x = 2
+		} else if x == 5 {
+			y += 1
+			x = 3
 		}
-		tw.Type = ty
-		tw.initTargets()
-
-		towerUpdates[t] = make(map[int]Update)
-		for i := 2; i < 5; i++ {
-			towerUpdates[t][i] = Update{
-				UpdateCost: int(float64(updateCostBase) * updateCostFactor * math.Pow(2, float64((i-1)))),
-				Stats: Stats{
-					Damage: levelToValue(i, tw.Damage),
-				},
-			}
-		}
+		Towers[ty.String()].Faceset = img.(SubImager).SubImage(image.Rect(x*wh, y*wh, x*wh+wh, y*wh+wh))
+		Towers[ty.String()].Type = ty
+		Towers[ty.String()].initTargets()
 	}
 }
 
 type SubImager interface {
 	SubImage(r image.Rectangle) image.Image
-}
-
-func FindUpdateByLevel(t string, lvl int) *Update {
-	tu, ok := towerUpdates[t][lvl]
-	if !ok {
-		return nil
-	}
-	return &tu
-}
-
-func levelToValue(lvl int, base float64) float64 {
-	for i := 1; i < lvl; i++ {
-		base = base * updateStateDamageFactor
-	}
-	return base
 }

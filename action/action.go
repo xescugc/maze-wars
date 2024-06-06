@@ -3,7 +3,6 @@ package action
 import (
 	"time"
 
-	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
 	"github.com/xescugc/maze-wars/utils/graph"
@@ -468,8 +467,8 @@ type SyncStateTowerPayload struct {
 	Type     string
 	LineID   int
 	PlayerID string
-	Stats    tower.Stats
-	Level    int
+
+	LastAttack time.Time
 }
 
 type SyncStateUnitPayload struct {
@@ -554,16 +553,18 @@ func NewUpdateUnit(pid, t string) *Action {
 }
 
 type UpdateTowerPayload struct {
-	TowerID  string
-	PlayerID string
+	TowerID   string
+	PlayerID  string
+	TowerType string
 }
 
-func NewUpdateTower(pid, tid string) *Action {
+func NewUpdateTower(pid, tid, tt string) *Action {
 	return &Action{
 		Type: UpdateTower,
 		UpdateTower: &UpdateTowerPayload{
-			TowerID:  tid,
-			PlayerID: pid,
+			TowerID:   tid,
+			PlayerID:  pid,
+			TowerType: tt,
 		},
 	}
 }

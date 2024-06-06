@@ -56,8 +56,10 @@ type HUDStore struct {
 	bottomLeftContainer *widget.Container
 	towerMenuContainer  *widget.Container
 	towerRemoveToolTip  *widget.Text
-	towerUpdateToolTip  *widget.Text
-	towerUpdateButton   *widget.Button
+	towerUpdateToolTip1 *widget.Text
+	towerUpdateButton1  *widget.Button
+	towerUpdateToolTip2 *widget.Text
+	towerUpdateButton2  *widget.Button
 }
 
 // HUDState stores the HUD state
@@ -82,7 +84,12 @@ var (
 	towerKeybinds = make(map[string]ebiten.Key)
 
 	removeTowerKeybind = ebiten.KeyD
-	updateTowerKeybind = ebiten.KeyF
+
+	updateTowerKeybind1 = ebiten.KeyZ
+	updateTowerKeybind2 = ebiten.KeyX
+
+	rangeTowerKeybind = ebiten.KeyQ
+	meleeTowerKeybind = ebiten.KeyW
 )
 
 func init() {
@@ -95,14 +102,8 @@ func init() {
 		unitKeybinds[u.Type.String()] = k
 	}
 
-	for _, t := range tower.Towers {
-		var k ebiten.Key
-		err := k.UnmarshalText([]byte(t.Keybind))
-		if err != nil {
-			panic(err)
-		}
-		towerKeybinds[t.Type.String()] = k
-	}
+	towerKeybinds[tower.Range1.String()] = rangeTowerKeybind
+	towerKeybinds[tower.Melee1.String()] = meleeTowerKeybind
 }
 
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
@@ -199,8 +200,12 @@ func (hs *HUDStore) Update() error {
 			actionDispatcher.RemoveTower(cp.ID, hst.OpenTowerMenu.ID)
 			actionDispatcher.CloseTowerMenu()
 		}
-		if inpututil.IsKeyJustPressed(updateTowerKeybind) {
-			actionDispatcher.UpdateTower(cp.ID, hst.OpenTowerMenu.ID)
+		tw := tower.Towers[hst.OpenTowerMenu.Type]
+		if len(tw.Updates) >= 1 && inpututil.IsKeyJustPressed(updateTowerKeybind1) {
+			actionDispatcher.UpdateTower(cp.ID, hst.OpenTowerMenu.ID, tw.Updates[0].String())
+		}
+		if len(tw.Updates) >= 2 && inpututil.IsKeyJustPressed(updateTowerKeybind2) {
+			actionDispatcher.UpdateTower(cp.ID, hst.OpenTowerMenu.ID, tw.Updates[1].String())
 		}
 	}
 	if hst.SelectedTower != nil {
@@ -326,19 +331,28 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	if hst.OpenTowerMenu != nil {
 		// TODO: Add the keybind to the tooltip
 		hs.bottomLeftContainer.GetWidget().Visibility = widget.Visibility_Show
-		tu := tower.FindUpdateByLevel(hst.OpenTowerMenu.Type, hst.OpenTowerMenu.Level+1)
-		tc := tower.FindUpdateByLevel(hst.OpenTowerMenu.Type, hst.OpenTowerMenu.Level)
 		removeTowerGoldReturn := tower.Towers[hst.OpenTowerMenu.Type].Gold / 2
-		if tc != nil {
-			removeTowerGoldReturn = tc.UpdateCost / 2
-		}
 		// Where there is no more updates we disable the button
-		if tu == nil {
-			hs.towerUpdateButton.GetWidget().Disabled = true
-			hs.towerUpdateToolTip.Label = towerUpdateLimit
+		tu := tower.Towers[hst.OpenTowerMenu.Type].Updates
+		if len(tu) == 0 {
+			hs.towerUpdateButton1.GetWidget().Visibility = widget.Visibility_Hide
+			hs.towerUpdateButton2.GetWidget().Visibility = widget.Visibility_Hide
 		} else {
-			hs.towerUpdateButton.GetWidget().Disabled = cp.Gold < tu.UpdateCost
-			hs.towerUpdateToolTip.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tu.UpdateCost, tu.Stats.Damage, updateTowerKeybind)
+			if len(tu) >= 1 {
+				tw := tower.Towers[tu[0].String()]
+				hs.towerUpdateButton1.Image = cutils.ButtonImageFromImage(imagesCache.Get(tw.FacesetKey()))
+				hs.towerUpdateButton1.GetWidget().Visibility = widget.Visibility_Show
+				hs.towerUpdateButton1.GetWidget().Disabled = cp.Gold < tw.Gold
+				hs.towerUpdateToolTip1.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, updateTowerKeybind1)
+				hs.towerUpdateButton2.GetWidget().Visibility = widget.Visibility_Hide
+			}
+			if len(tu) >= 2 {
+				tw := tower.Towers[tu[1].String()]
+				hs.towerUpdateButton2.Image = cutils.ButtonImageFromImage(imagesCache.Get(tw.FacesetKey()))
+				hs.towerUpdateButton2.GetWidget().Visibility = widget.Visibility_Show
+				hs.towerUpdateButton2.GetWidget().Disabled = cp.Gold < tw.Gold
+				hs.towerUpdateToolTip2.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, updateTowerKeybind2)
+			}
 		}
 		hs.towerRemoveToolTip.Label = fmt.Sprintf(towerRemoveToolTipTmpl, removeTowerGoldReturn, removeTowerKeybind)
 	} else {
@@ -468,14 +482,7 @@ func sortedUnits() []*unit.Unit {
 }
 
 func sortedTowers() []*tower.Tower {
-	ts := make([]*tower.Tower, 0, 0)
-	for _, t := range tower.Towers {
-		ts = append(ts, t)
-	}
-	sort.Slice(ts, func(i, j int) bool {
-		return ts[i].Type > ts[j].Type
-	})
-	return ts
+	return tower.FirstTowers
 }
 
 func (hs *HUDStore) buildUI() {
@@ -738,9 +745,13 @@ func (hs *HUDStore) buildUI() {
 			widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
 		)
 
+		kb := rangeTowerKeybind
+		if t.Type == tower.Melee1 {
+			kb = meleeTowerKeybind
+		}
 		toolTxt := widget.NewText(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nRange: %.0f\nDamage: %.0f\nTargets: %s\nKeybind: %s", t.Gold, t.Range, t.Damage, t.Targets, t.Keybind), cutils.SmallFont, color.White),
+			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nRange: %.0f\nDamage: %.0f\nTargets: %s\nKeybind: %s", t.Gold, t.Range, t.Damage, t.Targets, kb), cutils.SmallFont, color.White),
 			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 		)
 		tooltipContainer.AddChild(toolTxt)
@@ -1031,21 +1042,21 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 	towerMenuC.AddChild(rbtn)
 
 	// Update button
-	updateToolTipContainer := widget.NewContainer(
+	updateToolTipContainer1 := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
 		widget.ContainerOpts.AutoDisableChildren(),
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
 	)
 
-	updateToolTxt := widget.NewText(
+	updateToolTxt1 := widget.NewText(
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-		widget.TextOpts.Text(fmt.Sprintf(towerUpdateToolTipTmpl, 0, 0.0, updateTowerKeybind), cutils.SmallFont, color.White),
+		widget.TextOpts.Text(fmt.Sprintf(towerUpdateToolTipTmpl, 0, 0.0, updateTowerKeybind1), cutils.SmallFont, color.White),
 		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 	)
-	hs.towerUpdateToolTip = updateToolTxt
-	updateToolTipContainer.AddChild(updateToolTxt)
+	hs.towerUpdateToolTip1 = updateToolTxt1
+	updateToolTipContainer1.AddChild(updateToolTxt1)
 
-	ubtn := widget.NewButton(
+	ubtn1 := widget.NewButton(
 		// set general widget options
 		widget.ButtonOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
@@ -1053,7 +1064,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 				MaxHeight: 38,
 			}),
 			widget.WidgetOpts.ToolTip(widget.NewToolTip(
-				widget.ToolTipOpts.Content(updateToolTipContainer),
+				widget.ToolTipOpts.Content(updateToolTipContainer1),
 				//widget.WidgetToolTipOpts.Delay(1*time.Second),
 				widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
 				widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
@@ -1072,16 +1083,70 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
 			return func(args *widget.ButtonClickedEventArgs) {
 				cp := hs.game.Store.Lines.FindCurrentPlayer()
+				// I know which is the current open one
+				// I'll have 2 buttons so I can know the position
+				// that it was selected to update
 				tomid := hs.GetState().(HUDState).OpenTowerMenu.ID
-				actionDispatcher.UpdateTower(cp.ID, tomid)
+				actionDispatcher.UpdateTower(cp.ID, tomid, "TODO")
 			}
 		}()),
 	)
-	towerMenuC.AddChild(ubtn)
+
+	updateToolTipContainer2 := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+		widget.ContainerOpts.AutoDisableChildren(),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+	)
+
+	updateToolTxt2 := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text(fmt.Sprintf(towerUpdateToolTipTmpl, 0, 0.0, updateTowerKeybind2), cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+	)
+	hs.towerUpdateToolTip2 = updateToolTxt2
+	updateToolTipContainer2.AddChild(updateToolTxt2)
+	ubtn2 := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				MaxWidth:  38,
+				MaxHeight: 38,
+			}),
+			widget.WidgetOpts.ToolTip(widget.NewToolTip(
+				widget.ToolTipOpts.Content(updateToolTipContainer2),
+				//widget.WidgetToolTipOpts.Delay(1*time.Second),
+				widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+				widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+				//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+				//They will default to what you see below if you do not provide them
+				widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+			)),
+		),
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(arrowImageKey))),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
+			return func(args *widget.ButtonClickedEventArgs) {
+				cp := hs.game.Store.Lines.FindCurrentPlayer()
+				// I know which is the current open one
+				// I'll have 2 buttons so I can know the position
+				// that it was selected to update
+				tomid := hs.GetState().(HUDState).OpenTowerMenu.ID
+				actionDispatcher.UpdateTower(cp.ID, tomid, "TODO")
+			}
+		}()),
+	)
+	towerMenuC.AddChild(ubtn1)
+	towerMenuC.AddChild(ubtn2)
 	bottomLeftContainer.AddChild(towerMenuC)
 	hs.bottomLeftContainer = bottomLeftContainer
 	hs.towerMenuContainer = towerMenuC
-	hs.towerUpdateButton = ubtn
+	hs.towerUpdateButton1 = ubtn1
+	hs.towerUpdateButton2 = ubtn2
 
 	return bottomLeftContainer
 }
