@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"math/rand"
 	"sort"
 	"time"
 
@@ -23,7 +24,8 @@ type Bot struct {
 	context     context.Context
 	ctxCancelFn context.CancelFunc
 
-	towerIDToUpdate string
+	towerIDToUpdate   string
+	towerTypeToUpdate string
 }
 
 func New(ctx context.Context, d *flux.Dispatcher, s *store.Store, pid string) *Bot {
@@ -53,7 +55,7 @@ func (b *Bot) Node() bht.Node {
 		bht.Shuffle(bht.Selector, nil),
 		//Units
 		bht.New(
-			bht.Selector,
+			bht.Shuffle(bht.Selector, nil),
 			// Update
 			bht.New(
 				bht.Selector,
@@ -156,12 +158,16 @@ func (b *Bot) findTowerToUpdate() func(children []bht.Node) (bht.Status, error) 
 	return func(children []bht.Node) (bht.Status, error) {
 		cp := b.store.Lines.FindPlayerByID(b.playerID)
 		for _, t := range b.store.Lines.FindLineByID(cp.LineID).Towers {
-			tu := tower.FindUpdateByLevel(t.Type, t.Level+1)
-			if tu != nil {
-				if cp.Gold-tu.UpdateCost > 0 {
-					b.towerIDToUpdate = t.ID
-					return bht.Success, nil
-				}
+			tus := tower.Towers[t.Type].Updates
+			if len(tus) == 0 {
+				continue
+			}
+			i := rand.Intn(len(tus))
+			tu := tower.Towers[tus[i].String()]
+			if cp.Gold-tu.Gold > 0 {
+				b.towerIDToUpdate = t.ID
+				b.towerTypeToUpdate = tu.Type.String()
+				return bht.Success, nil
 			}
 		}
 		return bht.Failure, nil
@@ -170,15 +176,16 @@ func (b *Bot) findTowerToUpdate() func(children []bht.Node) (bht.Status, error) 
 
 func (b *Bot) updateTower() func(children []bht.Node) (bht.Status, error) {
 	return func(children []bht.Node) (bht.Status, error) {
-		b.dispatcher.Dispatch(action.NewUpdateTower(b.playerID, b.towerIDToUpdate))
+		b.dispatcher.Dispatch(action.NewUpdateTower(b.playerID, b.towerIDToUpdate, b.towerTypeToUpdate))
 		b.towerIDToUpdate = ""
+		b.towerTypeToUpdate = ""
 		return bht.Success, nil
 	}
 }
 
 func (b *Bot) placeTowers() []bht.Node {
 	res := make([]bht.Node, 0, 0)
-	for _, t := range tower.Towers {
+	for _, t := range tower.FirstTowers {
 		res = append(res, bht.New(
 			bht.Sequence,
 			bht.New(b.canPlaceTower(t.Type.String())),

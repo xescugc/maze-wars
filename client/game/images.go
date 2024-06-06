@@ -28,6 +28,8 @@ const (
 	lifeBarProgressKey   = "life-bar-progress"
 	lifeBarUnderKey      = "life-bar-under"
 	shieldBarProgressKey = "shield-bar-progress"
+
+	towersKey = "towers-key"
 )
 
 // ImagesCache is a simple cache for all the images, so instead
@@ -96,6 +98,12 @@ func init() {
 		panic(err)
 	}
 	imagesCache.images[shieldBarProgressKey] = ebiten.NewImageFromImage(sbpi)
+
+	atpi, _, err := image.Decode(bytes.NewReader(assets.Towers_png))
+	if err != nil {
+		panic(err)
+	}
+	imagesCache.images[towersKey] = ebiten.NewImageFromImage(atpi)
 }
 
 // Get will return the image from 'key', if it does not

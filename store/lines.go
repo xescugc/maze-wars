@@ -90,14 +90,39 @@ type Tower struct {
 	LineID   int
 	PlayerID string
 
-	Stats tower.Stats
-
-	Level int
+	LastAttack time.Time
 }
 
 func (t *Tower) FacetKey() string { return tower.Towers[t.Type].FacesetKey() }
 func (t *Tower) CanTarget(env environment.Environment) bool {
 	return tower.Towers[t.Type].CanTarget(env)
+}
+func (t *Tower) CanUpdateTo(tt string) bool {
+	for _, u := range tower.Towers[t.Type].Updates {
+		if u.String() == tt {
+			return true
+		}
+	}
+	return false
+}
+
+func (t *Tower) CanAttackUnit(u *Unit) bool {
+	if !t.CanTarget(unit.Units[u.Type].Environment) || u.HasBuff(buff.Burrowoed) || u.HasBuff(buff.Resurrecting) {
+		return false
+	}
+
+	// If we do not take the center of the tower, towers would calculate everything from the top right
+	// which is not good as a short range tower would not be able to attack from the right for example.
+	// We add 16 as it's the distance from the center of the tower to the edge of it so the range ignores that part
+	centerTower = utils.Object{X: t.X - 16, Y: t.Y - 16}
+	return u.Object.IsCollidingCircle(t.Object, tower.Towers[t.Type].Range*32+16)
+}
+
+func (t *Tower) CanAttack(tm time.Time) bool {
+	if t.LastAttack.IsZero() {
+		return true
+	}
+	return tm.Sub(t.LastAttack) > time.Duration(int(tower.Towers[t.Type].AttackSpeed*float64(time.Second)))
 }
 
 type Unit struct {
@@ -154,6 +179,32 @@ func (u *Unit) AddBuff(b buff.Buff) {
 func (u *Unit) HasBuff(b buff.Buff) bool { _, ok := u.Buffs[b.String()]; return ok }
 func (u *Unit) RemoveBuff(b buff.Buff) {
 	delete(u.Buffs, b.String())
+}
+func (u *Unit) CanBeAttacked(t time.Time) bool {
+	if u.HasBuff(buff.Burrowoed) {
+		if !u.MustUnburrow(t) {
+			u.AnimationCount += 1
+			return false
+		}
+		u.Unburrow()
+	} else if u.HasBuff(buff.Resurrecting) {
+		if !u.CanResurrect(t) {
+			return false
+		}
+		u.Resurrect()
+	}
+	return true
+}
+
+func (u *Unit) TakeDamage(d float64) {
+	if u.Shield != 0 {
+		u.Shield -= d
+		if u.Shield < 0 {
+			u.Shield = 0
+		}
+	} else {
+		u.Health -= d
+	}
 }
 func (u *Unit) MustUnburrow(t time.Time) bool {
 	// As it should have the buff but it does not we just
@@ -502,7 +553,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Lives:  20,
 			LineID: act.AddPlayer.LineID,
 			Income: 25,
-			Gold:   400000,
+			Gold:   40,
 
 			UnitUpdates: make(map[string]UnitUpdate),
 		}
@@ -532,23 +583,15 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		if !p.CanPlaceTower(act.PlaceTower.Type) {
 			break
 		}
-
 		p.Gold -= tower.Towers[act.PlaceTower.Type].Gold
 
 		var w, h int = 16 * 2, 16 * 2
 		tid := uuid.Must(uuid.NewV4())
-		tw := &Tower{
-			ID: tid.String(),
-			Object: utils.Object{
-				X: float64(act.PlaceTower.X), Y: float64(act.PlaceTower.Y),
-				W: w, H: h,
-			},
-			Type:     act.PlaceTower.Type,
-			LineID:   p.LineID,
-			PlayerID: p.ID,
-			Level:    1,
-			Stats:    tower.Towers[act.PlaceTower.Type].Stats,
-		}
+		tw := ls.newTower(act.PlaceTower.Type, p, utils.Object{
+			X: float64(act.PlaceTower.X), Y: float64(act.PlaceTower.Y),
+			W: w, H: h,
+		})
+		tw.ID = tid.String()
 
 		l := lstate.Lines[p.LineID]
 		// TODO: Check this errors
@@ -565,14 +608,14 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		l := lstate.Lines[p.LineID]
 		t := l.Towers[act.UpdateTower.TowerID]
 
-		tu := tower.FindUpdateByLevel(t.Type, t.Level+1)
-		if tu != nil {
-			if p.Gold-tu.UpdateCost > 0 {
-				t.Stats = tu.Stats
-				t.Level += 1
-				p.Gold -= tu.UpdateCost
-			}
+		if !t.CanUpdateTo(act.UpdateTower.TowerType) {
+			break
 		}
+
+		tw := ls.newTower(act.UpdateTower.TowerType, p, t.Object)
+		p.Gold -= tower.Towers[tw.Type].Gold
+		tw.ID = t.ID
+		l.Towers[tw.ID] = tw
 
 	case action.RemoveTower:
 		ls.mxLines.Lock()
@@ -582,12 +625,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		l := lstate.Lines[p.LineID]
 		t := l.Towers[act.RemoveTower.TowerID]
 
-		removeTowerGoldReturn := tower.Towers[t.Type].Gold / 2
-		tc := tower.FindUpdateByLevel(t.Type, t.Level)
-		if tc != nil {
-			removeTowerGoldReturn = tc.UpdateCost / 2
-		}
-		lstate.Players[act.RemoveTower.PlayerID].Gold += removeTowerGoldReturn
+		lstate.Players[act.RemoveTower.PlayerID].Gold += tower.Towers[t.Type].Gold / 2
 
 		// TODO: Add the LineID
 		for lid, l := range lstate.Lines {
@@ -862,17 +900,8 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 	// reached the end to steal a live and change lines
 	for i := 1; i < lmoves+1; i++ {
 		for _, u := range l.Units {
-			if u.HasBuff(buff.Burrowoed) {
-				if !u.MustUnburrow(t) {
-					u.AnimationCount += 1
-					continue
-				}
-				u.Unburrow()
-			} else if u.HasBuff(buff.Resurrecting) {
-				if !u.CanResurrect(t) {
-					continue
-				}
-				u.Resurrect()
+			if !u.CanBeAttacked(t) {
+				continue
 			}
 			// If a unit was added in between the TPS checks
 			// we only need to move partially
@@ -932,144 +961,169 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 		// Now that the unit has moved we'll calculate if any
 		// tower can attack any Unit in their new positions
 		for _, tw := range l.Towers {
+			if !tw.CanAttack(t) {
+				continue
+			}
 			// Get the closes unit to the current tower to attack it
 			var (
-				minDist     float64 = 0
-				minDistUnit *Unit
+				minCost     int = 0
+				minCostUnit *Unit
 
 				// The potential Camouflage units
-				minDistCam     float64 = 0
-				minDistCamUnit *Unit
+				minCostCam     int = 0
+				minCostCamUnit *Unit
 			)
 			for _, u := range l.Units {
-				if !tw.CanTarget(unit.Units[u.Type].Environment) || u.HasBuff(buff.Burrowoed) || u.HasBuff(buff.Resurrecting) {
+				if !tw.CanAttackUnit(u) {
 					continue
 				}
-				d := tw.PDistance(u.Object)
+				// Target is based on the unit with the greatest cost
+				up := lstate.Players[u.PlayerID]
+				ug := up.UnitUpdates[u.Type].Current.Gold
 				if u.HasAbility(ability.Camouflage) {
-					if minDistCam == 0 {
-						minDistCam = d
+					if minCostCam == 0 {
+						minCostCam = ug
+						minCostCamUnit = u
 					}
-					if d <= tower.Towers[tw.Type].Range && d <= minDistCam {
-						minDistCam = d
-						minDistCamUnit = u
+					if ug > minCostCam {
+						minCostCam = ug
+						minCostCamUnit = u
 					}
 				} else {
-					if minDist == 0 {
-						minDist = d
+					if minCost == 0 {
+						minCost = ug
 					}
-					if d <= tower.Towers[tw.Type].Range && d <= minDist {
-						minDist = d
-						minDistUnit = u
+					if ug >= minCost {
+						minCost = ug
+						minCostUnit = u
 					}
 				}
 			}
-			if minDistUnit == nil && minDistCamUnit != nil {
-				minDistUnit = minDistCamUnit
+			if minCostUnit == nil && minCostCamUnit != nil {
+				minCostUnit = minCostCamUnit
 			}
-			if minDistUnit != nil {
+			if minCostUnit != nil {
 				// Tower Attack
-				if minDistUnit.Shield != 0 {
-					minDistUnit.Shield -= tw.Stats.Damage
-					if minDistUnit.Shield < 0 {
-						minDistUnit.Shield = 0
-					}
-				} else {
-					minDistUnit.Health -= tw.Stats.Damage
-				}
-				if minDistUnit.Health <= minDistUnit.MaxHealth/2 && minDistUnit.HasAbility(ability.Burrow) && !minDistUnit.WasBurrowed() {
-					if minDistUnit.Abilities == nil {
-						minDistUnit.Abilities = make(map[string]interface{})
-					}
-					minDistUnit.Abilities[ability.Burrow.String()] = AbilityBurrow{
-						BurrowAt: time.Now(),
-					}
-					minDistUnit.AddBuff(buff.Burrowoed)
-				}
-				// Unit is killed
-				if minDistUnit.Health <= 0 {
-					if minDistUnit.HasAbility(ability.Split) {
-						if minDistUnit.Abilities != nil {
-							if as, ok := minDistUnit.Abilities[ability.Split.String()].(AbilitySplit); ok {
-								// TODO: Check if it moved into another line
-								if _, ok := l.Units[as.UnitID]; !ok {
-									minDistUnit.Health = 0
+				minCostUnit.TakeDamage(tower.Towers[tw.Type].Damage)
+				// The attack was done so we register it
+				tw.LastAttack = t
 
-									// Unit Killed by player so we give gold to the player
-									cp := lstate.Players[tw.PlayerID]
-									cp.Gold += minDistUnit.Bounty
-								}
-							}
-						} else {
-							// TODO: This should only be done on the server not on the client port
-							u1 := *minDistUnit
-							u2 := *minDistUnit
-
-							u1.ID = uuid.Must(uuid.NewV4()).String()
-							u2.ID = uuid.Must(uuid.NewV4()).String()
-
-							h := minDistUnit.MaxHealth / 2
-
-							u1.MaxHealth = h
-							u1.Health = h
-							u2.MaxHealth = h
-							u2.Health = h
-
-							u1.MovementSpeed = u1.MovementSpeed * 1.20
-							u2.MovementSpeed = u2.MovementSpeed * 1.20
-
-							// The second unit created we move it 10 positions forward if possible
-							for i := 0; i < 20; i++ {
-								if len(u2.Path) != 0 {
-									nextStep := u2.Path[0]
-									u2.Path = u2.Path[1:]
-									u2.MovingCount += 1
-									u2.Y = nextStep.Y
-									u2.X = nextStep.X
-									u2.Facing = nextStep.Facing
-								}
-							}
-
-							if u1.Abilities == nil {
-								u1.Abilities = make(map[string]interface{})
-								u2.Abilities = make(map[string]interface{})
-							}
-
-							u1.Abilities[ability.Split.String()] = AbilitySplit{
-								UnitID: u2.ID,
-							}
-							u2.Abilities[ability.Split.String()] = AbilitySplit{
-								UnitID: u1.ID,
-							}
-
-							l.Units[u1.ID] = &u1
-							l.Units[u2.ID] = &u2
+				ls.checkAfterDamage(lstate, l, tw, minCostUnit, t)
+				// If the Tower does AoE Damage we need to check again all the units
+				// except the current and damage them
+				if tower.Towers[tw.Type].AoE != 0 {
+					centerUnit := utils.Object{X: minCostUnit.X + 8, Y: minCostUnit.Y + 8}
+					for _, u := range l.Units {
+						if u.ID == minCostUnit.ID {
+							continue
 						}
-					} else if minDistUnit.HasAbility(ability.Resurrection) && !minDistUnit.WasResurrected() {
-						minDistUnit.Health = 0
-						if minDistUnit.Abilities == nil {
-							minDistUnit.Abilities = make(map[string]interface{})
+						if !u.CanBeAttacked(t) {
+							continue
 						}
-						minDistUnit.Abilities[ability.Resurrection.String()] = AbilityResurrection{
-							KilledAt: t,
+						bt := tower.Towers[tw.Type]
+						if !u.IsCollidingCircle(centerUnit, float64(bt.AoE)*16) {
+							continue
 						}
-						minDistUnit.AddBuff(buff.Resurrecting)
-						continue
-					} else {
-						minDistUnit.Health = 0
-
-						// Unit Killed by player so we give gold to the player
-						cp := lstate.Players[tw.PlayerID]
-						cp.Gold += minDistUnit.Bounty
+						u.TakeDamage(tower.Towers[tw.Type].AoEDamage)
+						ls.checkAfterDamage(lstate, l, tw, u, t)
 					}
-
-					// Delete Unit
-					delete(lstate.Lines[lid].Units, minDistUnit.ID)
 				}
 			}
 		}
 	}
 	l.UpdatedAt = t
+}
+
+func (ls Lines) checkAfterDamage(lstate LinesState, l *Line, tw *Tower, u *Unit, t time.Time) {
+	if u.Health <= u.MaxHealth/2 && u.HasAbility(ability.Burrow) && !u.WasBurrowed() {
+		if u.Abilities == nil {
+			u.Abilities = make(map[string]interface{})
+		}
+		u.Abilities[ability.Burrow.String()] = AbilityBurrow{
+			BurrowAt: time.Now(),
+		}
+		u.AddBuff(buff.Burrowoed)
+	}
+	// Unit is killed
+	if u.Health <= 0 {
+		if u.HasAbility(ability.Split) {
+			if u.Abilities != nil {
+				if as, ok := u.Abilities[ability.Split.String()].(AbilitySplit); ok {
+					// TODO: Check if it moved into another line
+					if _, ok := l.Units[as.UnitID]; !ok {
+						u.Health = 0
+
+						// Unit Killed by player so we give gold to the player
+						cp := lstate.Players[tw.PlayerID]
+						cp.Gold += u.Bounty
+					}
+				}
+			} else {
+				// TODO: This should only be done on the server not on the client port
+				u1 := *u
+				u2 := *u
+
+				u1.ID = uuid.Must(uuid.NewV4()).String()
+				u2.ID = uuid.Must(uuid.NewV4()).String()
+
+				h := u.MaxHealth / 2
+
+				u1.MaxHealth = h
+				u1.Health = h
+				u2.MaxHealth = h
+				u2.Health = h
+
+				u1.MovementSpeed = u1.MovementSpeed * 1.20
+				u2.MovementSpeed = u2.MovementSpeed * 1.20
+
+				// The second unit created we move it 10 positions forward if possible
+				for i := 0; i < 20; i++ {
+					if len(u2.Path) != 0 {
+						nextStep := u2.Path[0]
+						u2.Path = u2.Path[1:]
+						u2.MovingCount += 1
+						u2.Y = nextStep.Y
+						u2.X = nextStep.X
+						u2.Facing = nextStep.Facing
+					}
+				}
+
+				if u1.Abilities == nil {
+					u1.Abilities = make(map[string]interface{})
+					u2.Abilities = make(map[string]interface{})
+				}
+
+				u1.Abilities[ability.Split.String()] = AbilitySplit{
+					UnitID: u2.ID,
+				}
+				u2.Abilities[ability.Split.String()] = AbilitySplit{
+					UnitID: u1.ID,
+				}
+
+				l.Units[u1.ID] = &u1
+				l.Units[u2.ID] = &u2
+			}
+		} else if u.HasAbility(ability.Resurrection) && !u.WasResurrected() {
+			u.Health = 0
+			if u.Abilities == nil {
+				u.Abilities = make(map[string]interface{})
+			}
+			u.Abilities[ability.Resurrection.String()] = AbilityResurrection{
+				KilledAt: t,
+			}
+			u.AddBuff(buff.Resurrecting)
+			return
+		} else {
+			u.Health = 0
+
+			// Unit Killed by player so we give gold to the player
+			cp := lstate.Players[tw.PlayerID]
+			cp.Gold += u.Bounty
+		}
+
+		// Delete Unit
+		delete(l.Units, u.ID)
+	}
 }
 
 func (ls *Lines) newLine(lid int) *Line {
@@ -1153,4 +1207,13 @@ func (ls *Lines) changeUnitLine(lstate LinesState, u *Unit, nlid int) {
 		u.Hybrid(lstate.Players[u.PlayerID].Income, ls.findPlayerByLineID(nlid).Income)
 	}
 	nl.Units[u.ID] = u
+}
+
+func (ls *Lines) newTower(tt string, p *Player, o utils.Object) *Tower {
+	return &Tower{
+		Object:   o,
+		Type:     tt,
+		LineID:   p.LineID,
+		PlayerID: p.ID,
+	}
 }

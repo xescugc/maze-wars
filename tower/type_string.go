@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "soldiermonk"
+const _TypeName = "range1range2rangesingel1rangesingel2rangeaoe1rangeaoe2melee1melee2meleesingle1meleesingle2meleeaoe1meleeaoe2"
 
-var _TypeIndex = [...]uint8{0, 7, 11}
+var _TypeIndex = [...]uint8{0, 6, 12, 24, 36, 45, 54, 60, 66, 78, 90, 99, 108}
 
-const _TypeLowerName = "soldiermonk"
+const _TypeLowerName = "range1range2rangesingel1rangesingel2rangeaoe1rangeaoe2melee1melee2meleesingle1meleesingle2meleeaoe1meleeaoe2"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -24,22 +24,62 @@ func (i Type) String() string {
 // Re-run the stringer command to generate them again.
 func _TypeNoOp() {
 	var x [1]struct{}
-	_ = x[Soldier-(0)]
-	_ = x[Monk-(1)]
+	_ = x[Range1-(0)]
+	_ = x[Range2-(1)]
+	_ = x[RangeSingel1-(2)]
+	_ = x[RangeSingel2-(3)]
+	_ = x[RangeAoE1-(4)]
+	_ = x[RangeAoE2-(5)]
+	_ = x[Melee1-(6)]
+	_ = x[Melee2-(7)]
+	_ = x[MeleeSingle1-(8)]
+	_ = x[MeleeSingle2-(9)]
+	_ = x[MeleeAoE1-(10)]
+	_ = x[MeleeAoE2-(11)]
 }
 
-var _TypeValues = []Type{Soldier, Monk}
+var _TypeValues = []Type{Range1, Range2, RangeSingel1, RangeSingel2, RangeAoE1, RangeAoE2, Melee1, Melee2, MeleeSingle1, MeleeSingle2, MeleeAoE1, MeleeAoE2}
 
 var _TypeNameToValueMap = map[string]Type{
-	_TypeName[0:7]:       Soldier,
-	_TypeLowerName[0:7]:  Soldier,
-	_TypeName[7:11]:      Monk,
-	_TypeLowerName[7:11]: Monk,
+	_TypeName[0:6]:         Range1,
+	_TypeLowerName[0:6]:    Range1,
+	_TypeName[6:12]:        Range2,
+	_TypeLowerName[6:12]:   Range2,
+	_TypeName[12:24]:       RangeSingel1,
+	_TypeLowerName[12:24]:  RangeSingel1,
+	_TypeName[24:36]:       RangeSingel2,
+	_TypeLowerName[24:36]:  RangeSingel2,
+	_TypeName[36:45]:       RangeAoE1,
+	_TypeLowerName[36:45]:  RangeAoE1,
+	_TypeName[45:54]:       RangeAoE2,
+	_TypeLowerName[45:54]:  RangeAoE2,
+	_TypeName[54:60]:       Melee1,
+	_TypeLowerName[54:60]:  Melee1,
+	_TypeName[60:66]:       Melee2,
+	_TypeLowerName[60:66]:  Melee2,
+	_TypeName[66:78]:       MeleeSingle1,
+	_TypeLowerName[66:78]:  MeleeSingle1,
+	_TypeName[78:90]:       MeleeSingle2,
+	_TypeLowerName[78:90]:  MeleeSingle2,
+	_TypeName[90:99]:       MeleeAoE1,
+	_TypeLowerName[90:99]:  MeleeAoE1,
+	_TypeName[99:108]:      MeleeAoE2,
+	_TypeLowerName[99:108]: MeleeAoE2,
 }
 
 var _TypeNames = []string{
-	_TypeName[0:7],
-	_TypeName[7:11],
+	_TypeName[0:6],
+	_TypeName[6:12],
+	_TypeName[12:24],
+	_TypeName[24:36],
+	_TypeName[36:45],
+	_TypeName[45:54],
+	_TypeName[54:60],
+	_TypeName[60:66],
+	_TypeName[66:78],
+	_TypeName[78:90],
+	_TypeName[90:99],
+	_TypeName[99:108],
 }
 
 // TypeString retrieves an enum value from the enum constants string name.

@@ -75,6 +75,9 @@ var MonkeyBoxerFaceset_png []byte
 
 // END UNITS
 
+//go:embed towers.png
+var Towers_png []byte
+
 //go:embed TilesetHouse.png
 var TilesetHouse_png []byte
 
@@ -101,9 +104,6 @@ var YesButton_png []byte
 
 //go:embed NoButton.png
 var NoButton_png []byte
-
-//go:embed towers.json
-var Towers_json []byte
 
 //go:embed units.json
 var Units_json []byte

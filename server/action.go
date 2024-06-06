@@ -199,6 +199,7 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 					Winner:      ap.Winner,
 					UnitUpdates: make(map[string]action.SyncStatePlayerUnitUpdatePayload),
 				}
+				// TODO: Make it concurrently safe
 				for t, uu := range ap.UnitUpdates {
 					uspp.UnitUpdates[t] = action.SyncStatePlayerUnitUpdatePayload(uu)
 				}

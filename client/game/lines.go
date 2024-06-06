@@ -2,15 +2,11 @@ package game
 
 import (
 	"bytes"
-	"fmt"
 	"image"
-	"image/color"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/xescugc/maze-wars/assets"
-	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/unit/buff"
 	"github.com/xescugc/maze-wars/utils"
@@ -75,9 +71,6 @@ func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower)
 	op.GeoM.Translate(float64(t.X-cs.X), float64(t.Y-cs.Y))
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
 	screen.DrawImage(imagesCache.Get(t.FacetKey()), op)
-	if t.Level != 1 {
-		text.Draw(screen, fmt.Sprintf("%d", t.Level), cutils.SmallFont, int(t.X-cs.X)+8, int(t.Y-cs.Y)+24, color.White)
-	}
 }
 
 func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
