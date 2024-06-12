@@ -76,12 +76,13 @@ func NewClient() js.Func {
 			return fmt.Errorf("failed to initial SignUpStore: %w", err)
 		}
 
-		wr := client.NewWaitingRoomStore(d, cls, l)
+		wr6 := client.NewVs6WaitingRoomStore(d, cls, l)
+		wr1 := client.NewVs1WaitingRoomStore(d, cls, l)
 		lv := client.NewLobbiesView(cls, l)
 		nlv := client.NewNewLobbyView(cls, l)
 		slv := client.NewShowLobbyView(cls, l)
 
-		rs := client.NewRouterStore(d, u, ros, wr, g, lv, nlv, slv, l)
+		rs := client.NewRouterStore(d, u, ros, wr6, wr1, g, lv, nlv, slv, l)
 
 		ctx := context.Background()
 		// We need to run this in a goroutine so when it's compiled to WASM

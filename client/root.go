@@ -130,7 +130,7 @@ func (rs *RootStore) buildUI() {
 		),
 	)
 
-	playBtnW := widget.NewButton(
+	playVs1BtnW := widget.NewButton(
 		// set general widget options
 		widget.ButtonOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
@@ -144,7 +144,7 @@ func (rs *RootStore) buildUI() {
 		widget.ButtonOpts.Image(buttonImageL),
 
 		// specify the button's text, the font face, and the color
-		widget.ButtonOpts.Text("Play", cutils.SmallFont, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text("Play v1", cutils.SmallFont, &widget.ButtonTextColor{
 			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
 		}),
 
@@ -158,7 +158,39 @@ func (rs *RootStore) buildUI() {
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			actionDispatcher.JoinWaitingRoom(rs.Store.Users.Username())
+			actionDispatcher.JoinVs1WaitingRoom(rs.Store.Users.Username())
+		}),
+	)
+
+	playVs6BtnW := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+				MaxWidth: 150,
+			}),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(buttonImageL),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("Play v6", cutils.SmallFont, &widget.ButtonTextColor{
+			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
+		}),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   30,
+			Right:  30,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			actionDispatcher.JoinVs6WaitingRoom(rs.Store.Users.Username())
 		}),
 	)
 
@@ -198,7 +230,8 @@ func (rs *RootStore) buildUI() {
 
 	titleInputC.AddChild(titleW)
 	titleInputC.AddChild(textPlayersW)
-	titleInputC.AddChild(playBtnW)
+	titleInputC.AddChild(playVs1BtnW)
+	titleInputC.AddChild(playVs6BtnW)
 	titleInputC.AddChild(lobbiesBtnW)
 
 	rootContainer.AddChild(titleInputC)

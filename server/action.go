@@ -21,7 +21,13 @@ type ActionDispatcher struct {
 	ws         WSConnector
 }
 
-const noRoomID = ""
+const (
+	noRoomID = ""
+
+	noVs = "no-vs"
+	vs1  = "vs1"
+	vs6  = "vs6"
+)
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
@@ -41,10 +47,14 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	defer utils.LogTime(ac.logger, b, "action dispatch", "action", a.Type)
 
 	switch a.Type {
-	case action.JoinWaitingRoom:
+	case action.JoinVs6WaitingRoom:
 		ac.dispatcher.Dispatch(a)
 
-		ac.startGame(noRoomID)
+		ac.startGame(vs6, noRoomID)
+	case action.JoinVs1WaitingRoom:
+		ac.dispatcher.Dispatch(a)
+
+		ac.startGame(vs1, noRoomID)
 	case action.DeleteLobby:
 		l := ac.store.Lobbies.FindByID(a.DeleteLobby.LobbyID)
 		ac.dispatcher.Dispatch(a)
@@ -67,7 +77,7 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 		// * I start the room
 		// * I delete the lobby
 		ac.dispatcher.Dispatch(a)
-		ac.startGame(a.StartLobby.LobbyID)
+		ac.startGame(noVs, a.StartLobby.LobbyID)
 		ac.dispatcher.Dispatch(action.NewDeleteLobby(a.StartLobby.LobbyID))
 	default:
 		ac.dispatcher.Dispatch(a)
@@ -110,12 +120,17 @@ func (ac *ActionDispatcher) notifyPlayersLobbyDeleted(uns map[string]bool) {
 	}
 }
 
-func (ac *ActionDispatcher) startGame(roid string) {
+func (ac *ActionDispatcher) startGame(vs, roid string) {
 	var rid = roid
 	// If no rid is passed then the WR is the one chosen and
 	// will only start if it has the number of players
 	if rid == "" {
-		r := ac.store.Rooms.FindCurrentWaitingRoom()
+		var r *Room
+		if vs == vs6 {
+			r = ac.store.Rooms.FindCurrentVs6WaitingRoom()
+		} else if vs == vs1 {
+			r = ac.store.Rooms.FindCurrentVs1WaitingRoom()
+		}
 		if r == nil || (len(r.Players) != r.Size) {
 			return
 		}
@@ -151,7 +166,7 @@ func (ac *ActionDispatcher) WaitRoomCountdownTick() {
 	wrcta := action.NewWaitRoomCountdownTick()
 	ac.Dispatch(wrcta)
 
-	ac.startGame(noRoomID)
+	ac.startGame(vs6, noRoomID)
 }
 
 func (ac *ActionDispatcher) UserSignUp(un string) {
@@ -173,9 +188,10 @@ func (ac *ActionDispatcher) UserSignOut(un string) {
 func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 	ac.Dispatch(action.NewTPS(time.Now()))
 	rms := rooms.List()
-	cwr := rooms.FindCurrentWaitingRoom()
+	cwvs6r := rooms.FindCurrentVs6WaitingRoom()
+	cwvs1r := rooms.FindCurrentVs1WaitingRoom()
 	for _, r := range rms {
-		if cwr != nil && r.Name == cwr.Name {
+		if (cwvs6r != nil && r.Name == cwvs6r.Name) || (cwvs1r != nil && r.Name == cwvs1r.Name) {
 			continue
 		}
 		for id, pc := range r.Players {
@@ -267,14 +283,31 @@ func (ac *ActionDispatcher) SyncUsers(users *UsersStore) {
 	}
 }
 
-func (ac *ActionDispatcher) SyncWaitingRoom(rooms *RoomsStore) {
+func (ac *ActionDispatcher) SyncVs6WaitingRoom(rooms *RoomsStore) {
 	rstate := rooms.GetState().(RoomsState)
-	if rstate.CurrentWaitingRoom != "" {
-		cwr := rstate.Rooms[rstate.CurrentWaitingRoom]
-		swra := action.NewSyncWaitingRoom(
+	if rstate.CurrentVs6WaitingRoom != "" {
+		cwr := rstate.Rooms[rstate.CurrentVs6WaitingRoom]
+		swra := action.NewSyncVs6WaitingRoom(
 			len(cwr.Players),
 			cwr.Size,
 			cwr.Countdown,
+		)
+		for _, p := range cwr.Players {
+			err := ac.ws.Write(context.Background(), p.Conn, swra)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
+
+func (ac *ActionDispatcher) SyncVs1WaitingRoom(rooms *RoomsStore) {
+	rstate := rooms.GetState().(RoomsState)
+	if rstate.CurrentVs1WaitingRoom != "" {
+		cwr := rstate.Rooms[rstate.CurrentVs1WaitingRoom]
+		swra := action.NewSyncVs1WaitingRoom(
+			len(cwr.Players),
+			cwr.Size,
 		)
 		for _, p := range cwr.Players {
 			err := ac.ws.Write(context.Background(), p.Conn, swra)

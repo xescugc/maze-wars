@@ -47,14 +47,17 @@ type Action struct {
 	UserSignIn  *UserSignInPayload  `json:"user_sign_in,omitempty"`
 	UserSignOut *UserSignOutPayload `json:"user_sign_out,omitempty"`
 
-	AddPlayer       *AddPlayerPayload       `json:"add_player,omitempty"`
-	RemovePlayer    *RemovePlayerPayload    `json:"remove_player,omitempty"`
-	JoinWaitingRoom *JoinWaitingRoomPayload `json:"join_waiting_room,omitempty"`
-	ExitWaitingRoom *ExitWaitingRoomPayload `json:"exit_waiting_room,omitempty"`
-	StartRoom       *StartRoomPayload       `json:"start_room,omitempty"`
-	SyncState       *SyncStatePayload       `json:"sync_state,omitempty"`
-	SyncUsers       *SyncUsersPayload       `json:"sync_users,omitempty"`
-	SyncWaitingRoom *SyncWaitingRoomPayload `json:"sync_waiting_room,omitempty"`
+	AddPlayer          *AddPlayerPayload          `json:"add_player,omitempty"`
+	RemovePlayer       *RemovePlayerPayload       `json:"remove_player,omitempty"`
+	JoinVs6WaitingRoom *JoinVs6WaitingRoomPayload `json:"join_vs6_waiting_room,omitempty"`
+	ExitVs6WaitingRoom *ExitVs6WaitingRoomPayload `json:"exit_vs6_waiting_room,omitempty"`
+	JoinVs1WaitingRoom *JoinVs1WaitingRoomPayload `json:"join_vs1_waiting_room,omitempty"`
+	ExitVs1WaitingRoom *ExitVs1WaitingRoomPayload `json:"exit_vs1_waiting_room,omitempty"`
+	StartRoom          *StartRoomPayload          `json:"start_room,omitempty"`
+	SyncState          *SyncStatePayload          `json:"sync_state,omitempty"`
+	SyncUsers          *SyncUsersPayload          `json:"sync_users,omitempty"`
+	SyncVs6WaitingRoom *SyncVs6WaitingRoomPayload `json:"sync_vs6_waiting_room,omitempty"`
+	SyncVs1WaitingRoom *SyncVs1WaitingRoomPayload `json:"sync_vs1_waiting_room,omitempty"`
 }
 
 type CursorMovePayload struct {
@@ -377,45 +380,86 @@ func NewUserSignUp(un string) *Action {
 	}
 }
 
-type JoinWaitingRoomPayload struct {
+type JoinVs6WaitingRoomPayload struct {
 	Username string
 }
 
-func NewJoinWaitingRoom(un string) *Action {
+func NewJoinVs6WaitingRoom(un string) *Action {
 	return &Action{
-		Type: JoinWaitingRoom,
-		JoinWaitingRoom: &JoinWaitingRoomPayload{
+		Type: JoinVs6WaitingRoom,
+		JoinVs6WaitingRoom: &JoinVs6WaitingRoomPayload{
 			Username: un,
 		},
 	}
 }
 
-type ExitWaitingRoomPayload struct {
+type ExitVs6WaitingRoomPayload struct {
 	Username string
 }
 
-func NewExitWaitingRoom(un string) *Action {
+func NewExitVs6WaitingRoom(un string) *Action {
 	return &Action{
-		Type: ExitWaitingRoom,
-		ExitWaitingRoom: &ExitWaitingRoomPayload{
+		Type: ExitVs6WaitingRoom,
+		ExitVs6WaitingRoom: &ExitVs6WaitingRoomPayload{
 			Username: un,
 		},
 	}
 }
 
-type SyncWaitingRoomPayload struct {
+type SyncVs6WaitingRoomPayload struct {
 	TotalPlayers int
 	Size         int
 	Countdown    int
 }
 
-func NewSyncWaitingRoom(tp, s, cd int) *Action {
+func NewSyncVs6WaitingRoom(tp, s, cd int) *Action {
 	return &Action{
-		Type: SyncWaitingRoom,
-		SyncWaitingRoom: &SyncWaitingRoomPayload{
+		Type: SyncVs6WaitingRoom,
+		SyncVs6WaitingRoom: &SyncVs6WaitingRoomPayload{
 			TotalPlayers: tp,
 			Size:         s,
 			Countdown:    cd,
+		},
+	}
+}
+
+type JoinVs1WaitingRoomPayload struct {
+	Username string
+}
+
+func NewJoinVs1WaitingRoom(un string) *Action {
+	return &Action{
+		Type: JoinVs1WaitingRoom,
+		JoinVs1WaitingRoom: &JoinVs1WaitingRoomPayload{
+			Username: un,
+		},
+	}
+}
+
+type ExitVs1WaitingRoomPayload struct {
+	Username string
+}
+
+func NewExitVs1WaitingRoom(un string) *Action {
+	return &Action{
+		Type: ExitVs1WaitingRoom,
+		ExitVs1WaitingRoom: &ExitVs1WaitingRoomPayload{
+			Username: un,
+		},
+	}
+}
+
+type SyncVs1WaitingRoomPayload struct {
+	TotalPlayers int
+	Size         int
+}
+
+func NewSyncVs1WaitingRoom(tp, s int) *Action {
+	return &Action{
+		Type: SyncVs1WaitingRoom,
+		SyncVs1WaitingRoom: &SyncVs1WaitingRoomPayload{
+			TotalPlayers: tp,
+			Size:         s,
 		},
 	}
 }
