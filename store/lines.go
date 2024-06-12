@@ -94,7 +94,8 @@ type Tower struct {
 
 	Health float64
 
-	LastAttack time.Time
+	TargetUnitID string
+	LastAttack   time.Time
 }
 
 func (t *Tower) FacetKey() string { return tower.Towers[t.Type].FacesetKey() }
@@ -1026,7 +1027,20 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				isAttacker     bool
 				minCostCam     int = 0
 				minCostCamUnit *Unit
+
+				targetUnit *Unit
 			)
+			if tw.TargetUnitID != "" {
+				if u, ok := l.Units[tw.TargetUnitID]; ok {
+					if tw.CanAttackUnit(u) {
+						targetUnit = u
+					} else {
+						tw.TargetUnitID = ""
+					}
+				} else {
+					tw.TargetUnitID = ""
+				}
+			}
 			for _, u := range l.Units {
 				if !tw.CanAttackUnit(u) {
 					continue
@@ -1072,10 +1086,16 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				minCostUnit = minCostCamUnit
 			}
 			if minCostUnit != nil {
+				// We replace the minCostUnit calculated with the targetUnit only if the minCostUnit has 'Attack' (top priority)
+				// and if the targetUnit has 'Camouflage' (no priority)
+				if !minCostUnit.HasAbility(ability.Attack) && targetUnit != nil && !targetUnit.HasAbility(ability.Camouflage) {
+					minCostUnit = targetUnit
+				}
 				// Tower Attack
 				minCostUnit.TakeDamage(tower.Towers[tw.Type].Damage)
 				// The attack was done so we register it
 				tw.LastAttack = t
+				tw.TargetUnitID = minCostUnit.ID
 
 				ls.checkAfterDamage(lstate, l, tw, minCostUnit, t)
 				// If the Tower does AoE Damage we need to check again all the units
