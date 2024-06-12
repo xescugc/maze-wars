@@ -598,7 +598,6 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		if !p.CanPlaceTower(act.PlaceTower.Type) {
 			break
 		}
-		p.Gold -= tower.Towers[act.PlaceTower.Type].Gold
 
 		var w, h int = 16 * 2, 16 * 2
 		tid := uuid.Must(uuid.NewV4())
@@ -609,9 +608,12 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		tw.ID = tid.String()
 
 		l := lstate.Lines[p.LineID]
-		// TODO: Check this errors
-		_ = l.Graph.AddTower(tw.ID, act.PlaceTower.X, act.PlaceTower.Y, tw.W, tw.H)
+		err := l.Graph.AddTower(tw.ID, act.PlaceTower.X, act.PlaceTower.Y, tw.W, tw.H)
+		if err != nil {
+			break
+		}
 
+		p.Gold -= tower.Towers[act.PlaceTower.Type].Gold
 		l.Towers[tw.ID] = tw
 
 		ls.recalculateLineUnitStepsAndMove(lstate, p.LineID, noTowerID)
