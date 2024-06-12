@@ -289,7 +289,8 @@ func startLoop(ctx context.Context, s *Store) {
 		case <-secondTicker.C:
 			actionDispatcher.IncomeTick(s.Rooms)
 			actionDispatcher.WaitRoomCountdownTick()
-			actionDispatcher.SyncWaitingRoom(s.Rooms)
+			actionDispatcher.SyncVs6WaitingRoom(s.Rooms)
+			actionDispatcher.SyncVs1WaitingRoom(s.Rooms)
 			actionDispatcher.SyncLobbies(s)
 		case <-usersTicker.C:
 			actionDispatcher.SyncUsers(s.Users)

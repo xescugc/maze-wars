@@ -99,7 +99,7 @@ func TestUserSignOut(t *testing.T) {
 	})
 }
 
-func TestJoinWaitingRoom(t *testing.T) {
+func TestJoinv6WaitingRoom(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -113,7 +113,7 @@ func TestJoinWaitingRoom(t *testing.T) {
 		ad.UserSignUp(un)
 		ad.UserSignIn(un, ra, ws)
 
-		a := action.NewJoinWaitingRoom(un)
+		a := action.NewJoinv6WaitingRoom(un)
 		ad.Dispatch(a)
 
 		u := &server.User{
@@ -126,8 +126,8 @@ func TestJoinWaitingRoom(t *testing.T) {
 		us.Users[un] = u
 
 		rs := roomsInitialState()
-		cwrid := s.Rooms.FindCurrentWaitingRoom().Name
-		rs.CurrentWaitingRoom = cwrid
+		cwrid := s.Rooms.FindCurrentv6WaitingRoom().Name
+		rs.Currentv6WaitingRoom = cwrid
 		rs.Rooms[cwrid] = &server.Room{
 			Name: cwrid,
 			Players: map[string]server.PlayerConn{
@@ -163,9 +163,9 @@ func TestJoinWaitingRoom(t *testing.T) {
 		ad.UserSignUp(un2)
 		ad.UserSignIn(un2, ra2, ws)
 
-		a := action.NewJoinWaitingRoom(un)
+		a := action.NewJoinv6WaitingRoom(un)
 		ad.Dispatch(a)
-		a = action.NewJoinWaitingRoom(un2)
+		a = action.NewJoinv6WaitingRoom(un2)
 		ad.Dispatch(a)
 
 		dbu, _ := s.Users.FindByUsername(un)
@@ -187,8 +187,8 @@ func TestJoinWaitingRoom(t *testing.T) {
 		us.Users[un2] = u2
 
 		rs := roomsInitialState()
-		cwrid := s.Rooms.FindCurrentWaitingRoom().Name
-		rs.CurrentWaitingRoom = cwrid
+		cwrid := s.Rooms.FindCurrentv6WaitingRoom().Name
+		rs.Currentv6WaitingRoom = cwrid
 		rs.Rooms[cwrid] = &server.Room{
 			Name: cwrid,
 			Players: map[string]server.PlayerConn{
@@ -228,7 +228,7 @@ func TestWaitRoomCountdownTick(t *testing.T) {
 		ad.UserSignUp(un)
 		ad.UserSignIn(un, ra, ws)
 
-		a := action.NewJoinWaitingRoom(un)
+		a := action.NewJoinv6WaitingRoom(un)
 		ad.Dispatch(a)
 		a = action.NewWaitRoomCountdownTick()
 		ad.Dispatch(a)
@@ -243,8 +243,8 @@ func TestWaitRoomCountdownTick(t *testing.T) {
 		us.Users[un] = u
 
 		rs := roomsInitialState()
-		cwrid := s.Rooms.FindCurrentWaitingRoom().Name
-		rs.CurrentWaitingRoom = cwrid
+		cwrid := s.Rooms.FindCurrentv6WaitingRoom().Name
+		rs.Currentv6WaitingRoom = cwrid
 		rs.Rooms[cwrid] = &server.Room{
 			Name: cwrid,
 			Players: map[string]server.PlayerConn{
@@ -277,7 +277,7 @@ func TestWaitRoomCountdownTick(t *testing.T) {
 		ad.UserSignUp(un)
 		ad.UserSignIn(un, ra, ws)
 
-		a := action.NewJoinWaitingRoom(un)
+		a := action.NewJoinv6WaitingRoom(un)
 		ad.Dispatch(a)
 
 		for i := 0; i < 11; i++ {
@@ -295,8 +295,8 @@ func TestWaitRoomCountdownTick(t *testing.T) {
 		us.Users[un] = u
 
 		rs := roomsInitialState()
-		cwrid := s.Rooms.FindCurrentWaitingRoom().Name
-		rs.CurrentWaitingRoom = cwrid
+		cwrid := s.Rooms.FindCurrentv6WaitingRoom().Name
+		rs.Currentv6WaitingRoom = cwrid
 		rs.Rooms[cwrid] = &server.Room{
 			Name: cwrid,
 			Players: map[string]server.PlayerConn{
@@ -317,7 +317,7 @@ func TestWaitRoomCountdownTick(t *testing.T) {
 	})
 }
 
-func TestExitWaitingRoom(t *testing.T) {
+func TestExitv6WaitingRoom(t *testing.T) {
 	t.Run("Success2Players", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -335,11 +335,11 @@ func TestExitWaitingRoom(t *testing.T) {
 		ad.UserSignUp(un2)
 		ad.UserSignIn(un2, ra2, ws)
 
-		a := action.NewJoinWaitingRoom(un)
+		a := action.NewJoinv6WaitingRoom(un)
 		ad.Dispatch(a)
-		a = action.NewJoinWaitingRoom(un2)
+		a = action.NewJoinv6WaitingRoom(un2)
 		ad.Dispatch(a)
-		a = action.NewExitWaitingRoom(un)
+		a = action.NewExitv6WaitingRoom(un)
 		ad.Dispatch(a)
 		dbu, _ := s.Users.FindByUsername(un)
 		u := &server.User{
@@ -360,8 +360,8 @@ func TestExitWaitingRoom(t *testing.T) {
 		us.Users[un2] = u2
 
 		rs := roomsInitialState()
-		cwrid := s.Rooms.FindCurrentWaitingRoom().Name
-		rs.CurrentWaitingRoom = cwrid
+		cwrid := s.Rooms.FindCurrentv6WaitingRoom().Name
+		rs.Currentv6WaitingRoom = cwrid
 		rs.Rooms[cwrid] = &server.Room{
 			Name: cwrid,
 			Players: map[string]server.PlayerConn{
@@ -403,10 +403,10 @@ func TestStartGame(t *testing.T) {
 			for un, ra := range users {
 				ad.UserSignUp(un)
 				ad.UserSignIn(un, ra, ws)
-				a := action.NewJoinWaitingRoom(un)
+				a := action.NewJoinv6WaitingRoom(un)
 				ad.Dispatch(a)
 				if cwr == nil {
-					cwr = s.Rooms.FindCurrentWaitingRoom()
+					cwr = s.Rooms.FindCurrentv6WaitingRoom()
 				}
 			}
 
@@ -464,10 +464,10 @@ func TestStartGame(t *testing.T) {
 			for un, ra := range users {
 				ad.UserSignUp(un)
 				ad.UserSignIn(un, ra, ws)
-				a := action.NewJoinWaitingRoom(un)
+				a := action.NewJoinv6WaitingRoom(un)
 				ad.Dispatch(a)
 				if cwr == nil {
-					cwr = s.Rooms.FindCurrentWaitingRoom()
+					cwr = s.Rooms.FindCurrentv6WaitingRoom()
 				}
 			}
 
@@ -492,7 +492,7 @@ func TestStartGame(t *testing.T) {
 			rs := roomsInitialState()
 			require.NotNil(t, cwr.Game)
 
-			rs.CurrentWaitingRoom = ""
+			rs.Currentv6WaitingRoom = ""
 			rs.Rooms[cwr.Name] = &server.Room{
 				Name:        cwr.Name,
 				Players:     make(map[string]server.PlayerConn),
@@ -536,12 +536,12 @@ func TestRemovePlayer(t *testing.T) {
 			ad.UserSignUp(un2)
 			ad.UserSignIn(un2, ra2, ws)
 
-			a := action.NewJoinWaitingRoom(un)
+			a := action.NewJoinv6WaitingRoom(un)
 			ad.Dispatch(a)
-			a = action.NewJoinWaitingRoom(un2)
+			a = action.NewJoinv6WaitingRoom(un2)
 			ad.Dispatch(a)
 
-			cwr := s.Rooms.FindCurrentWaitingRoom()
+			cwr := s.Rooms.FindCurrentv6WaitingRoom()
 
 			// Countdown from 6 users to 2 users
 			for i := 1; i <= 44; i++ {
@@ -608,12 +608,12 @@ func TestRemovePlayer(t *testing.T) {
 			ad.UserSignUp(un2)
 			ad.UserSignIn(un2, ra2, ws)
 
-			a := action.NewJoinWaitingRoom(un)
+			a := action.NewJoinv6WaitingRoom(un)
 			ad.Dispatch(a)
-			a = action.NewJoinWaitingRoom(un2)
+			a = action.NewJoinv6WaitingRoom(un2)
 			ad.Dispatch(a)
 
-			cwr := s.Rooms.FindCurrentWaitingRoom()
+			cwr := s.Rooms.FindCurrentv6WaitingRoom()
 
 			// Countdown from 6 users to 2 users
 			for i := 1; i <= 44; i++ {

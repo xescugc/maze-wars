@@ -28,8 +28,10 @@ const (
 	UserSignUp
 	UserSignIn
 	UserSignOut
-	JoinWaitingRoom
-	ExitWaitingRoom
+	JoinVs6WaitingRoom
+	ExitVs6WaitingRoom
+	JoinVs1WaitingRoom
+	ExitVs1WaitingRoom
 	StartRoom
 	ToggleStats
 	VersionError
@@ -49,5 +51,6 @@ const (
 	SyncState
 	SyncUsers
 	WaitRoomCountdownTick
-	SyncWaitingRoom
+	SyncVs6WaitingRoom
+	SyncVs1WaitingRoom
 )

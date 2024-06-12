@@ -15,13 +15,14 @@ import (
 type RouterStore struct {
 	*flux.ReduceStore
 
-	game        *Game
-	root        *RootStore
-	signUp      *SignUpStore
-	waitingRoom *WaitingRoomStore
-	lobbies     *LobbiesView
-	newLobby    *NewLobbyView
-	showLobby   *ShowLobbyView
+	game           *Game
+	root           *RootStore
+	signUp         *SignUpStore
+	vs6WaitingRoom *Vs6WaitingRoomStore
+	vs1WaitingRoom *Vs1WaitingRoomStore
+	lobbies        *LobbiesView
+	newLobby       *NewLobbyView
+	showLobby      *ShowLobbyView
 
 	logger *slog.Logger
 }
@@ -30,15 +31,16 @@ type RouterState struct {
 	Route string
 }
 
-func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ros *RootStore, wr *WaitingRoomStore, g *Game, lv *LobbiesView, nlv *NewLobbyView, slv *ShowLobbyView, l *slog.Logger) *RouterStore {
+func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ros *RootStore, wr6 *Vs6WaitingRoomStore, wr1 *Vs1WaitingRoomStore, g *Game, lv *LobbiesView, nlv *NewLobbyView, slv *ShowLobbyView, l *slog.Logger) *RouterStore {
 	rs := &RouterStore{
-		game:        g,
-		root:        ros,
-		signUp:      su,
-		waitingRoom: wr,
-		lobbies:     lv,
-		newLobby:    nlv,
-		showLobby:   slv,
+		game:           g,
+		root:           ros,
+		signUp:         su,
+		vs6WaitingRoom: wr6,
+		vs1WaitingRoom: wr1,
+		lobbies:        lv,
+		newLobby:       nlv,
+		showLobby:      slv,
 
 		logger: l,
 	}
@@ -86,8 +88,10 @@ func (rs *RouterStore) Update() error {
 		rs.signUp.Update()
 	case utils.RootRoute:
 		rs.root.Update()
-	case utils.WaitingRoomRoute:
-		rs.waitingRoom.Update()
+	case utils.Vs6WaitingRoomRoute:
+		rs.vs6WaitingRoom.Update()
+	case utils.Vs1WaitingRoomRoute:
+		rs.vs1WaitingRoom.Update()
 	case utils.LobbiesRoute:
 		rs.lobbies.Update()
 	case utils.NewLobbyRoute:
@@ -136,8 +140,10 @@ func (rs *RouterStore) Draw(screen *ebiten.Image) {
 		rs.signUp.Draw(screen)
 	case utils.RootRoute:
 		rs.root.Draw(screen)
-	case utils.WaitingRoomRoute:
-		rs.waitingRoom.Draw(screen)
+	case utils.Vs6WaitingRoomRoute:
+		rs.vs6WaitingRoom.Draw(screen)
+	case utils.Vs1WaitingRoomRoute:
+		rs.vs1WaitingRoom.Draw(screen)
 	case utils.LobbiesRoute:
 		rs.lobbies.Draw(screen)
 	case utils.NewLobbyRoute:

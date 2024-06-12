@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "cursor_movecamera_zoomsummon_unitupdate_unitupdate_towertpsplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_tickwindow_resizingnavigate_tostart_gameopen_tower_menuclose_tower_menugo_homesign_up_erroruser_sign_upuser_sign_inuser_sign_outjoin_waiting_roomexit_waiting_roomstart_roomtoggle_statsversion_errorcreate_lobbydelete_lobbyjoin_lobbyadd_lobbiesselect_lobbyleave_lobbyupdate_lobbystart_lobbyadd_playerremove_playersync_statesync_userswait_room_countdown_ticksync_waiting_room"
+const _TypeName = "cursor_movecamera_zoomsummon_unitupdate_unitupdate_towertpsplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_tickwindow_resizingnavigate_tostart_gameopen_tower_menuclose_tower_menugo_homesign_up_erroruser_sign_upuser_sign_inuser_sign_outjoin_vs6_waiting_roomexit_vs6_waiting_roomjoin_vs1_waiting_roomexit_vs1_waiting_roomstart_roomtoggle_statsversion_errorcreate_lobbydelete_lobbyjoin_lobbyadd_lobbiesselect_lobbyleave_lobbyupdate_lobbystart_lobbyadd_playerremove_playersync_statesync_userswait_room_countdown_ticksync_vs6_waiting_roomsync_vs1_waiting_room"
 
-var _TypeIndex = [...]uint16{0, 11, 22, 33, 44, 56, 59, 70, 82, 94, 108, 130, 144, 155, 170, 181, 191, 206, 222, 229, 242, 254, 266, 279, 296, 313, 323, 335, 348, 360, 372, 382, 393, 405, 416, 428, 439, 449, 462, 472, 482, 506, 523}
+var _TypeIndex = [...]uint16{0, 11, 22, 33, 44, 56, 59, 70, 82, 94, 108, 130, 144, 155, 170, 181, 191, 206, 222, 229, 242, 254, 266, 279, 300, 321, 342, 363, 373, 385, 398, 410, 422, 432, 443, 455, 466, 478, 489, 499, 512, 522, 532, 556, 577, 598}
 
-const _TypeLowerName = "cursor_movecamera_zoomsummon_unitupdate_unitupdate_towertpsplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_tickwindow_resizingnavigate_tostart_gameopen_tower_menuclose_tower_menugo_homesign_up_erroruser_sign_upuser_sign_inuser_sign_outjoin_waiting_roomexit_waiting_roomstart_roomtoggle_statsversion_errorcreate_lobbydelete_lobbyjoin_lobbyadd_lobbiesselect_lobbyleave_lobbyupdate_lobbystart_lobbyadd_playerremove_playersync_statesync_userswait_room_countdown_ticksync_waiting_room"
+const _TypeLowerName = "cursor_movecamera_zoomsummon_unitupdate_unitupdate_towertpsplace_towerremove_towerselect_towerselected_towerselected_tower_invaliddeselect_towerincome_tickwindow_resizingnavigate_tostart_gameopen_tower_menuclose_tower_menugo_homesign_up_erroruser_sign_upuser_sign_inuser_sign_outjoin_vs6_waiting_roomexit_vs6_waiting_roomjoin_vs1_waiting_roomexit_vs1_waiting_roomstart_roomtoggle_statsversion_errorcreate_lobbydelete_lobbyjoin_lobbyadd_lobbiesselect_lobbyleave_lobbyupdate_lobbystart_lobbyadd_playerremove_playersync_statesync_userswait_room_countdown_ticksync_vs6_waiting_roomsync_vs1_waiting_room"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -48,28 +48,31 @@ func _TypeNoOp() {
 	_ = x[UserSignUp-(20)]
 	_ = x[UserSignIn-(21)]
 	_ = x[UserSignOut-(22)]
-	_ = x[JoinWaitingRoom-(23)]
-	_ = x[ExitWaitingRoom-(24)]
-	_ = x[StartRoom-(25)]
-	_ = x[ToggleStats-(26)]
-	_ = x[VersionError-(27)]
-	_ = x[CreateLobby-(28)]
-	_ = x[DeleteLobby-(29)]
-	_ = x[JoinLobby-(30)]
-	_ = x[AddLobbies-(31)]
-	_ = x[SelectLobby-(32)]
-	_ = x[LeaveLobby-(33)]
-	_ = x[UpdateLobby-(34)]
-	_ = x[StartLobby-(35)]
-	_ = x[AddPlayer-(36)]
-	_ = x[RemovePlayer-(37)]
-	_ = x[SyncState-(38)]
-	_ = x[SyncUsers-(39)]
-	_ = x[WaitRoomCountdownTick-(40)]
-	_ = x[SyncWaitingRoom-(41)]
+	_ = x[JoinVs6WaitingRoom-(23)]
+	_ = x[ExitVs6WaitingRoom-(24)]
+	_ = x[JoinVs1WaitingRoom-(25)]
+	_ = x[ExitVs1WaitingRoom-(26)]
+	_ = x[StartRoom-(27)]
+	_ = x[ToggleStats-(28)]
+	_ = x[VersionError-(29)]
+	_ = x[CreateLobby-(30)]
+	_ = x[DeleteLobby-(31)]
+	_ = x[JoinLobby-(32)]
+	_ = x[AddLobbies-(33)]
+	_ = x[SelectLobby-(34)]
+	_ = x[LeaveLobby-(35)]
+	_ = x[UpdateLobby-(36)]
+	_ = x[StartLobby-(37)]
+	_ = x[AddPlayer-(38)]
+	_ = x[RemovePlayer-(39)]
+	_ = x[SyncState-(40)]
+	_ = x[SyncUsers-(41)]
+	_ = x[WaitRoomCountdownTick-(42)]
+	_ = x[SyncVs6WaitingRoom-(43)]
+	_ = x[SyncVs1WaitingRoom-(44)]
 }
 
-var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, UpdateUnit, UpdateTower, TPS, PlaceTower, RemoveTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, WindowResizing, NavigateTo, StartGame, OpenTowerMenu, CloseTowerMenu, GoHome, SignUpError, UserSignUp, UserSignIn, UserSignOut, JoinWaitingRoom, ExitWaitingRoom, StartRoom, ToggleStats, VersionError, CreateLobby, DeleteLobby, JoinLobby, AddLobbies, SelectLobby, LeaveLobby, UpdateLobby, StartLobby, AddPlayer, RemovePlayer, SyncState, SyncUsers, WaitRoomCountdownTick, SyncWaitingRoom}
+var _TypeValues = []Type{CursorMove, CameraZoom, SummonUnit, UpdateUnit, UpdateTower, TPS, PlaceTower, RemoveTower, SelectTower, SelectedTower, SelectedTowerInvalid, DeselectTower, IncomeTick, WindowResizing, NavigateTo, StartGame, OpenTowerMenu, CloseTowerMenu, GoHome, SignUpError, UserSignUp, UserSignIn, UserSignOut, JoinVs6WaitingRoom, ExitVs6WaitingRoom, JoinVs1WaitingRoom, ExitVs1WaitingRoom, StartRoom, ToggleStats, VersionError, CreateLobby, DeleteLobby, JoinLobby, AddLobbies, SelectLobby, LeaveLobby, UpdateLobby, StartLobby, AddPlayer, RemovePlayer, SyncState, SyncUsers, WaitRoomCountdownTick, SyncVs6WaitingRoom, SyncVs1WaitingRoom}
 
 var _TypeNameToValueMap = map[string]Type{
 	_TypeName[0:11]:         CursorMove,
@@ -118,44 +121,50 @@ var _TypeNameToValueMap = map[string]Type{
 	_TypeLowerName[254:266]: UserSignIn,
 	_TypeName[266:279]:      UserSignOut,
 	_TypeLowerName[266:279]: UserSignOut,
-	_TypeName[279:296]:      JoinWaitingRoom,
-	_TypeLowerName[279:296]: JoinWaitingRoom,
-	_TypeName[296:313]:      ExitWaitingRoom,
-	_TypeLowerName[296:313]: ExitWaitingRoom,
-	_TypeName[313:323]:      StartRoom,
-	_TypeLowerName[313:323]: StartRoom,
-	_TypeName[323:335]:      ToggleStats,
-	_TypeLowerName[323:335]: ToggleStats,
-	_TypeName[335:348]:      VersionError,
-	_TypeLowerName[335:348]: VersionError,
-	_TypeName[348:360]:      CreateLobby,
-	_TypeLowerName[348:360]: CreateLobby,
-	_TypeName[360:372]:      DeleteLobby,
-	_TypeLowerName[360:372]: DeleteLobby,
-	_TypeName[372:382]:      JoinLobby,
-	_TypeLowerName[372:382]: JoinLobby,
-	_TypeName[382:393]:      AddLobbies,
-	_TypeLowerName[382:393]: AddLobbies,
-	_TypeName[393:405]:      SelectLobby,
-	_TypeLowerName[393:405]: SelectLobby,
-	_TypeName[405:416]:      LeaveLobby,
-	_TypeLowerName[405:416]: LeaveLobby,
-	_TypeName[416:428]:      UpdateLobby,
-	_TypeLowerName[416:428]: UpdateLobby,
-	_TypeName[428:439]:      StartLobby,
-	_TypeLowerName[428:439]: StartLobby,
-	_TypeName[439:449]:      AddPlayer,
-	_TypeLowerName[439:449]: AddPlayer,
-	_TypeName[449:462]:      RemovePlayer,
-	_TypeLowerName[449:462]: RemovePlayer,
-	_TypeName[462:472]:      SyncState,
-	_TypeLowerName[462:472]: SyncState,
-	_TypeName[472:482]:      SyncUsers,
-	_TypeLowerName[472:482]: SyncUsers,
-	_TypeName[482:506]:      WaitRoomCountdownTick,
-	_TypeLowerName[482:506]: WaitRoomCountdownTick,
-	_TypeName[506:523]:      SyncWaitingRoom,
-	_TypeLowerName[506:523]: SyncWaitingRoom,
+	_TypeName[279:300]:      JoinVs6WaitingRoom,
+	_TypeLowerName[279:300]: JoinVs6WaitingRoom,
+	_TypeName[300:321]:      ExitVs6WaitingRoom,
+	_TypeLowerName[300:321]: ExitVs6WaitingRoom,
+	_TypeName[321:342]:      JoinVs1WaitingRoom,
+	_TypeLowerName[321:342]: JoinVs1WaitingRoom,
+	_TypeName[342:363]:      ExitVs1WaitingRoom,
+	_TypeLowerName[342:363]: ExitVs1WaitingRoom,
+	_TypeName[363:373]:      StartRoom,
+	_TypeLowerName[363:373]: StartRoom,
+	_TypeName[373:385]:      ToggleStats,
+	_TypeLowerName[373:385]: ToggleStats,
+	_TypeName[385:398]:      VersionError,
+	_TypeLowerName[385:398]: VersionError,
+	_TypeName[398:410]:      CreateLobby,
+	_TypeLowerName[398:410]: CreateLobby,
+	_TypeName[410:422]:      DeleteLobby,
+	_TypeLowerName[410:422]: DeleteLobby,
+	_TypeName[422:432]:      JoinLobby,
+	_TypeLowerName[422:432]: JoinLobby,
+	_TypeName[432:443]:      AddLobbies,
+	_TypeLowerName[432:443]: AddLobbies,
+	_TypeName[443:455]:      SelectLobby,
+	_TypeLowerName[443:455]: SelectLobby,
+	_TypeName[455:466]:      LeaveLobby,
+	_TypeLowerName[455:466]: LeaveLobby,
+	_TypeName[466:478]:      UpdateLobby,
+	_TypeLowerName[466:478]: UpdateLobby,
+	_TypeName[478:489]:      StartLobby,
+	_TypeLowerName[478:489]: StartLobby,
+	_TypeName[489:499]:      AddPlayer,
+	_TypeLowerName[489:499]: AddPlayer,
+	_TypeName[499:512]:      RemovePlayer,
+	_TypeLowerName[499:512]: RemovePlayer,
+	_TypeName[512:522]:      SyncState,
+	_TypeLowerName[512:522]: SyncState,
+	_TypeName[522:532]:      SyncUsers,
+	_TypeLowerName[522:532]: SyncUsers,
+	_TypeName[532:556]:      WaitRoomCountdownTick,
+	_TypeLowerName[532:556]: WaitRoomCountdownTick,
+	_TypeName[556:577]:      SyncVs6WaitingRoom,
+	_TypeLowerName[556:577]: SyncVs6WaitingRoom,
+	_TypeName[577:598]:      SyncVs1WaitingRoom,
+	_TypeLowerName[577:598]: SyncVs1WaitingRoom,
 }
 
 var _TypeNames = []string{
@@ -182,25 +191,28 @@ var _TypeNames = []string{
 	_TypeName[242:254],
 	_TypeName[254:266],
 	_TypeName[266:279],
-	_TypeName[279:296],
-	_TypeName[296:313],
-	_TypeName[313:323],
-	_TypeName[323:335],
-	_TypeName[335:348],
-	_TypeName[348:360],
-	_TypeName[360:372],
-	_TypeName[372:382],
-	_TypeName[382:393],
-	_TypeName[393:405],
-	_TypeName[405:416],
-	_TypeName[416:428],
-	_TypeName[428:439],
-	_TypeName[439:449],
-	_TypeName[449:462],
-	_TypeName[462:472],
-	_TypeName[472:482],
-	_TypeName[482:506],
-	_TypeName[506:523],
+	_TypeName[279:300],
+	_TypeName[300:321],
+	_TypeName[321:342],
+	_TypeName[342:363],
+	_TypeName[363:373],
+	_TypeName[373:385],
+	_TypeName[385:398],
+	_TypeName[398:410],
+	_TypeName[410:422],
+	_TypeName[422:432],
+	_TypeName[432:443],
+	_TypeName[443:455],
+	_TypeName[455:466],
+	_TypeName[466:478],
+	_TypeName[478:489],
+	_TypeName[489:499],
+	_TypeName[499:512],
+	_TypeName[512:522],
+	_TypeName[522:532],
+	_TypeName[532:556],
+	_TypeName[556:577],
+	_TypeName[577:598],
 }
 
 // TypeString retrieves an enum value from the enum constants string name.

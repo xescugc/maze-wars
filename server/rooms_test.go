@@ -44,7 +44,7 @@ func TestRoom_List(t *testing.T) {
 				RemoteAddr: ra,
 			}
 
-			cwrid := s.Rooms.FindCurrentWaitingRoom().Name
+			cwrid := s.Rooms.FindCurrentVs6WaitingRoom().Name
 			er := &server.Room{
 				Name: cwrid,
 				Players: map[string]server.PlayerConn{
@@ -64,7 +64,7 @@ func TestRoom_List(t *testing.T) {
 		})
 	})
 }
-func TestRoom_FindCurrentWaitingRoom(t *testing.T) {
+func TestRoom_FindCurrentVs6WaitingRoom(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		t.Run("Empty", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -72,7 +72,7 @@ func TestRoom_FindCurrentWaitingRoom(t *testing.T) {
 			mwsc := mock.NewMockWSConnector(ctrl)
 
 			_, s := initStore(mwsc)
-			assert.Nil(t, s.Rooms.FindCurrentWaitingRoom())
+			assert.Nil(t, s.Rooms.FindCurrentVs6WaitingRoom())
 		})
 		t.Run("WithRoom", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -97,7 +97,7 @@ func TestRoom_FindCurrentWaitingRoom(t *testing.T) {
 				RemoteAddr: ra,
 			}
 
-			cwrid := s.Rooms.FindCurrentWaitingRoom().Name
+			cwrid := s.Rooms.FindCurrentVs6WaitingRoom().Name
 			er := &server.Room{
 				Name: cwrid,
 				Players: map[string]server.PlayerConn{
@@ -113,7 +113,7 @@ func TestRoom_FindCurrentWaitingRoom(t *testing.T) {
 				Size:      6,
 				Countdown: 10,
 			}
-			assert.Equal(t, er, s.Rooms.FindCurrentWaitingRoom())
+			assert.Equal(t, er, s.Rooms.FindCurrentVs6WaitingRoom())
 		})
 	})
 }
@@ -136,7 +136,7 @@ func TestRoom_GetNextID(t *testing.T) {
 			a := action.NewJoinWaitingRoom(un)
 			ad.Dispatch(a)
 
-			cwrid := s.Rooms.FindCurrentWaitingRoom().Name
+			cwrid := s.Rooms.FindCurrentVs6WaitingRoom().Name
 			assert.Equal(t, 1, s.Rooms.GetNextID(cwrid))
 
 			un2 := "user name2"

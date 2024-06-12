@@ -174,15 +174,29 @@ func (ac *ActionDispatcher) GoHome() {
 	ac.Dispatch(gha)
 }
 
-func (ac *ActionDispatcher) JoinWaitingRoom(un string) {
-	jwra := action.NewJoinWaitingRoom(un)
+func (ac *ActionDispatcher) JoinVs6WaitingRoom(un string) {
+	jwra := action.NewJoinVs6WaitingRoom(un)
 	wsSend(jwra)
 
-	ac.Dispatch(action.NewNavigateTo(utils.WaitingRoomRoute))
+	ac.Dispatch(action.NewNavigateTo(utils.Vs6WaitingRoomRoute))
 }
 
-func (ac *ActionDispatcher) ExitWaitingRoom(un string) {
-	ewra := action.NewExitWaitingRoom(un)
+func (ac *ActionDispatcher) ExitVs6WaitingRoom(un string) {
+	ewra := action.NewExitVs6WaitingRoom(un)
+	wsSend(ewra)
+
+	ac.Dispatch(action.NewNavigateTo(utils.RootRoute))
+}
+
+func (ac *ActionDispatcher) JoinVs1WaitingRoom(un string) {
+	jwra := action.NewJoinVs1WaitingRoom(un)
+	wsSend(jwra)
+
+	ac.Dispatch(action.NewNavigateTo(utils.Vs1WaitingRoomRoute))
+}
+
+func (ac *ActionDispatcher) ExitVs1WaitingRoom(un string) {
+	ewra := action.NewExitVs1WaitingRoom(un)
 	wsSend(ewra)
 
 	ac.Dispatch(action.NewNavigateTo(utils.RootRoute))

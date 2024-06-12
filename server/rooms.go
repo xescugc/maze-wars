@@ -22,8 +22,9 @@ type RoomsStore struct {
 }
 
 type RoomsState struct {
-	Rooms              map[string]*Room
-	CurrentWaitingRoom string
+	Rooms                 map[string]*Room
+	CurrentVs6WaitingRoom string
+	CurrentVs1WaitingRoom string
 }
 
 type Room struct {
@@ -74,12 +75,24 @@ func (rs *RoomsStore) List() []*Room {
 	return rooms
 }
 
-func (rs *RoomsStore) FindCurrentWaitingRoom() *Room {
+func (rs *RoomsStore) FindCurrentVs6WaitingRoom() *Room {
 	rs.mxRooms.RLock()
 	defer rs.mxRooms.RUnlock()
 
 	srooms := rs.GetState().(RoomsState)
-	r, ok := srooms.Rooms[srooms.CurrentWaitingRoom]
+	r, ok := srooms.Rooms[srooms.CurrentVs6WaitingRoom]
+	if !ok {
+		return nil
+	}
+	return r
+}
+
+func (rs *RoomsStore) FindCurrentVs1WaitingRoom() *Room {
+	rs.mxRooms.RLock()
+	defer rs.mxRooms.RUnlock()
+
+	srooms := rs.GetState().(RoomsState)
+	r, ok := srooms.Rooms[srooms.CurrentVs1WaitingRoom]
 	if !ok {
 		return nil
 	}
@@ -135,8 +148,11 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			}
 			pcount++
 		}
-		if rid == rstate.CurrentWaitingRoom {
-			rstate.CurrentWaitingRoom = ""
+		if rid == rstate.CurrentVs6WaitingRoom {
+			rstate.CurrentVs6WaitingRoom = ""
+		}
+		if rid == rstate.CurrentVs1WaitingRoom {
+			rstate.CurrentVs1WaitingRoom = ""
 		}
 		g.Dispatch(action.NewStartGame())
 	case action.StartLobby:
@@ -181,11 +197,11 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		if ok && u.CurrentRoomID != "" {
 			removePlayer(&rstate, u.ID, u.CurrentRoomID)
 		}
-	case action.JoinWaitingRoom:
+	case action.JoinVs6WaitingRoom:
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
 
-		if rstate.CurrentWaitingRoom == "" {
+		if rstate.CurrentVs6WaitingRoom == "" {
 			rid := uuid.Must(uuid.NewV4())
 			rstate.Rooms[rid.String()] = &Room{
 				Name:        rid.String(),
@@ -195,11 +211,34 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 				Size:      6,
 				Countdown: 10,
 			}
-			rstate.CurrentWaitingRoom = rid.String()
+			rstate.CurrentVs6WaitingRoom = rid.String()
 		}
 
-		us, _ := rs.Store.Users.FindByUsername(act.JoinWaitingRoom.Username)
-		wr := rstate.Rooms[rstate.CurrentWaitingRoom]
+		us, _ := rs.Store.Users.FindByUsername(act.JoinVs6WaitingRoom.Username)
+		wr := rstate.Rooms[rstate.CurrentVs6WaitingRoom]
+		wr.Players[us.ID] = PlayerConn{
+			Conn:       us.Conn,
+			RemoteAddr: us.RemoteAddr,
+		}
+		wr.Connections[us.RemoteAddr] = us.ID
+	case action.JoinVs1WaitingRoom:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		if rstate.CurrentVs1WaitingRoom == "" {
+			rid := uuid.Must(uuid.NewV4())
+			rstate.Rooms[rid.String()] = &Room{
+				Name:        rid.String(),
+				Players:     make(map[string]PlayerConn),
+				Connections: make(map[string]string),
+
+				Size: 2,
+			}
+			rstate.CurrentVs1WaitingRoom = rid.String()
+		}
+
+		us, _ := rs.Store.Users.FindByUsername(act.JoinVs1WaitingRoom.Username)
+		wr := rstate.Rooms[rstate.CurrentVs1WaitingRoom]
 		wr.Players[us.ID] = PlayerConn{
 			Conn:       us.Conn,
 			RemoteAddr: us.RemoteAddr,
@@ -209,11 +248,11 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
 
-		if rstate.CurrentWaitingRoom == "" {
+		if rstate.CurrentVs6WaitingRoom == "" {
 			break
 		}
 
-		wr := rstate.Rooms[rstate.CurrentWaitingRoom]
+		wr := rstate.Rooms[rstate.CurrentVs6WaitingRoom]
 		wr.Countdown--
 		if wr.Countdown == -1 {
 			if wr.Size > 2 {
@@ -223,18 +262,31 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 				wr.Countdown = 0
 			}
 		}
-	case action.ExitWaitingRoom:
+	case action.ExitVs6WaitingRoom:
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
 
-		us, _ := rs.Store.Users.FindByUsername(act.ExitWaitingRoom.Username)
-		delete(rstate.Rooms[rstate.CurrentWaitingRoom].Players, us.ID)
-		delete(rstate.Rooms[rstate.CurrentWaitingRoom].Connections, us.RemoteAddr)
+		us, _ := rs.Store.Users.FindByUsername(act.ExitVs6WaitingRoom.Username)
+		delete(rstate.Rooms[rstate.CurrentVs6WaitingRoom].Players, us.ID)
+		delete(rstate.Rooms[rstate.CurrentVs6WaitingRoom].Connections, us.RemoteAddr)
 
 		// If there are no more players waiting remove the room
-		if len(rstate.Rooms[rstate.CurrentWaitingRoom].Players) == 0 {
-			delete(rstate.Rooms, rstate.CurrentWaitingRoom)
-			rstate.CurrentWaitingRoom = ""
+		if len(rstate.Rooms[rstate.CurrentVs6WaitingRoom].Players) == 0 {
+			delete(rstate.Rooms, rstate.CurrentVs6WaitingRoom)
+			rstate.CurrentVs6WaitingRoom = ""
+		}
+	case action.ExitVs1WaitingRoom:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		us, _ := rs.Store.Users.FindByUsername(act.ExitVs1WaitingRoom.Username)
+		delete(rstate.Rooms[rstate.CurrentVs1WaitingRoom].Players, us.ID)
+		delete(rstate.Rooms[rstate.CurrentVs1WaitingRoom].Connections, us.RemoteAddr)
+
+		// If there are no more players waiting remove the room
+		if len(rstate.Rooms[rstate.CurrentVs1WaitingRoom].Players) == 0 {
+			delete(rstate.Rooms, rstate.CurrentVs1WaitingRoom)
+			rstate.CurrentVs1WaitingRoom = ""
 		}
 
 	default:
@@ -244,7 +296,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		// If no room means that is a broadcast
 		if act.Room == "" {
 			for _, r := range rstate.Rooms {
-				if r.Name != rstate.CurrentWaitingRoom {
+				if r.Name != rstate.CurrentVs6WaitingRoom && r.Name != rstate.CurrentVs1WaitingRoom {
 					go r.Game.Dispatch(act)
 				}
 			}

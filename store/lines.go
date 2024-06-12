@@ -123,9 +123,6 @@ func (t *Tower) CanAttackUnit(u *Unit) bool {
 }
 
 func (t *Tower) CanAttack(tm time.Time) bool {
-	if t.LastAttack.IsZero() {
-		return true
-	}
 	return tm.Sub(t.LastAttack) > time.Duration(int(tower.Towers[t.Type].AttackSpeed*float64(time.Second)))
 }
 
@@ -368,9 +365,6 @@ func (u *Unit) CanAttack(tm time.Time) bool {
 	if !u.HasAbility(ability.Attack) {
 		return false
 	}
-	if u.LastAttack.IsZero() {
-		return true
-	}
 	return tm.Sub(u.LastAttack) > time.Duration(int(unit.Units[u.Type].AttackSpeed*float64(time.Second)))
 }
 
@@ -574,7 +568,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Lives:  20,
 			LineID: act.AddPlayer.LineID,
 			Income: 25,
-			Gold:   40000,
+			Gold:   40,
 
 			UnitUpdates: make(map[string]UnitUpdate),
 		}
@@ -695,6 +689,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			MovementSpeed: uu.Current.MovementSpeed,
 			Bounty:        uu.Current.Income,
 			CreatedAt:     time.Now(),
+			LastAttack:    time.Now(),
 		}
 
 		if u.HasAbility(ability.Hybrid) {
@@ -1285,10 +1280,11 @@ func (ls *Lines) changeUnitLine(lstate LinesState, u *Unit, nlid int) {
 func (ls *Lines) newTower(tt string, p *Player, o utils.Object) *Tower {
 	ot := tower.Towers[tt]
 	return &Tower{
-		Object:   o,
-		Type:     tt,
-		LineID:   p.LineID,
-		PlayerID: p.ID,
-		Health:   ot.Health,
+		Object:     o,
+		Type:       tt,
+		LineID:     p.LineID,
+		PlayerID:   p.ID,
+		Health:     ot.Health,
+		LastAttack: time.Now(),
 	}
 }
