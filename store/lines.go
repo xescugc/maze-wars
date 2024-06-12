@@ -31,6 +31,8 @@ const (
 	incomeFactor     = 5
 
 	resurrectionRank1 = 0.25
+
+	noTowerID = ""
 )
 
 var (
@@ -90,6 +92,8 @@ type Tower struct {
 	LineID   int
 	PlayerID string
 
+	Health float64
+
 	LastAttack time.Time
 }
 
@@ -114,8 +118,8 @@ func (t *Tower) CanAttackUnit(u *Unit) bool {
 	// If we do not take the center of the tower, towers would calculate everything from the top right
 	// which is not good as a short range tower would not be able to attack from the right for example.
 	// We add 16 as it's the distance from the center of the tower to the edge of it so the range ignores that part
-	centerTower = utils.Object{X: t.X - 16, Y: t.Y - 16}
-	return u.Object.IsCollidingCircle(t.Object, tower.Towers[t.Type].Range*32+16)
+	centerTower := utils.Object{X: t.X - 16, Y: t.Y - 16}
+	return u.Object.IsCollidingCircle(centerTower, tower.Towers[t.Type].Range*32+16)
 }
 
 func (t *Tower) CanAttack(tm time.Time) bool {
@@ -164,10 +168,17 @@ type Unit struct {
 	// a type that is specific for the ability.
 	Abilities map[string]interface{}
 	Buffs     map[string]interface{}
+
+	// If the Unit has the ability 'Attack' it'll have a
+	// TargetTowerID if it has a Tower to attack
+	TargetTowerID string
+	LastAttack    time.Time
 }
 
 func (u *Unit) FacesetKey() string                { return unit.Units[u.Type].FacesetKey() }
 func (u *Unit) WalkKey() string                   { return unit.Units[u.Type].WalkKey() }
+func (u *Unit) AttackKey() string                 { return unit.Units[u.Type].AttackKey() }
+func (u *Unit) IdleKey() string                   { return unit.Units[u.Type].IdleKey() }
 func (u *Unit) HasAbility(a ability.Ability) bool { return unit.Units[u.Type].HasAbility(a) }
 
 func (u *Unit) AddBuff(b buff.Buff) {
@@ -351,6 +362,16 @@ func (u *Unit) Hybrid(cp, op int) {
 	u.MovementSpeed = uu.MovementSpeed + uu.MovementSpeed*p/100
 	u.MaxShield = uu.Shield + uu.Shield*p/100
 	u.Shield = u.MaxShield * sp
+}
+
+func (u *Unit) CanAttack(tm time.Time) bool {
+	if !u.HasAbility(ability.Attack) {
+		return false
+	}
+	if u.LastAttack.IsZero() {
+		return true
+	}
+	return tm.Sub(u.LastAttack) > time.Duration(int(unit.Units[u.Type].AttackSpeed*float64(time.Second)))
 }
 
 type Player struct {
@@ -553,7 +574,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Lives:  20,
 			LineID: act.AddPlayer.LineID,
 			Income: 25,
-			Gold:   40,
+			Gold:   40000,
 
 			UnitUpdates: make(map[string]UnitUpdate),
 		}
@@ -599,7 +620,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 
 		l.Towers[tw.ID] = tw
 
-		ls.recalculateLineUnitSteps(lstate, p.LineID)
+		ls.recalculateLineUnitStepsAndMove(lstate, p.LineID, noTowerID)
 	case action.UpdateTower:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
@@ -631,7 +652,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		for lid, l := range lstate.Lines {
 			if ok := l.Graph.RemoveTower(act.RemoveTower.TowerID); ok {
 				delete(l.Towers, act.RemoveTower.TowerID)
-				ls.recalculateLineUnitSteps(lstate, lid)
+				ls.recalculateLineUnitStepsAndMove(lstate, lid, act.RemoveTower.TowerID)
 			}
 		}
 	case action.SummonUnit:
@@ -680,7 +701,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			u.Hybrid(cp.Income, ls.findPlayerByLineID(act.SummonUnit.CurrentLineID).Income)
 		}
 
-		u.Path = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, atScale)
+		u.Path, u.TargetTowerID = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, u.HasAbility(ability.Attack), atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.TPS:
@@ -869,13 +890,26 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 	return lstate
 }
 
-func (ls *Lines) recalculateLineUnitSteps(lstate LinesState, lid int) {
+// recalculateLineUnitStepsAndMove  will recalculate the paths on lid. The twID is if
+// a tower, the one with the ID, was removed to the Attackers should move
+// It also moves the units
+func (ls *Lines) recalculateLineUnitStepsAndMove(lstate LinesState, lid int, twID string) {
 	t := time.Now()
 	ls.moveLineUnitsTo(lstate, lid, t)
 
+	ls.recalculateLineUnitSteps(lstate, lid, twID)
+}
+
+// recalculateLineUnitSteps will recalculate the paths on lid. The twID is if
+// a tower, the one with the ID, was removed to the Attackers should move
+func (ls *Lines) recalculateLineUnitSteps(lstate LinesState, lid int, twID string) {
 	l := lstate.Lines[lid]
 	for _, u := range l.Units {
-		u.Path = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
+		// This means the unit is attacking the tower so no need to recalculate any path
+		if u.HasAbility(ability.Attack) && ((twID == "" || u.TargetTowerID != twID) && len(u.Path) == 0) {
+			continue
+		}
+		u.Path, u.TargetTowerID = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale)
 		u.HashPath = graph.HashSteps(u.Path)
 	}
 }
@@ -938,23 +972,45 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 			}
 
 			// We reached the end of the line
+			// If it has the ability 'Attack' we have to check if it has
+			// a TargetTowerID as then it means is attacking and not that
+			// reached the end of the line
 			if len(u.Path) == 0 {
-				var fpID string
-				for pid, p := range lstate.Players {
-					if p.LineID == lid {
-						fpID = pid
-						break
+				if u.HasAbility(ability.Attack) && u.TargetTowerID != "" {
+					u.AnimationCount += 1
+					if u.CanAttack(t) {
+						cu := lstate.Players[u.PlayerID].UnitUpdates[u.Type]
+						tw, ok := l.Towers[u.TargetTowerID]
+						if ok {
+							tw.Health -= cu.Current.Damage
+							u.LastAttack = t
+							if tw.Health <= 0 {
+								tw.Health = 0
+								if ok := l.Graph.RemoveTower(tw.ID); ok {
+									delete(l.Towers, tw.ID)
+									ls.recalculateLineUnitSteps(lstate, lid, tw.ID)
+								}
+							}
+						}
 					}
-				}
-				// We steal a Live
-				ls.stealLive(lstate, fpID, u.PlayerID)
-				nlid := ls.store.Map.GetNextLineID(u.CurrentLineID)
-				// If the next line is the owner of the Unit we remove it
-				// If not then we change the unit to the next line
-				if nlid == u.PlayerLineID {
-					delete(lstate.Lines[lid].Units, u.ID)
 				} else {
-					ls.changeUnitLine(lstate, u, nlid)
+					var fpID string
+					for pid, p := range lstate.Players {
+						if p.LineID == lid {
+							fpID = pid
+							break
+						}
+					}
+					// We steal a Live
+					ls.stealLive(lstate, fpID, u.PlayerID)
+					nlid := ls.store.Map.GetNextLineID(u.CurrentLineID)
+					// If the next line is the owner of the Unit we remove it
+					// If not then we change the unit to the next line
+					if nlid == u.PlayerLineID {
+						delete(lstate.Lines[lid].Units, u.ID)
+					} else {
+						ls.changeUnitLine(lstate, u, nlid)
+					}
 				}
 			}
 		}
@@ -970,6 +1026,7 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				minCostUnit *Unit
 
 				// The potential Camouflage units
+				isAttacker     bool
 				minCostCam     int = 0
 				minCostCamUnit *Unit
 			)
@@ -990,12 +1047,27 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 						minCostCamUnit = u
 					}
 				} else {
-					if minCost == 0 {
-						minCost = ug
-					}
-					if ug >= minCost {
-						minCost = ug
-						minCostUnit = u
+					if u.HasAbility(ability.Attack) {
+						if !isAttacker {
+							minCost = ug
+							minCostUnit = u
+						} else {
+							if minCost == 0 {
+								minCost = ug
+							}
+							if ug >= minCost {
+								minCost = ug
+								minCostUnit = u
+							}
+						}
+					} else {
+						if minCost == 0 {
+							minCost = ug
+						}
+						if ug >= minCost {
+							minCost = ug
+							minCostUnit = u
+						}
 					}
 				}
 			}
@@ -1144,6 +1216,7 @@ func unitUpdate(nlvl int, ut string, u unit.Stats) unit.Stats {
 	bu := unit.Units[ut]
 
 	u.Health = float64(levelToValue(nlvl, int(bu.Health)))
+	u.Damage = float64(levelToValue(nlvl, int(bu.Damage)))
 	u.Gold = levelToValue(nlvl, bu.Gold)
 	u.Income = int(math.Round(float64(u.Gold) / float64(incomeFactor)))
 	u.Shield = float64(levelToValue(nlvl, int(bu.Shield)))
@@ -1154,7 +1227,7 @@ func unitUpdate(nlvl int, ut string, u unit.Stats) unit.Stats {
 func levelToValue(lvl, base int) int {
 	fb := float64(base)
 	for i := 1; i < lvl; i++ {
-		fb = math.Round(fb) * math.Pow(math.E, updateFactor)
+		fb = fb * math.Pow(math.E, updateFactor)
 	}
 	return int(math.Round(fb))
 }
@@ -1199,7 +1272,7 @@ func (ls *Lines) changeUnitLine(lstate LinesState, u *Unit, nlid int) {
 	u.X = float64(n.X)
 	u.Y = float64(n.Y)
 
-	u.Path = nl.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, atScale)
+	u.Path, u.TargetTowerID = nl.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale)
 	u.HashPath = graph.HashSteps(u.Path)
 
 	u.CreatedAt = time.Now()
@@ -1210,10 +1283,12 @@ func (ls *Lines) changeUnitLine(lstate LinesState, u *Unit, nlid int) {
 }
 
 func (ls *Lines) newTower(tt string, p *Player, o utils.Object) *Tower {
+	ot := tower.Towers[tt]
 	return &Tower{
 		Object:   o,
 		Type:     tt,
 		LineID:   p.LineID,
 		PlayerID: p.ID,
+		Health:   ot.Health,
 	}
 }

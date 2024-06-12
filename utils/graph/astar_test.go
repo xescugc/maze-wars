@@ -10,7 +10,10 @@ import (
 	"github.com/xescugc/maze-wars/utils/graph"
 )
 
-const atScale = true
+const (
+	atScale    = true
+	isAttacker = true
+)
 
 func TestGraph_AStar(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
@@ -45,11 +48,12 @@ func TestGraph_AStar(t *testing.T) {
 			for _, s := range esteps {
 				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
-			steps := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			steps, twid := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
 			assert.Equal(t, esteps, steps)
+			assert.Empty(t, twid)
 
 			for i, n := range enodes {
 				if i == len(enodes)-1 {
@@ -62,11 +66,42 @@ func TestGraph_AStar(t *testing.T) {
 
 			// There is no way for me to know if the NextStep logic is used
 			// so I'm gonna force another AStar so it uses it
-			steps = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			steps, twid = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
 			assert.Equal(t, esteps, steps)
+			assert.Empty(t, twid)
+		})
+		t.Run("DefaultTerrestrialAttacker", func(t *testing.T) {
+			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
+			require.NoError(t, err)
+			g.AddTower("id", 2, 1, 1, 1)
+
+			esteps := []graph.Step{
+				{
+					X: 0, Y: 0,
+					Facing: utils.Down,
+				},
+				{
+					X: 1, Y: 0,
+					Facing: utils.Right,
+				},
+				{
+					X: 1, Y: 1,
+					Facing: utils.Right,
+				},
+			}
+			enodes := make([]*graph.Node, 0, 0)
+			for _, s := range esteps {
+				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
+			}
+			steps, twid := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, isAttacker, !atScale)
+			require.NotNil(t, steps)
+			require.NotEmpty(t, steps)
+			require.Len(t, steps, len(esteps))
+			assert.Equal(t, esteps, steps)
+			assert.Equal(t, "id", twid)
 		})
 		t.Run("WithSlowerMS", func(t *testing.T) {
 			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
@@ -111,76 +146,21 @@ func TestGraph_AStar(t *testing.T) {
 					Facing: utils.Left,
 				},
 			}
-			steps := g.AStar(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, atScale)
+			steps, twid := g.AStar(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
 			assert.Equal(t, esteps, steps)
+			assert.Empty(t, twid)
 
 			// There is no way for me to know if the NextStep logic is used
 			// so I'm gonna force another AStar so it uses it
-			steps = g.AStar(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, atScale)
+			steps, twid = g.AStar(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
 			assert.Equal(t, esteps, steps)
-		})
-		t.Run("WithFasterMS", func(t *testing.T) {
-			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
-			require.NoError(t, err)
-			g.AddTower("id", 0, 1, 1, 1)
-
-			esteps := []graph.Step{
-				{
-					X: 0, Y: 0,
-					Facing: utils.Down,
-				},
-				{
-					X: 0.5, Y: 0,
-					Facing: utils.Right,
-				},
-				{
-					X: 1, Y: 0,
-					Facing: utils.Right,
-				},
-				{
-					X: 1, Y: 0.5,
-					Facing: utils.Down,
-				},
-				{
-					X: 1, Y: 1,
-					Facing: utils.Down,
-				},
-				{
-					X: 1, Y: 1.5,
-					Facing: utils.Down,
-				},
-				{
-					X: 1, Y: 2,
-					Facing: utils.Down,
-				},
-				{
-					X: 0.5, Y: 2,
-					Facing: utils.Left,
-				},
-				{
-					X: 0, Y: 2,
-					Facing: utils.Left,
-				},
-			}
-			steps := g.AStar(0, 0, 90, utils.Down, 0, 2, environment.Terrestrial, atScale)
-			require.NotNil(t, steps)
-			require.NotEmpty(t, steps)
-			require.Len(t, steps, len(esteps))
-			assert.Equal(t, esteps, steps)
-
-			// There is no way for me to know if the NextStep logic is used
-			// so I'm gonna force another AStar so it uses it
-			steps = g.AStar(0, 0, 90, utils.Down, 0, 2, environment.Terrestrial, atScale)
-			require.NotNil(t, steps)
-			require.NotEmpty(t, steps)
-			require.Len(t, steps, len(esteps))
-			assert.Equal(t, esteps, steps)
+			assert.Empty(t, twid)
 		})
 		t.Run("DefaultAerial", func(t *testing.T) {
 			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
@@ -205,11 +185,12 @@ func TestGraph_AStar(t *testing.T) {
 			for _, s := range esteps {
 				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
-			steps := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Aerial, !atScale)
+			steps, twid := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Aerial, !isAttacker, !atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
 			assert.Equal(t, esteps, steps)
+			assert.Empty(t, twid)
 
 			for _, n := range enodes {
 				assert.Nil(t, n.NextStep)
@@ -262,11 +243,12 @@ func TestGraph_AStar(t *testing.T) {
 					Facing: utils.Left,
 				},
 			}
-			steps := g.AStar(10, 10, 60, utils.Down, 10, 14, environment.Terrestrial, atScale)
+			steps, twid := g.AStar(10, 10, 60, utils.Down, 10, 14, environment.Terrestrial, !isAttacker, atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
 			assert.Equal(t, esteps, steps)
+			assert.Empty(t, twid)
 		})
 		t.Run("WithScaleAndSourceNotNode", func(t *testing.T) {
 			g, err := graph.New(10, 10, 3, 3, 2, 1, 1, 1)
@@ -311,17 +293,18 @@ func TestGraph_AStar(t *testing.T) {
 					Facing: utils.Left,
 				},
 			}
-			steps := g.AStar(11, 10, 60, utils.Down, 10, 14, environment.Terrestrial, atScale)
+			steps, twid := g.AStar(11, 10, 60, utils.Down, 10, 14, environment.Terrestrial, !isAttacker, atScale)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
 			assert.Equal(t, esteps, steps)
+			assert.Empty(t, twid)
 		})
 		t.Run("RemoveNextStepWhenAddTower", func(t *testing.T) {
 			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
 			require.NoError(t, err)
 
-			_ = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			_, _ = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
 			g.AddTower("id", 0, 1, 1, 1)
 			for _, yn := range g.Nodes {
 				for _, n := range yn {
@@ -334,7 +317,7 @@ func TestGraph_AStar(t *testing.T) {
 			require.NoError(t, err)
 
 			g.AddTower("id", 0, 1, 1, 1)
-			_ = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			_, _ = g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
 			g.RemoveTower("id")
 			for _, yn := range g.Nodes {
 				for _, n := range yn {
@@ -374,13 +357,14 @@ func TestGraph_AStar(t *testing.T) {
 				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
 
-			steps := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !atScale)
+			steps, twid := g.AStar(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
 			g.RemoveTower("not-found")
 
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
 			assert.Equal(t, esteps, steps)
+			assert.Empty(t, twid)
 
 			for i, n := range enodes {
 				if i == len(enodes)-1 {

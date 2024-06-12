@@ -8,6 +8,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/tower"
+	"github.com/xescugc/maze-wars/unit/ability"
 	"github.com/xescugc/maze-wars/unit/buff"
 	"github.com/xescugc/maze-wars/utils"
 )
@@ -59,6 +61,9 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 		for _, u := range l.ListSortedUnits() {
 			ls.DrawUnit(screen, ls.game.Camera, u)
 		}
+		for _, t := range l.Towers {
+			ls.DrawTowerHelath(screen, ls.game.Camera, t)
+		}
 	}
 }
 
@@ -71,6 +76,27 @@ func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower)
 	op.GeoM.Translate(float64(t.X-cs.X), float64(t.Y-cs.Y))
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
 	screen.DrawImage(imagesCache.Get(t.FacetKey()), op)
+}
+
+func (ls *Lines) DrawTowerHelath(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
+	cs := c.GetState().(CameraState)
+	if !t.IsColliding(cs.Object) {
+		return
+	}
+
+	ot := tower.Towers[t.Type]
+	// Only draw the Health bar if the Tower has been hit
+	if t.Health != ot.Health {
+		lbui := imagesCache.Get(lifeBarBigUnderKey)
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(t.X-cs.X-1, t.Y-cs.Y-float64(lbui.Bounds().Dy()))
+		screen.DrawImage(lbui, op)
+
+		lbpi := imagesCache.Get(lifeBarBigProgressKey)
+		op = &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(t.X-cs.X-1, t.Y-cs.Y-float64(lbpi.Bounds().Dy()))
+		screen.DrawImage(lbpi.SubImage(image.Rect(0, 0, int(float64(lbpi.Bounds().Dx())*(t.Health/ot.Health)), lbpi.Bounds().Dy())).(*ebiten.Image), op)
+	}
 }
 
 func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
@@ -97,6 +123,12 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 		}
 	} else if u.HasBuff(buff.Resurrecting) {
 		screen.DrawImage(imagesCache.Get(buffResurrectingKey), op)
+	} else if u.HasAbility(ability.Attack) && len(u.Path) == 0 {
+		if (u.AnimationCount/10)%2 == 0 {
+			screen.DrawImage(imagesCache.Get(u.AttackKey()).SubImage(image.Rect(sx, 0, sx+u.W, u.H)).(*ebiten.Image), op)
+		} else {
+			screen.DrawImage(imagesCache.Get(u.IdleKey()).SubImage(image.Rect(sx, 0, sx+u.W, u.H)).(*ebiten.Image), op)
+		}
 	} else {
 		screen.DrawImage(imagesCache.Get(u.WalkKey()).SubImage(image.Rect(sx, sy, sx+u.W, sy+u.H)).(*ebiten.Image), op)
 	}
@@ -105,12 +137,12 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	if u.Health != u.MaxHealth {
 		lbui := imagesCache.Get(lifeBarUnderKey)
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(lbui.Bounds().Dy()))
+		op.GeoM.Translate(u.X-cs.X-1, u.Y-cs.Y-float64(lbui.Bounds().Dy()))
 		screen.DrawImage(lbui, op)
 
 		lbpi := imagesCache.Get(lifeBarProgressKey)
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(lbpi.Bounds().Dy()))
+		op.GeoM.Translate(u.X-cs.X-1, u.Y-cs.Y-float64(lbpi.Bounds().Dy()))
 		screen.DrawImage(lbpi.SubImage(image.Rect(0, 0, int(float64(lbpi.Bounds().Dx())*(u.Health/u.MaxHealth)), lbpi.Bounds().Dy())).(*ebiten.Image), op)
 	}
 
@@ -118,12 +150,12 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	if u.Shield != u.MaxShield && u.Shield != 0 {
 		lbui := imagesCache.Get(lifeBarUnderKey)
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(lbui.Bounds().Dy()))
+		op.GeoM.Translate(u.X-cs.X-1, u.Y-cs.Y-float64(lbui.Bounds().Dy()))
 		screen.DrawImage(lbui, op)
 
 		sbpi := imagesCache.Get(shieldBarProgressKey)
 		op = &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(u.X-cs.X, u.Y-cs.Y-float64(sbpi.Bounds().Dy()))
+		op.GeoM.Translate(u.X-cs.X-1, u.Y-cs.Y-float64(sbpi.Bounds().Dy()))
 		screen.DrawImage(sbpi.SubImage(image.Rect(0, 0, int(float64(sbpi.Bounds().Dx())*(u.Shield/u.MaxShield)), sbpi.Bounds().Dy())).(*ebiten.Image), op)
 	}
 

@@ -15,6 +15,7 @@ type Tower struct {
 
 	Damage float64
 	Gold   int
+	Health float64
 	// Range is in a reduced version of 16 pixels, so Range == 1 == 16px
 	Range       float64
 	AttackSpeed float64
@@ -51,6 +52,7 @@ var (
 		Range1.String(): &Tower{
 			Gold:        7,
 			Damage:      2,
+			Health:      25,
 			AttackSpeed: 0.6,
 			Range:       4,
 			Targets: []environment.Environment{
@@ -64,6 +66,7 @@ var (
 		Range2.String(): &Tower{
 			Gold:        30,
 			Damage:      7,
+			Health:      50,
 			AttackSpeed: 0.6,
 			Range:       5,
 			Targets: []environment.Environment{
@@ -78,6 +81,7 @@ var (
 		RangeSingel1.String(): &Tower{
 			Gold:        250,
 			Damage:      40,
+			Health:      75,
 			AttackSpeed: 0.5,
 			Range:       6,
 			Targets: []environment.Environment{
@@ -91,6 +95,7 @@ var (
 		RangeSingel2.String(): &Tower{
 			Gold:        500,
 			Damage:      80,
+			Health:      125,
 			AttackSpeed: 0.5,
 			Range:       7,
 			Targets: []environment.Environment{
@@ -101,6 +106,7 @@ var (
 		RangeAoE1.String(): &Tower{
 			Gold:        250,
 			Damage:      150,
+			Health:      75,
 			AttackSpeed: 2,
 			Range:       5,
 			AoE:         3,
@@ -115,6 +121,7 @@ var (
 		RangeAoE2.String(): &Tower{
 			Gold:        500,
 			Damage:      180,
+			Health:      125,
 			AttackSpeed: 2,
 			Range:       5,
 			AoE:         3,
@@ -126,6 +133,7 @@ var (
 		Melee1.String(): &Tower{
 			Gold:        7,
 			Damage:      2,
+			Health:      25,
 			AttackSpeed: 0.3,
 			Range:       1,
 			Targets: []environment.Environment{
@@ -138,6 +146,7 @@ var (
 		Melee2.String(): &Tower{
 			Gold:        30,
 			Damage:      8,
+			Health:      50,
 			AttackSpeed: 0.3,
 			Range:       1,
 			Targets: []environment.Environment{
@@ -151,6 +160,7 @@ var (
 		MeleeSingle1.String(): &Tower{
 			Gold:        250,
 			Damage:      50,
+			Health:      75,
 			AttackSpeed: 0.3,
 			Range:       1,
 			Targets: []environment.Environment{
@@ -163,6 +173,7 @@ var (
 		MeleeSingle2.String(): &Tower{
 			Gold:        500,
 			Damage:      100,
+			Health:      125,
 			AttackSpeed: 0.3,
 			Range:       1,
 			Targets: []environment.Environment{
@@ -172,6 +183,7 @@ var (
 		MeleeAoE1.String(): &Tower{
 			Gold:        250,
 			Damage:      100,
+			Health:      75,
 			AttackSpeed: 2,
 			Range:       1,
 			AoE:         3,
@@ -187,6 +199,7 @@ var (
 		MeleeAoE2.String(): &Tower{
 			Gold:        500,
 			Damage:      130,
+			Health:      125,
 			AttackSpeed: 2,
 			Range:       1,
 			AoE:         3,

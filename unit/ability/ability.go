@@ -10,4 +10,5 @@ const (
 	Resurrection
 	Hybrid
 	Camouflage
+	Attack
 )

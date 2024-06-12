@@ -24,10 +24,14 @@ type Unit struct {
 
 	Faceset image.Image
 	Walk    image.Image
+	Attack  image.Image
+	Idle    image.Image
 }
 
 type Stats struct {
 	Health        float64 `json:"health"`
+	Damage        float64 `json:"damage"`
+	AttackSpeed   float64 `json:"attack_speed"`
 	Shield        float64 `json:"shield"`
 	Income        int     `json:"income"`
 	Gold          int     `json:"gold"`
@@ -36,6 +40,8 @@ type Stats struct {
 
 func (u *Unit) FacesetKey() string { return fmt.Sprintf("u-f-%s", u.Type) }
 func (u *Unit) WalkKey() string    { return fmt.Sprintf("u-w-%s", u.Type) }
+func (u *Unit) AttackKey() string  { return fmt.Sprintf("u-a-%s", u.Type) }
+func (u *Unit) IdleKey() string    { return fmt.Sprintf("u-i-%s", u.Type) }
 func (u *Unit) HasAbility(a ability.Ability) bool {
 	for _, ab := range u.Abilities {
 		if a == ab {
@@ -109,5 +115,18 @@ func init() {
 		u.Faceset = fi
 		u.Type = ty
 		u.Stats.Income = u.Stats.Gold / 5
+		if u.HasAbility(ability.Attack) {
+			ma, _, err := image.Decode(bytes.NewReader(assets.MonkeyBoxerAttack_png))
+			if err != nil {
+				log.Fatal(err)
+			}
+			u.Attack = ma
+
+			mi, _, err := image.Decode(bytes.NewReader(assets.MonkeyBoxerIdle_png))
+			if err != nil {
+				log.Fatal(err)
+			}
+			u.Idle = mi
+		}
 	}
 }
