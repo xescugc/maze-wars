@@ -398,7 +398,7 @@ type UnitUpdate struct {
 }
 
 func (p Player) CanSummonUnit(ut string) bool {
-	return (p.Gold - unit.Units[ut].Gold) >= 0
+	return (p.Gold - p.UnitUpdates[ut].Current.Gold) >= 0
 }
 func (p Player) CanUpdateUnit(ut string) bool {
 	return (p.Gold - p.UnitUpdates[ut].UpdateCost) >= 0
