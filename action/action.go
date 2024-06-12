@@ -514,7 +514,8 @@ type SyncStateTowerPayload struct {
 
 	Health float64
 
-	LastAttack time.Time
+	TargetUnitID string
+	LastAttack   time.Time
 }
 
 type SyncStateUnitPayload struct {
