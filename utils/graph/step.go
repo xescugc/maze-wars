@@ -16,6 +16,10 @@ type Step struct {
 
 	X, Y float64
 
+	// When the Steps are for a Unit that has 'Attack' this
+	// keeps the 'TowerID' of where this steps are directed
+	TowerID string
+
 	Facing utils.Direction
 }
 

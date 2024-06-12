@@ -73,6 +73,9 @@
     "gold": 30,
     "keybind":"0",
     "environment":"terrestrial",
-    "movement_speed": 40
+    "movement_speed": 40,
+    "abilities":["attack"],
+    "damage": 1,
+    "attack_speed":1
   }
 }

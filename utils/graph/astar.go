@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	basicTPS float64 = 60
+	basicTPS         float64 = 60
+	consecutiveSteps         = 4
 )
 
 // stepMap is a collection of steps for quick reference
@@ -44,7 +45,7 @@ type queueItem struct {
 // with W,H equal to the Scale in the designed Environment(env).
 // If atScale is true it'll return the 1:1 result, if not it'll return
 // the 1:Scale result
-func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env environment.Environment, atScale bool) []Step {
+func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env environment.Environment, isAttacker, atScale bool) (steps []Step, towerID string) {
 	nm := stepMap{}
 	nq := &queue{}
 	heap.Init(nq)
@@ -60,7 +61,7 @@ func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env env
 	}
 
 	if sn == nil || tn == nil {
-		return nil
+		return nil, ""
 	}
 	ss := Step{
 		Node:   sn,
@@ -72,7 +73,7 @@ func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env env
 	for {
 		if nq.Len() == 0 {
 			// There's no path, return found false.
-			return nil
+			return nil, ""
 		}
 		current := heap.Pop(nq).(*queueItem)
 		current.open = false
@@ -82,7 +83,24 @@ func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env env
 		// * The current node is the end node
 		// * There are 4 consecutive already known steps, then we use the cache on Node.NextStep
 		// * It's aerial, which means it just goes straight down, noting to calculate
-		if current.step.Node.ID == tn.ID || checkConsecutiveSteps(current, 4) || env == environment.Aerial {
+		// * It's an attacker
+		if current.step.Node.ID == tn.ID ||
+			checkConsecutiveSteps(current, consecutiveSteps) ||
+			env == environment.Aerial ||
+			(isAttacker && current.step.Node.HasTower()) {
+
+			var twID string
+			// If it's attacker and we are here it means this node has a tower,
+			// so what we do is replace the current with the previous if not the
+			// unit would be on top of the tower, and we set the facing to the
+			// current one so it faces the tower.
+			if isAttacker && current.parent != nil && current.step.Node.HasTower() {
+				cf := current.step.Facing
+				twID = current.step.Node.TowerID
+				current = current.parent
+				current.step.Facing = cf
+			}
+
 			if env == environment.Aerial {
 				// If it's an Aerial environment it has to go straight down until
 				// the next node is Death Zone
@@ -104,6 +122,7 @@ func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env env
 				}
 
 			} else {
+				// This is to build up from the cache of NextStep
 				// If it has a NextStep then it builds it up from the
 				// cache that is NextStep by following it up until the end
 				if current.step.Node.NextStep != nil {
@@ -131,10 +150,11 @@ func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env env
 				// If it's the first node of the path it has
 				// no parent so we have to check it
 				if curr != nil && env != environment.Aerial {
-					// TODO: if it's Aerial don't do this
-					curr.step.Node.NextStep = &Step{
-						Node:   s.Node,
-						Facing: s.Facing,
+					if !isAttacker {
+						curr.step.Node.NextStep = &Step{
+							Node:   s.Node,
+							Facing: s.Facing,
+						}
 					}
 				}
 				s.Node = nil
@@ -194,13 +214,13 @@ func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env env
 				p[i], p[j] = p[j], p[i]
 			}
 
-			return p
+			return p, twID
 		}
 
 		for _, neighbor := range current.step.Node.NeighborSteps {
 			// If we know we are not gonna go to it just don't even push it to the queue
 			// If it has a tower or is not a unit zone then don't use the node
-			if neighbor.Node.HasTower() {
+			if neighbor.Node.HasTower() && !isAttacker {
 				continue
 			}
 

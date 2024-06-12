@@ -468,6 +468,8 @@ type SyncStateTowerPayload struct {
 	LineID   int
 	PlayerID string
 
+	Health float64
+
 	LastAttack time.Time
 }
 
@@ -498,6 +500,9 @@ type SyncStateUnitPayload struct {
 
 	Abilities map[string]interface{}
 	Buffs     map[string]interface{}
+
+	TargetTowerID string
+	LastAttack    time.Time
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated

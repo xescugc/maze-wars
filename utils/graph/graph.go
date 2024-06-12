@@ -16,7 +16,10 @@ var (
 	ErrInvalidZoneHeights  = errors.New("the heights of the zones does not add up to the expected height")
 )
 
-const atScale = true
+const (
+	atScale    = true
+	isAttacker = true
+)
 
 // Graph represents a set of Nodes in a X, Y coordinates
 type Graph struct {
@@ -231,7 +234,8 @@ func (g *Graph) canAddTower(x, y, w, h int) ([]*Node, error) {
 
 	// Validates that adding the tower will not block the path
 	// from top to bottom
-	if len(g.AStar(float64(g.OffsetX), float64(g.OffsetY), basicTPS, utils.Down, g.DeathNode.X, g.DeathNode.Y, environment.Terrestrial, !atScale)) == 0 {
+	steps, _ := g.AStar(float64(g.OffsetX), float64(g.OffsetY), basicTPS, utils.Down, g.DeathNode.X, g.DeathNode.Y, environment.Terrestrial, !isAttacker, !atScale)
+	if len(steps) == 0 {
 		return nil, ErrInvalidBlockingPath
 	}
 

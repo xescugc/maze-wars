@@ -10,6 +10,7 @@ import (
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
+	"github.com/xescugc/maze-wars/unit/ability"
 )
 
 var (
@@ -17,19 +18,20 @@ var (
 )
 
 const (
-	crossImageKey string = "cross-image"
-	arrowImageKey string = "arrow"
+	crossImageKey = "cross-image"
+	arrowImageKey = "arrow"
 
-	buffBurrowedKey      string = "buff-burrowed"
-	buffBurrowedReadyKey string = "buff-burrowed-ready"
+	buffBurrowedKey      = "buff-burrowed"
+	buffBurrowedReadyKey = "buff-burrowed-ready"
 
-	buffResurrectingKey string = "buff-resurrecting"
+	buffResurrectingKey = "buff-resurrecting"
 
 	lifeBarProgressKey   = "life-bar-progress"
 	lifeBarUnderKey      = "life-bar-under"
 	shieldBarProgressKey = "shield-bar-progress"
 
-	towersKey = "towers-key"
+	lifeBarBigProgressKey = "life-bar-big-progress"
+	lifeBarBigUnderKey    = "life-bar-big-under"
 )
 
 // ImagesCache is a simple cache for all the images, so instead
@@ -47,6 +49,10 @@ func init() {
 	for _, u := range unit.Units {
 		imagesCache.images[u.FacesetKey()] = ebiten.NewImageFromImage(u.Faceset)
 		imagesCache.images[u.WalkKey()] = ebiten.NewImageFromImage(u.Walk)
+		if u.HasAbility(ability.Attack) {
+			imagesCache.images[u.AttackKey()] = ebiten.NewImageFromImage(u.Attack)
+			imagesCache.images[u.IdleKey()] = ebiten.NewImageFromImage(u.Idle)
+		}
 	}
 	for _, t := range tower.Towers {
 		imagesCache.images[t.FacesetKey()] = ebiten.NewImageFromImage(t.Faceset)
@@ -99,11 +105,17 @@ func init() {
 	}
 	imagesCache.images[shieldBarProgressKey] = ebiten.NewImageFromImage(sbpi)
 
-	atpi, _, err := image.Decode(bytes.NewReader(assets.Towers_png))
+	lbbpi, _, err := image.Decode(bytes.NewReader(assets.LifeBarBigProgress_png))
 	if err != nil {
 		panic(err)
 	}
-	imagesCache.images[towersKey] = ebiten.NewImageFromImage(atpi)
+	imagesCache.images[lifeBarBigProgressKey] = ebiten.NewImageFromImage(lbbpi)
+
+	lbbui, _, err := image.Decode(bytes.NewReader(assets.LifeBarBigUnder_png))
+	if err != nil {
+		panic(err)
+	}
+	imagesCache.images[lifeBarBigUnderKey] = ebiten.NewImageFromImage(lbbui)
 }
 
 // Get will return the image from 'key', if it does not

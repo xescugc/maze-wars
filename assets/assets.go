@@ -70,6 +70,12 @@ var RobotFaceset_png []byte
 //go:embed ninja_adventure_asset_pack/Actor/Characters/MonkeyBoxerRed/SeparateAnim/Walk.png
 var MonkeyBoxerWalk_png []byte
 
+//go:embed ninja_adventure_asset_pack/Actor/Characters/MonkeyBoxerRed/SeparateAnim/Attack.png
+var MonkeyBoxerAttack_png []byte
+
+//go:embed ninja_adventure_asset_pack/Actor/Characters/MonkeyBoxerRed/SeparateAnim/Idle.png
+var MonkeyBoxerIdle_png []byte
+
 //go:embed ninja_adventure_asset_pack/Actor/Characters/MonkeyBoxerRed/Faceset.png
 var MonkeyBoxerFaceset_png []byte
 
@@ -119,6 +125,12 @@ var LifeBarMiniUnder_png []byte
 
 //go:embed ShieldBarMiniProgress.png
 var ShieldBarMiniProgress_png []byte
+
+//go:embed LifeBarBigProgress.png
+var LifeBarBigProgress_png []byte
+
+//go:embed LifeBarBigUnder.png
+var LifeBarBigUnder_png []byte
 
 //go:embed Arrow.png
 var Arrow_png []byte

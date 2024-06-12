@@ -20,6 +20,7 @@ import (
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit"
+	"github.com/xescugc/maze-wars/unit/ability"
 	"github.com/xescugc/maze-wars/utils"
 )
 
@@ -27,8 +28,11 @@ const (
 	unitToolTipTmpl       = "Lvl: %d\nGold: %d\nHP: %.0f\nSpeed: %.f\nIncome: %d\nEnv: %s\nKeybind: %s"
 	unitUpdateToolTipTmpl = "Lvl: %d\nCost: %d\nGold: %d\nHP: %.0f\nIncome: %d"
 
+	unitAttackToolTipTmpl       = "Lvl: %d\nGold: %d\nHP: %.0f\nDamage: %.0f\nAttack Speed: %.0f\nSpeed: %.f\nIncome: %d\nEnv: %s\nKeybind: %s"
+	unitAttackUpdateToolTipTmpl = "Lvl: %d\nCost: %d\nGold: %d\nHP: %.0f\nDamage: %.0f\nIncome: %d"
+
 	towerRemoveToolTipTmpl = "Gold back: %d\nKeybind: %s"
-	towerUpdateToolTipTmpl = "Cost: %d\nDamage: %.1f\nKeybind: %s"
+	towerUpdateToolTipTmpl = "Cost: %d\nDamage: %.0f\nAttack Speed: %.0f\nHealth: %.0f\nKeybind: %s"
 	towerUpdateLimit       = "Tower is at it's max level"
 )
 
@@ -297,14 +301,22 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	for i, u := range sortedUnits() {
 		uu := cp.UnitUpdates[u.Type.String()]
 		wuts[i].GetWidget().Disabled = !cp.CanSummonUnit(u.Type.String())
-		hs.unitsTooltip[u.Type.String()].Label = fmt.Sprintf(unitToolTipTmpl, uu.Level, uu.Current.Gold, uu.Current.Health, uu.Current.MovementSpeed, uu.Current.Income, u.Environment, u.Keybind)
+		if u.HasAbility(ability.Attack) {
+			hs.unitsTooltip[u.Type.String()].Label = fmt.Sprintf(unitAttackToolTipTmpl, uu.Level, uu.Current.Gold, uu.Current.Health, uu.Current.Damage, uu.Current.AttackSpeed, uu.Current.MovementSpeed, uu.Current.Income, u.Environment, u.Keybind)
+		} else {
+			hs.unitsTooltip[u.Type.String()].Label = fmt.Sprintf(unitToolTipTmpl, uu.Level, uu.Current.Gold, uu.Current.Health, uu.Current.MovementSpeed, uu.Current.Income, u.Environment, u.Keybind)
+		}
 	}
 
 	wuuts := hs.unitUpdatesC.Children()
 	for i, u := range sortedUnits() {
 		uu := cp.UnitUpdates[u.Type.String()]
 		wuuts[i].GetWidget().Disabled = !cp.CanUpdateUnit(u.Type.String())
-		hs.unitUpdatesTooltip[u.Type.String()].Label = fmt.Sprintf(unitUpdateToolTipTmpl, uu.Level+1, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income)
+		if u.HasAbility(ability.Attack) {
+			hs.unitUpdatesTooltip[u.Type.String()].Label = fmt.Sprintf(unitAttackUpdateToolTipTmpl, uu.Level+1, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Damage, uu.Next.Income)
+		} else {
+			hs.unitUpdatesTooltip[u.Type.String()].Label = fmt.Sprintf(unitUpdateToolTipTmpl, uu.Level+1, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income)
+		}
 	}
 
 	wtws := hs.towersC.Children()
@@ -343,7 +355,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 				hs.towerUpdateButton1.Image = cutils.ButtonImageFromImage(imagesCache.Get(tw.FacesetKey()))
 				hs.towerUpdateButton1.GetWidget().Visibility = widget.Visibility_Show
 				hs.towerUpdateButton1.GetWidget().Disabled = cp.Gold < tw.Gold
-				hs.towerUpdateToolTip1.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, updateTowerKeybind1)
+				hs.towerUpdateToolTip1.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, tw.AttackSpeed, tw.Health, updateTowerKeybind1)
 				hs.towerUpdateButton2.GetWidget().Visibility = widget.Visibility_Hide
 			}
 			if len(tu) >= 2 {
@@ -351,7 +363,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 				hs.towerUpdateButton2.Image = cutils.ButtonImageFromImage(imagesCache.Get(tw.FacesetKey()))
 				hs.towerUpdateButton2.GetWidget().Visibility = widget.Visibility_Show
 				hs.towerUpdateButton2.GetWidget().Disabled = cp.Gold < tw.Gold
-				hs.towerUpdateToolTip2.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, updateTowerKeybind2)
+				hs.towerUpdateToolTip2.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, tw.AttackSpeed, tw.Health, updateTowerKeybind2)
 			}
 		}
 		hs.towerRemoveToolTip.Label = fmt.Sprintf(towerRemoveToolTipTmpl, removeTowerGoldReturn, removeTowerKeybind)
@@ -1050,7 +1062,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 
 	updateToolTxt1 := widget.NewText(
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-		widget.TextOpts.Text(fmt.Sprintf(towerUpdateToolTipTmpl, 0, 0.0, updateTowerKeybind1), cutils.SmallFont, color.White),
+		widget.TextOpts.Text(fmt.Sprintf(towerUpdateToolTipTmpl, 0, 0.0, 0.0, 0.0, updateTowerKeybind1), cutils.SmallFont, color.White),
 		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 	)
 	hs.towerUpdateToolTip1 = updateToolTxt1
@@ -1100,7 +1112,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 
 	updateToolTxt2 := widget.NewText(
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-		widget.TextOpts.Text(fmt.Sprintf(towerUpdateToolTipTmpl, 0, 0.0, updateTowerKeybind2), cutils.SmallFont, color.White),
+		widget.TextOpts.Text(fmt.Sprintf(towerUpdateToolTipTmpl, 0, 0.0, 0.0, 0.0, updateTowerKeybind2), cutils.SmallFont, color.White),
 		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 	)
 	hs.towerUpdateToolTip2 = updateToolTxt2
