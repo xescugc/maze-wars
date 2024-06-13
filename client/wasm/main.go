@@ -30,8 +30,8 @@ func NewClient() js.Func {
 			err     error
 			hostURL = args[0].String()
 			version = args[1].String()
-			screenW = 288
-			screenH = 240
+			screenW = 550
+			screenH = 500
 			opt     = client.Options{
 				HostURL: hostURL,
 				ScreenW: screenW,
