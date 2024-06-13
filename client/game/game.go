@@ -55,6 +55,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	g.Map.Draw(screen)
 	g.Camera.Draw(screen)
-	g.HUD.Draw(screen)
 	g.Lines.Draw(screen)
+	g.HUD.Draw(screen)
 }
