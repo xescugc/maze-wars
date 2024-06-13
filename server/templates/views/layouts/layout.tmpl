@@ -32,10 +32,8 @@
             <nav class="nav nav-masthead justify-content-center float-md-end">
               <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "home"}}active{{end}}" href="/">Home</a>
               <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "download"}}active{{end}}" href="/download">Download</a>
-              {{ if eq .Tab "game" }}
-                <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "game"}}active{{end}}" href="/play">Game</a>
-              {{ end }}
-              <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "docs"}}active{{end}}" href="/docs">Docs</a>
+              <a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "game"}}active{{end}}" href="/play">Play!</a>
+              <!--<a class="nav-link fw-bold py-1 px-0 {{if eq .Tab "docs"}}active{{end}}" href="/docs">Docs</a>-->
             </nav>
           </div>
         </header>
@@ -43,12 +41,17 @@
           {{template "content" .}}
         </main>
         <footer class="mt-auto text-white-50">
-          <p>Created by <a href="https://twitter.com/xescugc">@xescugc</a>, code can be found in <a href="https://github.com/xescugc/maze-wars">GitHub</a></p>
-          <p>Join our <a href="https://discord.gg/xXcpD3Fjt9">Discord</a>, <a href="https://www.reddit.com/r/maze_wars/">Reddit</a> or <a href="https://twitter.com/MazeWars">Twitter/X</a></p>
-          <p>Template from <a href="https://getbootstrap.com/docs/5.3/examples/cover/#">Bootstrap Cover</a>
+          <p>Created by <a target="_blank" href="https://twitter.com/xescugc">@xescugc</a>, code can be found in <a target="_blank" href="https://github.com/xescugc/maze-wars">GitHub</a></p>
+          <p>Join our <a target="_blank" href="https://discord.gg/xXcpD3Fjt9">Discord</a> or follow on <a target="_blank" href="https://twitter.com/MazeWars">Twitter/X</a></p>
+          <p>Template from <a target="_blank" href="https://getbootstrap.com/docs/5.3/examples/cover/#">Bootstrap Cover</a>
         </footer>
       </div>
       <script type = "text/javascript" src="/js/bootstrap.bundle.min.js"></script>
     </body>
+
+      <div class="text-white-50" style="position: absolute; bottom: 5px; right: 5px;">
+        Version v{{.Version}}
+      </div>
+
   </html>
 {{end}}
