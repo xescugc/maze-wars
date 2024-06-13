@@ -32,7 +32,12 @@ body {
 
 .cover-container {
   max-width: 50%;
-  /*max-width: 42em;*/
+  @media (max-width: 1500px){
+    max-width: 60%;
+  }
+  @media (max-width: 1020px){
+    max-width: 80%;
+  }
 }
 
 
