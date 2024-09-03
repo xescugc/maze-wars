@@ -13,10 +13,10 @@ type Store struct {
 	Lobbies *store.Lobbies
 }
 
-func NewStore(d *flux.Dispatcher, l *slog.Logger) *Store {
+func NewStore(d *flux.Dispatcher, ws WSConnector, l *slog.Logger) *Store {
 	ss := &Store{}
 
-	rooms := NewRoomsStore(d, ss, l)
+	rooms := NewRoomsStore(d, ss, ws, l)
 	users := NewUsersStore(d, ss)
 	lobbies := store.NewLobbies(d)
 

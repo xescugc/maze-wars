@@ -26,13 +26,20 @@ type Tower struct {
 	Targets []environment.Environment `json:"targets"`
 	targets map[environment.Environment]struct{}
 
+	// Idle is 32x32 used on the map
+	Idle image.Image
+	// Faceset is 38x38 used on the buttons
 	Faceset image.Image
+	// Profile is 106x106 used when selected
+	Profile image.Image
 
 	// The Update Cost is the Tower.Gold
 	Updates []Type
 }
 
 func (t *Tower) FacesetKey() string { return fmt.Sprintf("t-f-%s", t.Type) }
+func (t *Tower) IdleKey() string    { return fmt.Sprintf("t-i-%s", t.Type) }
+func (t *Tower) ProfileKey() string { return fmt.Sprintf("t-p-%s", t.Type) }
 
 func (t *Tower) CanTarget(env environment.Environment) bool {
 	_, ok := t.targets[env]
@@ -47,7 +54,31 @@ func (t *Tower) initTargets() {
 	}
 }
 
+func (t *Tower) Name() string {
+	n, ok := names[t.Type]
+	if !ok {
+		return t.Type.String()
+	}
+	return n
+}
+
 var (
+	names = map[Type]string{
+		Range1:       "Range - T1",
+		Range2:       "Range - T2",
+		RangeSingle1: "Range Singe - T3",
+		RangeSingle2: "Range Singe - T4",
+		RangeAoE1:    "Range AoE - T3",
+		RangeAoE2:    "Range AoE - T4",
+
+		Melee1:       "Melee - T1",
+		Melee2:       "Melee - T2",
+		MeleeSingle1: "Melee Single - T3",
+		MeleeSingle2: "Melee Single - T4",
+		MeleeAoE1:    "Melee AoE - T3",
+		MeleeAoE2:    "Melee AoE - T4",
+	}
+
 	Towers = map[string]*Tower{
 		Range1.String(): &Tower{
 			Gold:        7,
@@ -74,11 +105,11 @@ var (
 				environment.Aerial,
 			},
 			Updates: []Type{
-				RangeSingel1,
+				RangeSingle1,
 				RangeAoE1,
 			},
 		},
-		RangeSingel1.String(): &Tower{
+		RangeSingle1.String(): &Tower{
 			Gold:        250,
 			Damage:      40,
 			Health:      75,
@@ -89,10 +120,10 @@ var (
 				environment.Aerial,
 			},
 			Updates: []Type{
-				RangeSingel2,
+				RangeSingle2,
 			},
 		},
-		RangeSingel2.String(): &Tower{
+		RangeSingle2.String(): &Tower{
 			Gold:        500,
 			Damage:      80,
 			Health:      125,
@@ -222,8 +253,18 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	face, _, err := image.Decode(bytes.NewReader(assets.TowersFacet_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	profile, _, err := image.Decode(bytes.NewReader(assets.TowersProfile_png))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	wh := 32
+	fwh := 38
+	pwh := 106
 	for i, ty := range TypeValues() {
 		y := i / 6
 		if y != 0 {
@@ -237,7 +278,9 @@ func init() {
 			y += 1
 			x = 3
 		}
-		Towers[ty.String()].Faceset = img.(SubImager).SubImage(image.Rect(x*wh, y*wh, x*wh+wh, y*wh+wh))
+		Towers[ty.String()].Idle = img.(SubImager).SubImage(image.Rect(x*wh, y*wh, x*wh+wh, y*wh+wh))
+		Towers[ty.String()].Faceset = face.(SubImager).SubImage(image.Rect(x*fwh, y*fwh, x*fwh+fwh, y*fwh+fwh))
+		Towers[ty.String()].Profile = profile.(SubImager).SubImage(image.Rect(x*pwh, y*pwh, x*pwh+pwh, y*pwh+pwh))
 		Towers[ty.String()].Type = ty
 		Towers[ty.String()].initTargets()
 	}

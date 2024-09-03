@@ -35,6 +35,12 @@ const (
 	StartRoom
 	ToggleStats
 	VersionError
+	SetupGame
+	FindGame
+	ExitSearchingGame
+	AcceptWaitingGame
+	CancelWaitingGame
+	ShowScoreboard
 
 	CreateLobby
 	DeleteLobby
@@ -44,13 +50,15 @@ const (
 	LeaveLobby
 	UpdateLobby
 	StartLobby
+	SeenLobbies
 
 	// Specific to WS
 	AddPlayer
 	RemovePlayer
 	SyncState
-	SyncUsers
 	WaitRoomCountdownTick
 	SyncVs6WaitingRoom
 	SyncVs1WaitingRoom
+	SyncSearchingRoom
+	SyncWaitingRoom
 )

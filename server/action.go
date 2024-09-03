@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"log/slog"
+	"sort"
 	"time"
 
 	"github.com/xescugc/go-flux"
@@ -138,18 +139,19 @@ func (ac *ActionDispatcher) startGame(vs, roid string) {
 	}
 
 	rstate := ac.store.Rooms.GetState().(RoomsState)
-	sga := action.NewStartGame()
+	r := rstate.Rooms[rid]
 	sra := action.NewStartRoom(rid)
 
 	ac.Dispatch(sra)
 	ac.SyncState(ac.store.Rooms)
 
-	for pid, p := range rstate.Rooms[rid].Players {
+	for pid, p := range r.Players {
 		// We do not need to communicate with the bots
 		if p.IsBot {
 			rstate.Rooms[rid].Bots[pid].Start()
 			continue
 		}
+		sga := action.NewStartGame(ac.store.Rooms.SyncState(r, pid))
 		err := ac.ws.Write(context.Background(), p.Conn, sga)
 		if err != nil {
 			log.Fatal(err)
@@ -213,6 +215,7 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 					Gold:        ap.Gold,
 					Current:     ap.Current,
 					Winner:      ap.Winner,
+					Capacity:    ap.Capacity,
 					UnitUpdates: make(map[string]action.SyncStatePlayerUnitUpdatePayload),
 				}
 				// TODO: Make it concurrently safe
@@ -260,25 +263,12 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 				&action.SyncStateLinesPayload{
 					Lines: lines,
 				},
+				r.StartedAt,
 			)
 			err := ac.ws.Write(context.Background(), pc.Conn, aus)
 			if err != nil {
 				log.Fatal(err)
 			}
-		}
-	}
-}
-
-func (ac *ActionDispatcher) SyncUsers(users *UsersStore) {
-	for _, u := range users.List() {
-		// This will carry more information on the future
-		// potentially more customized to the current user
-		auu := action.NewSyncUsers(
-			len(users.List()),
-		)
-		err := ac.ws.Write(context.Background(), u.Conn, auu)
-		if err != nil {
-			log.Fatal(err)
 		}
 	}
 }
@@ -341,6 +331,41 @@ func (ac *ActionDispatcher) SyncLobbies(s *Store) {
 				if err != nil {
 					log.Fatal(err)
 				}
+			}
+		}
+	}
+}
+
+// SyncLobbies will just sync the info of each lobby to the players on it
+func (ac *ActionDispatcher) SyncWaitingRooms(s *Store) {
+	for _, w := range s.Rooms.ListWaiting() {
+		var players = make([]action.SyncWaitingRoomPlayersPayload, 0, 0)
+		for pid, p := range w.Players {
+			u, ok := s.Users.FindByID(pid)
+			if !ok {
+				if !p.IsBot {
+					continue
+				}
+				u.Username = pid
+			}
+			_, ok = w.PlayersAccepted[u.Username]
+			players = append(players, action.SyncWaitingRoomPlayersPayload{
+				Username: u.Username,
+				Accepted: ok,
+			})
+		}
+		sort.Slice(players, func(i, j int) bool {
+			return players[i].Username > players[j].Username
+		})
+		swra := action.NewSyncWaitingRoom(w.Size, w.Ranked, players, w.WaitingSince)
+		for _, pc := range w.Players {
+			// If is bot we skip it
+			if pc.IsBot {
+				continue
+			}
+			err := ac.ws.Write(context.Background(), pc.Conn, swra)
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
 	}

@@ -34,7 +34,15 @@ const (
 	towerRemoveToolTipTmpl = "Gold back: %d\nKeybind: %s"
 	towerUpdateToolTipTmpl = "Cost: %d\nDamage: %.0f\nAttack Speed: %.0f\nHealth: %.0f\nKeybind: %s"
 	towerUpdateLimit       = "Tower is at it's max level"
+
+	isPressed = true
 )
+
+type btnWithGraphic struct {
+	btn      *widget.Button
+	enabled  *widget.Graphic
+	disabled *widget.Graphic
+}
 
 // HUDStore is in charge of keeping track of all the elements
 // on the player HUD that are static and always seen
@@ -64,6 +72,50 @@ type HUDStore struct {
 	towerUpdateButton1  *widget.Button
 	towerUpdateToolTip2 *widget.Text
 	towerUpdateButton2  *widget.Button
+
+	// New
+
+	displayDefaultC *widget.Container
+
+	displayTargetC                    *widget.Container
+	displayTargetProfile              *widget.Graphic
+	displayTargetHealth               *widget.Text
+	displayTargetHealthBar            *widget.ProgressBar
+	displayTargetTowerUpdateC1        *widget.Container
+	displayTargetTowerUpdateButton1   *widget.Button
+	displayTargetTowerUpdateImage1    *widget.Graphic
+	displayTargetTowerUpdateToolTip1  *widget.Text
+	displayTargetTowerUpdateC2        *widget.Container
+	displayTargetTowerUpdateButton2   *widget.Button
+	displayTargetTowerUpdateImage2    *widget.Graphic
+	displayTargetTowerUpdateToolTip2  *widget.Text
+	displayTargetTowerSellToolTip     *widget.Text
+	displayTargetTowerRangeTxtW       *widget.Text
+	displayTargetTowerDamageTxtW      *widget.Text
+	displayTargetTowerAttackSpeedTxtW *widget.Text
+	displayTargetTowerNameTxtW        *widget.Text
+
+	towersGC *widget.Container
+
+	unitsGC              *widget.Container
+	unitsBtns            map[string]*btnWithGraphic
+	unitsUpdateAnimation map[string][]*widget.Graphic
+	unitAnimationCount   int
+
+	scoreboardW     *widget.Window
+	scoreboardC     *widget.Container
+	scoreboardBodyC *widget.Container
+
+	infoTimerTxt       *widget.Text
+	infoGoldTxt        *widget.Text
+	infoCapTxt         *widget.Text
+	infoLivesTxt       *widget.Text
+	infoIncomeTxt      *widget.Text
+	infoIncomeTimerTxt *widget.Text
+
+	menuBtnW  *widget.Button
+	menuW     *widget.Window
+	keybindsW *widget.Window
 }
 
 // HUDState stores the HUD state
@@ -73,7 +125,8 @@ type HUDState struct {
 
 	LastCursorPosition utils.Object
 
-	ShowStats bool
+	ShowStats      bool
+	ShowScoreboard bool
 }
 
 type SelectedTower struct {
@@ -87,7 +140,7 @@ var (
 	unitKeybinds  = make(map[string]ebiten.Key)
 	towerKeybinds = make(map[string]ebiten.Key)
 
-	removeTowerKeybind = ebiten.KeyD
+	sellTowerKeybind = ebiten.KeyD
 
 	updateTowerKeybind1 = ebiten.KeyZ
 	updateTowerKeybind2 = ebiten.KeyX
@@ -113,17 +166,30 @@ func init() {
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
 func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
 	hs := &HUDStore{
-		game:               g,
-		unitsTooltip:       make(map[string]*widget.Text),
-		unitUpdatesTooltip: make(map[string]*widget.Text),
+		game:                 g,
+		unitsTooltip:         make(map[string]*widget.Text),
+		unitUpdatesTooltip:   make(map[string]*widget.Text),
+		unitsBtns:            make(map[string]*btnWithGraphic),
+		unitsUpdateAnimation: make(map[string][]*widget.Graphic),
 	}
 	hs.ReduceStore = flux.NewReduceStore(d, hs.Reduce, HUDState{
-		ShowStats: true,
+		ShowStats:      true,
+		ShowScoreboard: false,
 	})
 
 	hs.buildUI()
 
 	return hs, nil
+}
+
+func (hs *HUDStore) validateOpenTower(tw *store.Tower, tws map[string]*store.Tower) {
+	if tw != nil {
+		if tw != nil {
+			if _, ok := tws[tw.ID]; !ok {
+				actionDispatcher.CloseTowerMenu()
+			}
+		}
+	}
 }
 
 func (hs *HUDStore) Update() error {
@@ -146,6 +212,14 @@ func (hs *HUDStore) Update() error {
 	// mo actions that can be done
 	if cp.Lives == 0 || cp.Winner {
 		return nil
+	}
+
+	hs.validateOpenTower(hst.OpenTowerMenu, tws)
+	// As the current opened tower
+	if ebiten.IsKeyPressed(ebiten.KeyTab) && !hst.ShowScoreboard {
+		actionDispatcher.ShowScoreboard(true)
+	} else if !ebiten.IsKeyPressed(ebiten.KeyTab) && hst.ShowScoreboard {
+		actionDispatcher.ShowScoreboard(false)
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		clickAbsolute := utils.Object{
@@ -183,7 +257,7 @@ func (hs *HUDStore) Update() error {
 
 	for ut, kb := range unitKeybinds {
 		if cp.CanSummonUnit(ut) && inpututil.IsKeyJustPressed(kb) {
-			actionDispatcher.SummonUnit(ut, cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
+			hs.unitsBtns[ut].btn.Click()
 			return nil
 		}
 	}
@@ -196,11 +270,23 @@ func (hs *HUDStore) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyF1) {
 		actionDispatcher.GoHome()
 	}
-	if hst.OpenTowerMenu != nil {
-		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-			actionDispatcher.CloseTowerMenu()
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		if hst.OpenTowerMenu != nil {
+			if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+				actionDispatcher.CloseTowerMenu()
+			}
+		} else {
+			if hs.ui.IsWindowOpen(hs.menuW) {
+				hs.closeModal(hs.menuW)
+			} else if hs.ui.IsWindowOpen(hs.keybindsW) {
+				hs.closeModal(hs.keybindsW)
+			} else {
+				hs.menuBtnW.Click()
+			}
 		}
-		if inpututil.IsKeyJustPressed(removeTowerKeybind) {
+	}
+	if hst.OpenTowerMenu != nil {
+		if inpututil.IsKeyJustPressed(sellTowerKeybind) {
 			actionDispatcher.RemoveTower(cp.ID, hst.OpenTowerMenu.ID)
 			actionDispatcher.CloseTowerMenu()
 		}
@@ -251,8 +337,18 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	hst := hs.GetState().(HUDState)
 	cs := hs.game.Camera.GetState().(CameraState)
 	cp := hs.game.Store.Lines.FindCurrentPlayer()
+	cl := hs.game.Store.Lines.FindLineByID(cp.LineID)
 
-	psit := hs.game.Store.Lines.GetState().(store.LinesState).IncomeTimer
+	hs.validateOpenTower(hst.OpenTowerMenu, cl.Towers)
+
+	if hst.ShowScoreboard {
+		hs.buildScoreboard()
+		hs.loadModal(hs.scoreboardW)
+	} else {
+		hs.closeModal(hs.scoreboardW)
+	}
+
+	psit := hs.game.Store.Lines.GetIncomeTimer()
 	entries := make([]any, 0, len(hs.game.Store.Lines.ListPlayers())+1)
 	entries = append(entries,
 		cutils.ListEntry{
@@ -297,10 +393,27 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	hs.statsListW.GetWidget().Visibility = visibility
 	hs.incomeTextW.Label = fmt.Sprintf("Gold: %s Income Timer: %ds", cutils.FillIn(strconv.Itoa(cp.Gold), 5), psit)
 
+	hs.infoTimerTxt.Label = cutils.FmtDuration(time.Now().Sub(hs.game.Store.Lines.GetStartedAt()))
+	hs.infoGoldTxt.Label = strconv.Itoa(cp.Gold)
+	hs.infoCapTxt.Label = fmt.Sprintf("%d/%d", cp.Capacity, utils.MaxCapacity)
+	hs.infoLivesTxt.Label = strconv.Itoa(cp.Lives)
+	hs.infoIncomeTxt.Label = strconv.Itoa(cp.Income)
+	hs.infoIncomeTimerTxt.Label = fmt.Sprintf("%ds", psit)
+
 	wuts := hs.unitsC.Children()
 	for i, u := range sortedUnits() {
 		uu := cp.UnitUpdates[u.Type.String()]
 		wuts[i].GetWidget().Disabled = !cp.CanSummonUnit(u.Type.String())
+		// NEW
+		cpcs := cp.CanSummonUnit(u.Type.String())
+		hs.unitsBtns[u.Type.String()].btn.GetWidget().Disabled = !cpcs
+		hs.unitsBtns[u.Type.String()].enabled.GetWidget().Visibility = widget.Visibility_Show
+		hs.unitsBtns[u.Type.String()].disabled.GetWidget().Visibility = widget.Visibility_Hide
+		if !cpcs {
+			hs.unitsBtns[u.Type.String()].enabled.GetWidget().Visibility = widget.Visibility_Hide
+			hs.unitsBtns[u.Type.String()].disabled.GetWidget().Visibility = widget.Visibility_Show
+		}
+		// END NEW
 		if u.HasAbility(ability.Attack) {
 			hs.unitsTooltip[u.Type.String()].Label = fmt.Sprintf(unitAttackToolTipTmpl, uu.Level, uu.Current.Gold, uu.Current.Health, uu.Current.Damage, uu.Current.AttackSpeed, uu.Current.MovementSpeed, uu.Current.Income, u.Environment, u.Keybind)
 		} else {
@@ -308,6 +421,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		}
 	}
 
+	// TODO: Add the Upgrade display
 	wuuts := hs.unitUpdatesC.Children()
 	for i, u := range sortedUnits() {
 		uu := cp.UnitUpdates[u.Type.String()]
@@ -316,6 +430,22 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 			hs.unitUpdatesTooltip[u.Type.String()].Label = fmt.Sprintf(unitAttackUpdateToolTipTmpl, uu.Level+1, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Damage, uu.Next.Income)
 		} else {
 			hs.unitUpdatesTooltip[u.Type.String()].Label = fmt.Sprintf(unitUpdateToolTipTmpl, uu.Level+1, uu.UpdateCost, uu.Next.Gold, uu.Next.Health, uu.Next.Income)
+		}
+		if cp.CanUpdateUnit(u.Type.String()) {
+			ic := (hs.unitAnimationCount / 15) % 4
+			for i, a := range hs.unitsUpdateAnimation[u.Type.String()] {
+				a.GetWidget().Visibility = widget.Visibility_Hide
+				if i == ic {
+					a.GetWidget().Visibility = widget.Visibility_Show
+				}
+			}
+			// TODO: Maybe set it to 0 and do not do this operation here?
+			// potentially have a global counter for animations
+			hs.unitAnimationCount += 1
+		} else {
+			for _, a := range hs.unitsUpdateAnimation[u.Type.String()] {
+				a.GetWidget().Visibility = widget.Visibility_Hide
+			}
 		}
 	}
 
@@ -335,33 +465,74 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		hs.winLoseTextW.GetWidget().Visibility = widget.Visibility_Hide
 	}
 
+	hs.displayTargetC.GetWidget().Visibility = widget.Visibility_Hide
+	hs.displayDefaultC.GetWidget().Visibility = widget.Visibility_Show
 	if hst.OpenTowerMenu != nil {
+		ot := tower.Towers[hst.OpenTowerMenu.Type]
+		ct := cl.Towers[hst.OpenTowerMenu.ID]
+
+		hs.displayTargetTowerRangeTxtW.Label = fmt.Sprint(ot.Range)
+		hs.displayTargetTowerDamageTxtW.Label = fmt.Sprint(ot.Damage)
+		hs.displayTargetTowerAttackSpeedTxtW.Label = fmt.Sprint(ot.AttackSpeed)
+		hs.displayTargetTowerNameTxtW.Label = ot.Name()
 		// TODO: Add the keybind to the tooltip
 		hs.bottomLeftContainer.GetWidget().Visibility = widget.Visibility_Show
-		removeTowerGoldReturn := tower.Towers[hst.OpenTowerMenu.Type].Gold / 2
+		// TODO: Fix this by being the total amount to reach here and let it be 75%
+		sellTowerGoldReturn := ot.Gold / 2
+
+		hs.displayTargetProfile.Image = cutils.Images.Get(ct.ProfileKey())
+		hs.displayTargetHealth.Label = fmt.Sprintf("%0.f/%0.f", ct.Health, ot.Health)
+		hs.displayTargetHealthBar.Min = 0
+		hs.displayTargetHealthBar.Max = int(ot.Health)
+		hs.displayTargetHealthBar.SetCurrent(int(ct.Health))
+
 		// Where there is no more updates we disable the button
 		tu := tower.Towers[hst.OpenTowerMenu.Type].Updates
 		if len(tu) == 0 {
 			hs.towerUpdateButton1.GetWidget().Visibility = widget.Visibility_Hide
 			hs.towerUpdateButton2.GetWidget().Visibility = widget.Visibility_Hide
+
+			// New
+			hs.displayTargetTowerUpdateC1.GetWidget().Visibility = widget.Visibility_Hide
+			hs.displayTargetTowerUpdateC2.GetWidget().Visibility = widget.Visibility_Hide
+			// END New
 		} else {
 			if len(tu) >= 1 {
 				tw := tower.Towers[tu[0].String()]
-				hs.towerUpdateButton1.Image = cutils.ButtonImageFromImage(imagesCache.Get(tw.FacesetKey()))
+				hs.towerUpdateButton1.Image = cutils.ButtonImageFromImage(cutils.Images.Get(tw.FacesetKey()))
 				hs.towerUpdateButton1.GetWidget().Visibility = widget.Visibility_Show
 				hs.towerUpdateButton1.GetWidget().Disabled = cp.Gold < tw.Gold
 				hs.towerUpdateToolTip1.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, tw.AttackSpeed, tw.Health, updateTowerKeybind1)
 				hs.towerUpdateButton2.GetWidget().Visibility = widget.Visibility_Hide
+
+				// New
+				hs.displayTargetTowerUpdateImage1.Image = cutils.Images.Get(tw.FacesetKey())
+				hs.displayTargetTowerUpdateC1.GetWidget().Visibility = widget.Visibility_Show
+				hs.displayTargetTowerUpdateButton1.GetWidget().Disabled = cp.Gold < tw.Gold
+				hs.displayTargetTowerUpdateToolTip1.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, tw.AttackSpeed, tw.Health, updateTowerKeybind1)
+				hs.displayTargetTowerUpdateC2.GetWidget().Visibility = widget.Visibility_Hide
+				// END New
 			}
 			if len(tu) >= 2 {
 				tw := tower.Towers[tu[1].String()]
-				hs.towerUpdateButton2.Image = cutils.ButtonImageFromImage(imagesCache.Get(tw.FacesetKey()))
+				hs.towerUpdateButton2.Image = cutils.ButtonImageFromImage(cutils.Images.Get(tw.FacesetKey()))
 				hs.towerUpdateButton2.GetWidget().Visibility = widget.Visibility_Show
 				hs.towerUpdateButton2.GetWidget().Disabled = cp.Gold < tw.Gold
 				hs.towerUpdateToolTip2.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, tw.AttackSpeed, tw.Health, updateTowerKeybind2)
+				// New
+				hs.displayTargetTowerUpdateImage2.Image = cutils.Images.Get(tw.FacesetKey())
+				hs.displayTargetTowerUpdateC2.GetWidget().Visibility = widget.Visibility_Show
+				hs.displayTargetTowerUpdateButton2.GetWidget().Disabled = cp.Gold < tw.Gold
+				hs.displayTargetTowerUpdateToolTip2.Label = fmt.Sprintf(towerUpdateToolTipTmpl, tw.Gold, tw.Damage, tw.AttackSpeed, tw.Health, updateTowerKeybind2)
+				// END New
 			}
 		}
-		hs.towerRemoveToolTip.Label = fmt.Sprintf(towerRemoveToolTipTmpl, removeTowerGoldReturn, removeTowerKeybind)
+		hs.towerRemoveToolTip.Label = fmt.Sprintf(towerRemoveToolTipTmpl, sellTowerGoldReturn, sellTowerKeybind)
+		// NOTE: New
+		hs.displayTargetTowerSellToolTip.Label = fmt.Sprintf(towerRemoveToolTipTmpl, sellTowerGoldReturn, sellTowerKeybind)
+
+		hs.displayTargetC.GetWidget().Visibility = widget.Visibility_Show
+		hs.displayDefaultC.GetWidget().Visibility = widget.Visibility_Hide
 	} else {
 		hs.bottomLeftContainer.GetWidget().Visibility = widget.Visibility_Hide
 	}
@@ -377,7 +548,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 			op.ColorM.Scale(2, 0.5, 0.5, 0.9)
 		}
 
-		screen.DrawImage(imagesCache.Get(hst.SelectedTower.FacetKey()), op)
+		screen.DrawImage(cutils.Images.Get(hst.SelectedTower.IdleKey()), op)
 	}
 }
 
@@ -441,6 +612,8 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		hstate.OpenTowerMenu = nil
 	case action.ToggleStats:
 		hstate.ShowStats = !hstate.ShowStats
+	case action.ShowScoreboard:
+		hstate.ShowScoreboard = act.ShowScoreboard.Display
 	default:
 	}
 
@@ -712,7 +885,7 @@ func (hs *HUDStore) buildUI() {
 			),
 
 			// specify the images to sue
-			widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(u.FacesetKey()))),
+			widget.ButtonOpts.Image(cutils.ButtonImageFromImage(cutils.Images.Get(u.FacesetKey()))),
 
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
@@ -779,12 +952,8 @@ func (hs *HUDStore) buildUI() {
 					widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
 					widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
 					widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
-					widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
-				)),
-			),
-
-			// specify the images to sue
-			widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(t.FacesetKey()))),
+					widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START)))), // specify the images to sue
+			widget.ButtonOpts.Image(cutils.ButtonImageFromImage(cutils.Images.Get(t.FacesetKey()))),
 
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(t *tower.Tower) func(args *widget.ButtonClickedEventArgs) {
@@ -859,7 +1028,7 @@ func (hs *HUDStore) buildUI() {
 			),
 
 			// specify the images to sue
-			widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(u.FacesetKey()))),
+			widget.ButtonOpts.Image(cutils.ButtonImageFromImage(cutils.Images.Get(u.FacesetKey()))),
 
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
@@ -959,18 +1128,1975 @@ func (hs *HUDStore) buildUI() {
 	hs.winLoseTextW = winLoseTextW
 
 	rootContainer := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewStackedLayout(widget.StackedLayoutOpts.Padding(widget.NewInsetsSimple(25)))),
+		widget.ContainerOpts.Layout(widget.NewStackedLayout()),
 	)
 
-	rootContainer.AddChild(topRightContainer)
-	rootContainer.AddChild(topLeftBtnContainer)
-	rootContainer.AddChild(bottomRightContainer)
-	rootContainer.AddChild(bottomLeftContainer)
-	rootContainer.AddChild(centerTextContainer)
+	//rootContainer.AddChild(topRightContainer)
+	//rootContainer.AddChild(topLeftBtnContainer)
+	//rootContainer.AddChild(bottomRightContainer)
+	//rootContainer.AddChild(bottomLeftContainer)
+	//rootContainer.AddChild(centerTextContainer)
 
 	hs.ui = &ebitenui.UI{
 		Container: rootContainer,
 	}
+
+	rootContainer.AddChild(hs.displayDefaultUI())
+	rootContainer.AddChild(hs.displayTargetUI())
+	rootContainer.AddChild(hs.infoUI())
+	rootContainer.AddChild(hs.menuUI())
+	hs.scoreboardModal()
+	hs.menuModal()
+	hs.menuKeybindsModal()
+}
+
+func (hs *HUDStore) displayDefaultUI() *widget.Container {
+	displayC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	contentRC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+			}),
+		),
+	)
+
+	unitsGC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(5),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(
+				widget.Insets{
+					Left:   30,
+					Right:  26,
+					Top:    30,
+					Bottom: 22,
+				},
+			),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(2, 2),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false, false, false, false, false}, []bool{false, false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.DisplayDefaultBGKey, 1, 1, !isPressed)),
+	)
+
+	towersGC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(1),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(
+				widget.Insets{
+					Left:   7,
+					Right:  26,
+					Top:    30,
+					Bottom: 22,
+				},
+			),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(2, 2),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false}, []bool{false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.DisplayDefaultTowersBGKey, 1, 1, !isPressed)),
+	)
+
+	cp := hs.game.Store.Lines.FindCurrentPlayer()
+
+	for _, u := range sortedUnits() {
+		uu := cp.UnitUpdates[u.Type.String()]
+
+		imageBtnC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					MaxWidth:  46,
+					MaxHeight: 46,
+				}),
+			),
+		)
+
+		tooltipContainer := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+			widget.ContainerOpts.AutoDisableChildren(),
+			widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+		)
+
+		toolTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf(unitToolTipTmpl, uu.Level, uu.Current.Gold, uu.Current.Health, uu.Current.MovementSpeed, uu.Current.Income, u.Environment, u.Keybind), cutils.SmallFont, color.White),
+			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionCenter,
+					VerticalPosition:   widget.AnchorLayoutPositionEnd,
+				}),
+			),
+		)
+		hs.unitsTooltip[u.Type.String()] = toolTxt
+		tooltipContainer.AddChild(toolTxt)
+
+		ubtn := widget.NewButton(
+			// set general widget options
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.ToolTip(widget.NewToolTip(
+					widget.ToolTipOpts.Content(tooltipContainer),
+					//widget.WidgetToolTipOpts.Delay(1*time.Second),
+					widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+					widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+					//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+					//They will default to what you see below if you do not provide them
+					widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+				)),
+			),
+
+			// specify the images to sue
+			widget.ButtonOpts.Image(cutils.ButtonBorderResource()),
+
+			// add a handler that reacts to clicking the button
+			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
+				return func(args *widget.ButtonClickedEventArgs) {
+					cp := hs.game.Store.Lines.FindCurrentPlayer()
+					if ebiten.IsKeyPressed(ebiten.KeyShift) {
+						actionDispatcher.UpdateUnit(cp.ID, u.Type.String())
+					} else {
+						actionDispatcher.SummonUnit(u.Type.String(), cp.ID, cp.LineID, hs.game.Store.Map.GetNextLineID(cp.LineID))
+					}
+				}
+			}(u)),
+		)
+
+		uimg := cutils.Images.Get(u.FacesetKey())
+		enabledImageBtnGraphicW := widget.NewGraphic(widget.GraphicOpts.Image(uimg))
+		disabledImageBtnGraphicW := widget.NewGraphic(
+			widget.GraphicOpts.Image(cutils.DisableImage(uimg)),
+			widget.GraphicOpts.WidgetOpts(
+				func(w *widget.Widget) {
+					w.Visibility = widget.Visibility_Hide
+				},
+			),
+		)
+
+		keyBindC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+				widget.RowLayoutOpts.Padding(
+					widget.Insets{
+						Left: 4,
+						Top:  4,
+					},
+				),
+			)),
+		)
+		keyBindC2 := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+				widget.AnchorLayoutOpts.Padding(
+					widget.Insets{
+						Left: 4,
+						// TODO: Something from fc41b2ae37923f85ce7f562f69bc40803433eb1f to fc41b2ae37923f85ce7f562f69bc40803433eb1f broke this
+						//Top:    -3,
+						//Bottom: -3,
+					},
+				),
+			)),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionStart,
+				}),
+			),
+			widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(cutils.BlackT)),
+		)
+		keyBindTxtW := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+			widget.TextOpts.Text(u.Keybind, cutils.SmallFont, color.White),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionStart,
+					VerticalPosition:   widget.AnchorLayoutPositionStart,
+				}),
+			),
+		)
+		keyBindC2.AddChild(keyBindTxtW)
+		keyBindC.AddChild(keyBindC2)
+
+		imageBtnC.AddChild(ubtn)
+		imageBtnC.AddChild(enabledImageBtnGraphicW)
+		imageBtnC.AddChild(disabledImageBtnGraphicW)
+		imageBtnC.AddChild(keyBindC)
+
+		unitUpdateAnimations := make([]*widget.Graphic, 4)
+		img := cutils.Images.Get(cutils.UnitUpdateButtonAnimationKey)
+		for i := 0; i < 4; i++ {
+			nimg := ebiten.NewImageFromImage(img.SubImage(stdimage.Rect(i*38, 0, i*38+38, i*38+38)))
+			unitUpdateAnimations[i] = widget.NewGraphic(
+				widget.GraphicOpts.Image(nimg),
+				widget.GraphicOpts.WidgetOpts(
+					func(w *widget.Widget) {
+						w.Visibility = widget.Visibility_Hide
+					},
+				),
+			)
+			imageBtnC.AddChild(unitUpdateAnimations[i])
+		}
+
+		unitsGC.AddChild(imageBtnC)
+
+		hs.unitsBtns[u.Type.String()] = &btnWithGraphic{
+			btn:      ubtn,
+			enabled:  enabledImageBtnGraphicW,
+			disabled: disabledImageBtnGraphicW,
+		}
+		hs.unitsUpdateAnimation[u.Type.String()] = unitUpdateAnimations
+	}
+	for _, t := range sortedTowers() {
+		imageBtnC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					MaxWidth:  46,
+					MaxHeight: 46,
+				}),
+			),
+		)
+
+		tooltipContainer := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+			widget.ContainerOpts.AutoDisableChildren(),
+			widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+		)
+
+		kb := rangeTowerKeybind
+		if t.Type == tower.Melee1 {
+			kb = meleeTowerKeybind
+		}
+		toolTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf("Gold: %d\nRange: %.0f\nDamage: %.0f\nTargets: %s\nKeybind: %s", t.Gold, t.Range, t.Damage, t.Targets, kb), cutils.SmallFont, color.White),
+			widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+		)
+		tooltipContainer.AddChild(toolTxt)
+		tbtn := widget.NewButton(
+			// set general widget options
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionStart,
+					VerticalPosition:   widget.GridLayoutPositionStart,
+					//MaxWidth:  38,
+					//MaxHeight: 38,
+				}),
+				widget.WidgetOpts.ToolTip(widget.NewToolTip(
+					widget.ToolTipOpts.Content(tooltipContainer),
+					//widget.WidgetToolTipOpts.Delay(1*time.Second),
+					widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+					widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+					//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+					//They will default to what you see below if you do not provide them
+					widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+				)),
+			),
+
+			// specify the images to sue
+			widget.ButtonOpts.Image(cutils.ButtonBorderResource()),
+
+			// add a handler that reacts to clicking the button
+			widget.ButtonOpts.ClickedHandler(func(t *tower.Tower) func(args *widget.ButtonClickedEventArgs) {
+				return func(args *widget.ButtonClickedEventArgs) {
+					hst := hs.GetState().(HUDState)
+					actionDispatcher.SelectTower(t.Type.String(), int(hst.LastCursorPosition.X), int(hst.LastCursorPosition.Y))
+				}
+			}(t)),
+		)
+		imageBtnGraphicW := widget.NewGraphic(widget.GraphicOpts.Image(cutils.Images.Get(t.FacesetKey())))
+
+		keyBindC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+				widget.RowLayoutOpts.Padding(
+					widget.Insets{
+						Left: 4,
+						Top:  4,
+					},
+				),
+			)),
+		)
+		keyBindC2 := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+				widget.AnchorLayoutOpts.Padding(
+					widget.Insets{
+						Left: 4,
+						// TODO: Something from fc41b2ae37923f85ce7f562f69bc40803433eb1f to fc41b2ae37923f85ce7f562f69bc40803433eb1f broke this
+						//Top:    -3,
+						//Bottom: -3,
+					},
+				),
+			)),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionStart,
+				}),
+			),
+			//widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(cutils.BlackT)),
+		)
+		keyBindTxtW := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+			widget.TextOpts.Text(kb.String(), cutils.SmallFont, color.White),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionStart,
+					VerticalPosition:   widget.AnchorLayoutPositionStart,
+				}),
+			),
+		)
+		keyBindC2.AddChild(keyBindTxtW)
+		keyBindC.AddChild(keyBindC2)
+
+		imageBtnC.AddChild(
+			tbtn,
+			imageBtnGraphicW,
+			keyBindC,
+		)
+
+		towersGC.AddChild(imageBtnC)
+	}
+
+	contentRC.AddChild(unitsGC)
+	contentRC.AddChild(towersGC)
+
+	displayC.AddChild(contentRC)
+
+	hs.displayDefaultC = displayC
+
+	return displayC
+}
+
+func (hs *HUDStore) displayTargetUI() *widget.Container {
+	displayC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.WidgetOpts(
+			func(w *widget.Widget) {
+				w.Visibility = widget.Visibility_Hide
+			},
+		),
+	)
+
+	contentRC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+			}),
+		),
+	)
+
+	imageC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(
+				widget.Insets{
+					Left:   24,
+					Right:  16,
+					Top:    24,
+					Bottom: 16,
+				},
+			),
+		)),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.DisplayTargetImageBGKey, 1, 1, !isPressed)),
+
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.MinSize(146, 146),
+		),
+	)
+	imageG := widget.NewGraphic(
+		// TODO: Image 99x99 the image
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionStart,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+			//widget.WidgetOpts.MinSize(99, 99),
+		),
+	)
+	healthPB := widget.NewProgressBar(
+		widget.ProgressBarOpts.Direction(widget.DirectionHorizontal),
+		widget.ProgressBarOpts.Images(
+			// Track
+			&widget.ProgressBarImage{
+				Idle: image.NewNineSliceColor(color.NRGBA{R: 95, G: 113, B: 96, A: 255}),
+			},
+			// Fill
+			&widget.ProgressBarImage{
+				Idle: image.NewNineSliceColor(color.NRGBA{R: 224, G: 57, B: 76, A: 255}),
+			},
+		),
+		widget.ProgressBarOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionStart,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+				StretchHorizontal:  true,
+			}),
+			widget.WidgetOpts.MinSize(0, 20),
+		),
+	)
+	healthTxt := widget.NewText(
+		widget.TextOpts.Text("20/20", cutils.SFont20, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+				//StretchHorizontal:  true,
+			}),
+		),
+	)
+	imageC.AddChild(
+		imageG,
+		healthPB,
+		healthTxt,
+	)
+
+	// NOTE: Now we have to have 2 types of container, one for
+	// towers and one for units as they have different info
+
+	towerDetailsC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(2),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(
+				widget.Insets{
+					Left:   7,
+					Right:  26,
+					Top:    30,
+					Bottom: 22,
+				},
+			),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(10, 0),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false, false}, []bool{false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.DisplayTargetDetailsBGKey, 1, 1, !isPressed)),
+	)
+
+	towerInfoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(2),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+	)
+
+	towerNameTxtW := widget.NewText(
+		widget.TextOpts.Text("TOWER NAME", cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+		//widget.TextOpts.WidgetOpts(
+		//widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+		//MaxHeight: 10,
+		//}),
+		//),
+	)
+	towerDetailsInfoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			//widget.RowLayoutOpts.Spacing(1),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+	)
+
+	towerInfoRangeC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(5),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+		//widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{255, 0, 255, 255})),
+	)
+	towerRangeGW := widget.NewGraphic(
+		widget.GraphicOpts.Image(cutils.Images.Get(cutils.RangeIconKey)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+	towerRangeTxtW := widget.NewText(
+		widget.TextOpts.Text("20", cutils.SFont20, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+		widget.TextOpts.Insets(
+			widget.Insets{
+				//Top: -2,
+				//Left:   1,
+				//Right:  1,
+				//Bottom: 20,
+				//Bottom: 1,
+			},
+		),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+	towerInfoRangeC.AddChild(
+		towerRangeGW,
+		towerRangeTxtW,
+	)
+
+	towerInfoDamageC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(5),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+	)
+	towerDamageGW := widget.NewGraphic(
+		widget.GraphicOpts.Image(cutils.Images.Get(cutils.DamageIconKey)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+	towerDamageTxtW := widget.NewText(
+		widget.TextOpts.Text("30", cutils.SFont20, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		//widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+		//MaxHeight: 15,
+		//}),
+		),
+	)
+	towerInfoDamageC.AddChild(
+		towerDamageGW,
+		towerDamageTxtW,
+	)
+
+	towerInfoAttackSpeedC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(5),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+	)
+	towerAttackSpeedGW := widget.NewGraphic(
+		widget.GraphicOpts.Image(cutils.Images.Get(cutils.AttackSpeedIconKey)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+	towerAttackSpeedTxtW := widget.NewText(
+		widget.TextOpts.Text("2", cutils.SFont20, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		//widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+		//MaxHeight: 15,
+		//}),
+		),
+	)
+	towerInfoAttackSpeedC.AddChild(
+		towerAttackSpeedGW,
+		towerAttackSpeedTxtW,
+	)
+
+	towerDetailsInfoC.AddChild(
+		towerInfoDamageC,
+		towerInfoRangeC,
+		towerInfoAttackSpeedC,
+	)
+	towerInfoC.AddChild(
+		towerNameTxtW,
+		towerDetailsInfoC,
+	)
+
+	towerButtonsC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(2),
+			//Define how much padding to inset the child content
+			//widget.GridLayoutOpts.Padding(
+			//widget.Insets{
+			//Left:   7,
+			//Right:  26,
+			//Top:    30,
+			//Bottom: 22,
+			//},
+			//),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(2, 2),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false, false}, []bool{false, false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+		// TODO: Add background
+		//widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.DisplayDefaultTowersBGKey, 1, 1, !isPressed)),
+	)
+
+	sellImageBtnC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				MaxWidth:  46,
+				MaxHeight: 46,
+			}),
+		),
+	)
+
+	sellTooltipContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+		widget.ContainerOpts.AutoDisableChildren(),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+	)
+
+	sellToolTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("SELL", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+			}),
+		),
+	)
+	//hs.unitsTooltip[u.Type.String()] = toolTxt
+	sellTooltipContainer.AddChild(sellToolTxt)
+
+	sellBtnW := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.ToolTip(widget.NewToolTip(
+				widget.ToolTipOpts.Content(sellTooltipContainer),
+				//widget.WidgetToolTipOpts.Delay(1*time.Second),
+				widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+				widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+				//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+				//They will default to what you see below if you do not provide them
+				widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+			)),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.ButtonBorderResource()),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+		}),
+	)
+
+	sellImageBtnGraphicW := widget.NewGraphic(widget.GraphicOpts.Image(cutils.Images.Get(cutils.SellIconKey)))
+
+	sellKeyBindC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Padding(
+				widget.Insets{
+					Left: 4,
+					Top:  4,
+				},
+			),
+		)),
+	)
+	sellKeyBindC2 := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(
+				widget.Insets{
+					Left: 4,
+					// TODO: Something from fc41b2ae37923f85ce7f562f69bc40803433eb1f to fc41b2ae37923f85ce7f562f69bc40803433eb1f broke this
+					//Top:    -3,
+					//Bottom: -3,
+				},
+			),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(cutils.BlackT)),
+	)
+	sellKeyBindTxtW := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+		widget.TextOpts.Text(sellTowerKeybind.String(), cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionStart,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+		),
+	)
+	sellKeyBindC2.AddChild(sellKeyBindTxtW)
+	sellKeyBindC.AddChild(sellKeyBindC2)
+
+	sellImageBtnC.AddChild(
+		sellBtnW,
+		sellImageBtnGraphicW,
+		sellKeyBindC,
+	)
+
+	update1ImageBtnC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				MaxWidth:  46,
+				MaxHeight: 46,
+			}),
+		),
+	)
+
+	update1TooltipContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+		widget.ContainerOpts.AutoDisableChildren(),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+	)
+
+	update1ToolTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("SELL", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+			}),
+		),
+	)
+	//hs.unitsTooltip[u.Type.String()] = toolTxt
+	update1TooltipContainer.AddChild(update1ToolTxt)
+
+	update1BtnW := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.ToolTip(widget.NewToolTip(
+				widget.ToolTipOpts.Content(update1TooltipContainer),
+				//widget.WidgetToolTipOpts.Delay(1*time.Second),
+				widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+				widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+				//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+				//They will default to what you see below if you do not provide them
+				widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+			)),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.ButtonBorderResource()),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+		}),
+	)
+
+	update1ImageBtnGraphicW := widget.NewGraphic(widget.GraphicOpts.Image(cutils.Images.Get(cutils.SellIconKey)))
+
+	update1KeyBindC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Padding(
+				widget.Insets{
+					Left: 4,
+					Top:  4,
+				},
+			),
+		)),
+	)
+	update1KeyBindC2 := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(
+				widget.Insets{
+					Left: 4,
+					// TODO: Something from fc41b2ae37923f85ce7f562f69bc40803433eb1f to fc41b2ae37923f85ce7f562f69bc40803433eb1f broke this
+					//Top:    -3,
+					//Bottom: -3,
+				},
+			),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(cutils.BlackT)),
+	)
+	update1KeyBindTxtW := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+		widget.TextOpts.Text(updateTowerKeybind1.String(), cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionStart,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+		),
+	)
+
+	update1KeyBindC2.AddChild(update1KeyBindTxtW)
+	update1KeyBindC.AddChild(update1KeyBindC2)
+
+	update1ImageBtnC.AddChild(
+		update1BtnW,
+		update1ImageBtnGraphicW,
+		update1KeyBindC,
+	)
+
+	update2ImageBtnC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				MaxWidth:  46,
+				MaxHeight: 46,
+			}),
+		),
+	)
+
+	update2TooltipContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical))),
+		widget.ContainerOpts.AutoDisableChildren(),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{R: 170, G: 170, B: 230, A: 255})),
+	)
+
+	update2ToolTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("SELL", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionEnd,
+			}),
+		),
+	)
+	//hs.unitsTooltip[u.Type.String()] = toolTxt
+	update2TooltipContainer.AddChild(update2ToolTxt)
+
+	update2BtnW := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.ToolTip(widget.NewToolTip(
+				widget.ToolTipOpts.Content(update2TooltipContainer),
+				//widget.WidgetToolTipOpts.Delay(1*time.Second),
+				widget.ToolTipOpts.Offset(stdimage.Point{-5, 5}),
+				widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
+				//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
+				//They will default to what you see below if you do not provide them
+				widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+				widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
+			)),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.ButtonBorderResource()),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+		}),
+	)
+
+	update2ImageBtnGraphicW := widget.NewGraphic(widget.GraphicOpts.Image(cutils.Images.Get(cutils.SellIconKey)))
+
+	update2KeyBindC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Padding(
+				widget.Insets{
+					Left: 4,
+					Top:  4,
+				},
+			),
+		)),
+	)
+	update2KeyBindC2 := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(
+				widget.Insets{
+					Left: 4,
+					// TODO: Something from fc41b2ae37923f85ce7f562f69bc40803433eb1f to fc41b2ae37923f85ce7f562f69bc40803433eb1f broke this
+					//Top:    -3,
+					//Bottom: -3,
+				},
+			),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(cutils.BlackT)),
+	)
+	update2KeyBindTxtW := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+		widget.TextOpts.Text(updateTowerKeybind2.String(), cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionStart,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+		),
+	)
+	update2KeyBindC2.AddChild(update2KeyBindTxtW)
+	update2KeyBindC.AddChild(update2KeyBindC2)
+
+	update2ImageBtnC.AddChild(
+		update2BtnW,
+		update2ImageBtnGraphicW,
+		update2KeyBindC,
+	)
+
+	towerButtonsC.AddChild(
+		// We add a first empty box on the top left
+		//widget.NewContainer(),
+		widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+		),
+		sellImageBtnC,
+		update1ImageBtnC,
+		update2ImageBtnC,
+	)
+
+	towerDetailsC.AddChild(
+		towerInfoC,
+		towerButtonsC,
+	)
+
+	contentRC.AddChild(
+		imageC,
+		towerDetailsC,
+	)
+
+	displayC.AddChild(contentRC)
+
+	hs.displayTargetProfile = imageG
+	hs.displayTargetHealth = healthTxt
+	hs.displayTargetHealthBar = healthPB
+
+	hs.displayTargetTowerUpdateC1 = update1ImageBtnC
+	hs.displayTargetTowerUpdateButton1 = update1BtnW
+	hs.displayTargetTowerUpdateImage1 = update1ImageBtnGraphicW
+	hs.displayTargetTowerUpdateToolTip1 = update1ToolTxt
+
+	hs.displayTargetTowerUpdateC2 = update2ImageBtnC
+	hs.displayTargetTowerUpdateButton2 = update2BtnW
+	hs.displayTargetTowerUpdateImage2 = update2ImageBtnGraphicW
+	hs.displayTargetTowerUpdateToolTip2 = update2ToolTxt
+
+	hs.displayTargetTowerRangeTxtW = towerRangeTxtW
+	hs.displayTargetTowerDamageTxtW = towerDamageTxtW
+	hs.displayTargetTowerAttackSpeedTxtW = towerAttackSpeedTxtW
+	hs.displayTargetTowerNameTxtW = towerNameTxtW
+
+	hs.displayTargetTowerSellToolTip = sellToolTxt
+
+	hs.displayTargetC = displayC
+
+	return displayC
+}
+
+func (hs *HUDStore) scoreboardModal() {
+	frameC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(1),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(10)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(0, 10),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false}),
+		)),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.Border4Key, 4, 6, !isPressed)),
+	)
+
+	tableHeaderC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(6),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(20, 0),
+			// TODO: Does not work
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false, true, true, true, true, true}, []bool{false}),
+			//widget.GridLayoutOpts.Stretch([]bool{false}, []bool{false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				VerticalPosition:   widget.GridLayoutPositionStart,
+			}),
+		),
+	)
+
+	tableHeaderC.AddChild(
+		// First header is empty as it's the image
+		widget.NewText(
+			widget.TextOpts.Text("", cutils.NormalFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionStart,
+					VerticalPosition:   widget.GridLayoutPositionStart,
+				}),
+				func(w *widget.Widget) {
+					w.MinWidth = 46
+				},
+			),
+		),
+		widget.NewText(
+			widget.TextOpts.Text("Name", cutils.NormalFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionStart,
+					VerticalPosition:   widget.GridLayoutPositionStart,
+					MaxWidth:           100,
+				}),
+				func(w *widget.Widget) {
+					w.MinWidth = 100
+				},
+			),
+		),
+		widget.NewText(
+			widget.TextOpts.Text("Units", cutils.NormalFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionStart,
+					VerticalPosition:   widget.GridLayoutPositionStart,
+					MaxWidth:           100,
+				}),
+				func(w *widget.Widget) {
+					w.MinWidth = 100
+				},
+			),
+		),
+		widget.NewText(
+			widget.TextOpts.Text("Lives", cutils.NormalFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionStart,
+					VerticalPosition:   widget.GridLayoutPositionStart,
+					MaxWidth:           100,
+				}),
+				func(w *widget.Widget) {
+					w.MinWidth = 100
+				},
+			),
+		),
+		widget.NewText(
+			widget.TextOpts.Text("Income", cutils.NormalFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionStart,
+					VerticalPosition:   widget.GridLayoutPositionStart,
+					MaxWidth:           100,
+				}),
+				func(w *widget.Widget) {
+					w.MinWidth = 100
+				},
+			),
+		),
+		widget.NewText(
+			widget.TextOpts.Text("Researches", cutils.NormalFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionStart,
+					VerticalPosition:   widget.GridLayoutPositionStart,
+					MaxWidth:           200,
+				}),
+				func(w *widget.Widget) {
+					w.MinWidth = 200
+				},
+			),
+		),
+	)
+
+	tableBodyC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(1),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(0, 10),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				VerticalPosition:   widget.GridLayoutPositionStart,
+			}),
+		),
+	)
+
+	frameC.AddChild(
+		tableHeaderC,
+		tableBodyC,
+	)
+
+	window := widget.NewWindow(
+		widget.WindowOpts.Contents(frameC),
+		widget.WindowOpts.Modal(),
+	)
+
+	hs.scoreboardC = frameC
+	hs.scoreboardBodyC = tableBodyC
+	hs.scoreboardW = window
+}
+
+func (hs *HUDStore) buildScoreboard() {
+	hs.scoreboardBodyC.RemoveChildren()
+
+	// This are the Headers
+	var sortedPlayers = make([]*store.Player, 0, 0)
+	for _, p := range hs.game.Store.Lines.ListPlayers() {
+		sortedPlayers = append(sortedPlayers, p)
+	}
+	sort.Slice(sortedPlayers, func(i, j int) bool {
+		ii := sortedPlayers[i]
+		jj := sortedPlayers[j]
+		return ii.LineID < jj.LineID
+	})
+	for _, p := range sortedPlayers {
+		tableRowC := widget.NewContainer(
+			// the container will use an anchor layout to layout its single child widget
+			widget.ContainerOpts.Layout(widget.NewGridLayout(
+				//Define number of columns in the grid
+				widget.GridLayoutOpts.Columns(6),
+				//Define how far apart the rows and columns should be
+				widget.GridLayoutOpts.Spacing(20, 0),
+				widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+				//Define how to stretch the rows and columns. Note it is required to
+				//specify the Stretch for each row and column.
+				widget.GridLayoutOpts.Stretch([]bool{false, true, true, true, true, true}, []bool{false}),
+				//widget.GridLayoutOpts.Stretch([]bool{false}, []bool{false}),
+			)),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionStart,
+					VerticalPosition:   widget.GridLayoutPositionStart,
+				}),
+			),
+			widget.ContainerOpts.BackgroundImage(cutils.ImageToNineSlice(cutils.ScoreboardRowBGKey)),
+		)
+		// Image
+		imageBtnC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					MaxWidth:  46,
+					MaxHeight: 46,
+				}),
+			),
+		)
+
+		imageBtnBtnW := widget.NewButton(
+			widget.ButtonOpts.Image(cutils.ButtonImageFromKey(cutils.Border4Key, 4, 6)),
+		)
+		imageBtnGraphicW := widget.NewGraphic(widget.GraphicOpts.Image(cutils.Images.Get(unit.Units[unit.Ninja.String()].FacesetKey())))
+
+		imageBtnC.AddChild(imageBtnBtnW)
+		imageBtnC.AddChild(imageBtnGraphicW)
+
+		tableRowC.AddChild(
+			imageBtnC,
+			widget.NewText(
+				widget.TextOpts.Text(p.Name, cutils.NormalFont, cutils.TextColor),
+				widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+				widget.TextOpts.WidgetOpts(
+					widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+						HorizontalPosition: widget.GridLayoutPositionStart,
+						VerticalPosition:   widget.GridLayoutPositionStart,
+						MaxWidth:           100,
+					}),
+					func(w *widget.Widget) {
+						w.MinWidth = 100
+					},
+				),
+			),
+			widget.NewText(
+				widget.TextOpts.Text("WIP", cutils.NormalFont, cutils.TextColor),
+				widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+				widget.TextOpts.WidgetOpts(
+					widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+						HorizontalPosition: widget.GridLayoutPositionStart,
+						VerticalPosition:   widget.GridLayoutPositionStart,
+						MaxWidth:           100,
+					}),
+					func(w *widget.Widget) {
+						w.MinWidth = 100
+					},
+				),
+			),
+			widget.NewText(
+				widget.TextOpts.Text(fmt.Sprint(p.Lives), cutils.NormalFont, cutils.TextColor),
+				widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+				widget.TextOpts.WidgetOpts(
+					widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+						HorizontalPosition: widget.GridLayoutPositionStart,
+						VerticalPosition:   widget.GridLayoutPositionStart,
+						MaxWidth:           100,
+					}),
+					func(w *widget.Widget) {
+						w.MinWidth = 100
+					},
+				),
+			),
+			widget.NewText(
+				widget.TextOpts.Text(fmt.Sprint(p.Income), cutils.NormalFont, cutils.TextColor),
+				widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+				widget.TextOpts.WidgetOpts(
+					widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+						HorizontalPosition: widget.GridLayoutPositionStart,
+						VerticalPosition:   widget.GridLayoutPositionStart,
+						MaxWidth:           100,
+					}),
+					func(w *widget.Widget) {
+						w.MinWidth = 100
+					},
+				),
+			),
+			widget.NewText(
+				widget.TextOpts.Text("WIP", cutils.NormalFont, cutils.TextColor),
+				widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+				widget.TextOpts.WidgetOpts(
+					widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+						HorizontalPosition: widget.GridLayoutPositionStart,
+						VerticalPosition:   widget.GridLayoutPositionStart,
+						MaxWidth:           300,
+					}),
+					func(w *widget.Widget) {
+						w.MinWidth = 300
+					},
+				),
+			),
+		)
+		hs.scoreboardBodyC.AddChild(tableRowC)
+	}
+}
+
+func (hs *HUDStore) infoUI() *widget.Container {
+	infoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	contentRC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+		),
+	)
+
+	timerC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+		)),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.InfoLeftBGKey, 1, 1, !isPressed)),
+	)
+	timerTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("000:01", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(96, 0)),
+	)
+
+	timerC.AddChild(timerTxt)
+
+	goldInfoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(5),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Stretch: true,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.InfoMiddleBGKey, 1, 1, !isPressed)),
+	)
+
+	goldIconG := widget.NewGraphic(
+		widget.GraphicOpts.Image(cutils.Images.Get(cutils.GoldIconKey)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+			widget.WidgetOpts.MinSize(16, 0),
+		),
+	)
+	goldTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("40", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(80, 0)),
+	)
+
+	goldInfoC.AddChild(
+		goldIconG,
+		goldTxt,
+	)
+
+	capInfoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(5),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Stretch: true,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.InfoMiddleBGKey, 1, 1, !isPressed)),
+	)
+
+	capIconG := widget.NewGraphic(
+		widget.GraphicOpts.Image(cutils.Images.Get(cutils.CapIconKey)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+			widget.WidgetOpts.MinSize(16, 0),
+		),
+	)
+	capTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("0/200", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(80, 0)),
+	)
+
+	capInfoC.AddChild(
+		capIconG,
+		capTxt,
+	)
+
+	livesInfoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(5),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Stretch: true,
+			}),
+		),
+
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.InfoMiddleBGKey, 1, 1, !isPressed)),
+	)
+
+	livesIconG := widget.NewGraphic(
+		widget.GraphicOpts.Image(cutils.Images.Get(cutils.HeartIconKey)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+			widget.WidgetOpts.MinSize(16, 0),
+		),
+	)
+	livesTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("20", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(80, 0)),
+	)
+
+	livesInfoC.AddChild(
+		livesIconG,
+		livesTxt,
+	)
+
+	incomeInfoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(5),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Stretch: true,
+			}),
+		),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.InfoMiddleBGKey, 1, 1, !isPressed)),
+	)
+
+	incomeIconG := widget.NewGraphic(
+		widget.GraphicOpts.Image(cutils.Images.Get(cutils.IncomeIconKey)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+			widget.WidgetOpts.MinSize(16, 0),
+		),
+	)
+	incomeTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("25", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(80, 0)),
+	)
+
+	incomeInfoC.AddChild(
+		incomeIconG,
+		incomeTxt,
+	)
+
+	incomeTimerInfoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(5),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Stretch: true,
+			}),
+		),
+
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.InfoRightBGKey, 1, 1, !isPressed)),
+	)
+
+	incomeTimerIconG := widget.NewGraphic(
+		widget.GraphicOpts.Image(cutils.Images.Get(cutils.IncomeTimerIconKey)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+			widget.WidgetOpts.MinSize(16, 0),
+		),
+	)
+	incomeTimerTxt := widget.NewText(
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.Text("15s", cutils.SmallFont, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(80, 0)),
+	)
+
+	incomeTimerInfoC.AddChild(
+		incomeTimerIconG,
+		incomeTimerTxt,
+	)
+
+	contentRC.AddChild(
+		timerC,
+		goldInfoC,
+		capInfoC,
+		livesInfoC,
+		incomeInfoC,
+		incomeTimerInfoC,
+	)
+
+	infoC.AddChild(contentRC)
+
+	hs.infoTimerTxt = timerTxt
+	hs.infoGoldTxt = goldTxt
+	hs.infoCapTxt = capTxt
+	hs.infoLivesTxt = livesTxt
+	hs.infoIncomeTxt = incomeTxt
+	hs.infoIncomeTimerTxt = incomeTimerTxt
+
+	return infoC
+}
+
+func (hs *HUDStore) menuUI() *widget.Container {
+	menuC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	menuBtnW := widget.NewButton(
+		// set general widget options
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionEnd,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.BigButtonResource()),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("Menu", cutils.NormalFont, &cutils.ButtonTextColor),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(
+			widget.Insets{
+				Left:   30,
+				Right:  30,
+				Top:    5,
+				Bottom: 5,
+			},
+		),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			hs.loadModal(hs.menuW)
+		}),
+
+		cutils.BigButtonOptsPressedText,
+		cutils.BigButtonOptsReleasedText,
+		cutils.BigButtonOptsCursorEnteredText,
+		cutils.BigButtonOptsCursorExitText,
+	)
+
+	hs.menuBtnW = menuBtnW
+	menuC.AddChild(menuBtnW)
+
+	return menuC
+}
+
+func (hs *HUDStore) menuModal() {
+	frameC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(80)),
+			widget.RowLayoutOpts.Spacing(40),
+		)),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.SetupGameFrameKey, 1, 1, !isPressed)),
+	)
+
+	titleW := widget.NewText(
+		widget.TextOpts.Text("Menu", cutils.Font60, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+
+	buttonsC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(1),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(0, 10),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{true, true}, []bool{true, true}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+		),
+	)
+
+	btnPadding := widget.Insets{
+		Left:   30,
+		Right:  30,
+		Top:    15,
+		Bottom: 15,
+	}
+
+	keybinds := widget.NewButton(
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.BigButtonResource()),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("Keybinds", cutils.NormalFont, &cutils.ButtonTextColor),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(btnPadding),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			hs.closeModal(hs.menuW)
+			hs.loadModal(hs.keybindsW)
+		}),
+
+		cutils.BigButtonOptsPressedText,
+		cutils.BigButtonOptsReleasedText,
+		cutils.BigButtonOptsCursorEnteredText,
+		cutils.BigButtonOptsCursorExitText,
+	)
+
+	leave := widget.NewButton(
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.BigButtonResource()),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("Leave", cutils.NormalFont, &cutils.ButtonTextColor),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(btnPadding),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			u := hs.game.Store.Lines.FindCurrentPlayer()
+			actionDispatcher.RemovePlayer(u.ID)
+		}),
+
+		cutils.BigButtonOptsPressedText,
+		cutils.BigButtonOptsReleasedText,
+		cutils.BigButtonOptsCursorEnteredText,
+		cutils.BigButtonOptsCursorExitText,
+	)
+
+	buttonsC.AddChild(
+		keybinds,
+		leave,
+	)
+
+	frameC.AddChild(
+		titleW,
+		buttonsC,
+	)
+
+	window := widget.NewWindow(
+		widget.WindowOpts.Contents(frameC),
+		widget.WindowOpts.Modal(),
+		widget.WindowOpts.CloseMode(widget.CLICK_OUT),
+	)
+
+	hs.menuW = window
+}
+
+func (hs *HUDStore) menuKeybindsModal() {
+	frameC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(80)),
+			widget.RowLayoutOpts.Spacing(40),
+		)),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.SetupGameFrameKey, 1, 1, !isPressed)),
+	)
+
+	titleW := widget.NewText(
+		widget.TextOpts.Text("Keybinds", cutils.Font40, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+		),
+	)
+
+	keybindsGC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(1),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(0, 20),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{true, true, true, true}, []bool{false, false, false, false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+		),
+	)
+
+	unitstitleW := widget.NewText(
+		widget.TextOpts.Text("Units", cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+
+	unitsKeybindsGC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(2),
+			//Define how much padding to inset the child content
+			//widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(5, 5),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{true, true, true, true, true, true, true, true, true, true, true}, []bool{false}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+			widget.WidgetOpts.MinSize(400, 0),
+		),
+	)
+
+	for _, u := range sortedUnits() {
+		nameTxt := widget.NewText(
+			widget.TextOpts.Text(u.Name(), cutils.SmallFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+		)
+		keybindTxt := widget.NewText(
+			widget.TextOpts.Text(u.Keybind, cutils.SmallFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+		)
+		unitsKeybindsGC.AddChild(
+			nameTxt,
+			keybindTxt,
+		)
+	}
+
+	updateNameTxt := widget.NewText(
+		widget.TextOpts.Text("Mod + unit keybind", cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	updateKeybindTxt := widget.NewText(
+		widget.TextOpts.Text(ebiten.KeyShift.String(), cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+	)
+	unitsKeybindsGC.AddChild(
+		updateNameTxt,
+		updateKeybindTxt,
+	)
+
+	towerstitleW := widget.NewText(
+		widget.TextOpts.Text("Towers", cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+
+	towersKeybindsGC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(2),
+			//Define how much padding to inset the child content
+			//widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(5, 5),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{true, true, true, true}, []bool{false, false}),
+		)),
+	)
+
+	for _, t := range sortedTowers() {
+		nameTxt := widget.NewText(
+			widget.TextOpts.Text(t.Name(), cutils.SmallFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+		)
+		keybindTxt := widget.NewText(
+			widget.TextOpts.Text(towerKeybinds[t.Type.String()].String(), cutils.SmallFont, cutils.TextColor),
+			widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+		)
+		towersKeybindsGC.AddChild(
+			nameTxt,
+			keybindTxt,
+		)
+	}
+
+	sellNameTxt := widget.NewText(
+		widget.TextOpts.Text("Target - Sell", cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	sellKeybindTxt := widget.NewText(
+		widget.TextOpts.Text(sellTowerKeybind.String(), cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+	)
+	towersKeybindsGC.AddChild(
+		sellNameTxt,
+		sellKeybindTxt,
+	)
+
+	firstUpdateNameTxt := widget.NewText(
+		widget.TextOpts.Text("Target - First update", cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	firstUpdateKeybindTxt := widget.NewText(
+		widget.TextOpts.Text(ebiten.KeyZ.String(), cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+	)
+	towersKeybindsGC.AddChild(
+		firstUpdateNameTxt,
+		firstUpdateKeybindTxt,
+	)
+
+	secondUpdateNameTxt := widget.NewText(
+		widget.TextOpts.Text("Target - Second update", cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	secondUpdateKeybindTxt := widget.NewText(
+		widget.TextOpts.Text(ebiten.KeyX.String(), cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+	)
+	towersKeybindsGC.AddChild(
+		secondUpdateNameTxt,
+		secondUpdateKeybindTxt,
+	)
+
+	otherstitleW := widget.NewText(
+		widget.TextOpts.Text("Others", cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}),
+		),
+	)
+
+	othersKeybindsGC := widget.NewContainer(
+		// the container will use an anchor layout to layout its single child widget
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(2),
+			//Define how much padding to inset the child content
+			//widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(6)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(5, 5),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{true, true}, []bool{false, false}),
+		)),
+	)
+
+	homeTxt := widget.NewText(
+		widget.TextOpts.Text("Home Line", cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	homeKeybindTxt := widget.NewText(
+		widget.TextOpts.Text(ebiten.KeyF1.String(), cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+	)
+	scoreboardTxt := widget.NewText(
+		widget.TextOpts.Text("Scoreboard", cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	scoreboardKeybindTxt := widget.NewText(
+		widget.TextOpts.Text(ebiten.KeyTab.String(), cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+	)
+	menuTxt := widget.NewText(
+		widget.TextOpts.Text("Open/Close Menu", cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	menuKeybindTxt := widget.NewText(
+		widget.TextOpts.Text(ebiten.KeyEscape.String(), cutils.SmallFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+	)
+
+	othersKeybindsGC.AddChild(
+		homeTxt, homeKeybindTxt,
+		scoreboardTxt, scoreboardKeybindTxt,
+		menuTxt, menuKeybindTxt,
+	)
+
+	keybindsGC.AddChild(
+		unitstitleW,
+		unitsKeybindsGC,
+		towerstitleW,
+		towersKeybindsGC,
+		otherstitleW,
+		othersKeybindsGC,
+	)
+
+	frameC.AddChild(
+		titleW,
+		keybindsGC,
+	)
+
+	window := widget.NewWindow(
+		widget.WindowOpts.Contents(frameC),
+		widget.WindowOpts.Modal(),
+		widget.WindowOpts.CloseMode(widget.CLICK_OUT),
+	)
+
+	hs.keybindsW = window
 }
 
 func (hs *HUDStore) guiBottomLeft() *widget.Container {
@@ -1007,7 +3133,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 
 	removeToolTxt := widget.NewText(
 		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-		widget.TextOpts.Text(fmt.Sprintf(towerRemoveToolTipTmpl, 0, removeTowerKeybind), cutils.SmallFont, color.White),
+		widget.TextOpts.Text(fmt.Sprintf(towerRemoveToolTipTmpl, 0, sellTowerKeybind), cutils.SmallFont, color.White),
 		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 	)
 	hs.towerRemoveToolTip = removeToolTxt
@@ -1034,7 +3160,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 			)),
 		),
 		// specify the images to sue
-		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(crossImageKey))),
+		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(cutils.Images.Get(cutils.CrossImageKey))),
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
@@ -1084,7 +3210,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 			)),
 		),
 		// specify the images to sue
-		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(arrowImageKey))),
+		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(cutils.Images.Get(cutils.ArrowImageKey))),
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
@@ -1133,7 +3259,7 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 			)),
 		),
 		// specify the images to sue
-		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(imagesCache.Get(arrowImageKey))),
+		widget.ButtonOpts.Image(cutils.ButtonImageFromImage(cutils.Images.Get(cutils.ArrowImageKey))),
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func() func(args *widget.ButtonClickedEventArgs) {
@@ -1156,4 +3282,31 @@ func (hs *HUDStore) guiBottomLeft() *widget.Container {
 	hs.towerUpdateButton2 = ubtn2
 
 	return bottomLeftContainer
+}
+
+func (hs *HUDStore) loadModal(w *widget.Window) {
+	if hs.ui.IsWindowOpen(w) {
+		return
+	}
+	//Get the preferred size of the content
+	x, y := w.Contents.PreferredSize()
+	//Create a rect with the preferred size of the content
+	r := stdimage.Rect(0, 0, x, y)
+
+	uirect := hs.ui.Container.GetWidget().Rect
+	uix, uiy := uirect.Dx(), uirect.Dy()
+	//Use the Add method to move the window to the specified point
+	r = r.Add(stdimage.Point{uix/2 - x/2, uiy/2 - y/2})
+	//Set the windows location to the rect.
+	w.SetLocation(r)
+	//Add the window to the UI.
+	//Note: If the window is already added, this will just move the window and not add a duplicate.
+	hs.ui.AddWindow(w)
+}
+
+func (hs *HUDStore) closeModal(w *widget.Window) {
+	if !hs.ui.IsWindowOpen(w) {
+		return
+	}
+	w.Close()
 }

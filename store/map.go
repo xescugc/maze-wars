@@ -110,6 +110,8 @@ func (m *Map) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.StartGame:
+		m.GetDispatcher().WaitFor(m.store.Lines.GetDispatcherToken())
+
 		mstate.Players = len(m.store.Lines.ListPlayers())
 		mstate.Image, ok = MapImages[mstate.Players]
 		if !ok {

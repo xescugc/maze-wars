@@ -55,6 +55,18 @@ func (us *UsersStore) FindByUsername(un string) (User, bool) {
 	return *u, true
 }
 
+func (us *UsersStore) FindByID(uid string) (User, bool) {
+	us.mxUsers.RLock()
+	defer us.mxUsers.RUnlock()
+
+	for _, u := range us.GetState().(UsersState).Users {
+		if u.ID == uid {
+			return *u, true
+		}
+	}
+	return User{}, false
+}
+
 func (us *UsersStore) FindByRemoteAddress(ra string) (User, bool) {
 	us.mxUsers.RLock()
 	defer us.mxUsers.RUnlock()

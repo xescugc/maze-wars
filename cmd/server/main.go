@@ -43,8 +43,9 @@ var (
 			l := slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{
 				Level: lvl,
 			}))
-			ss := server.NewStore(d, l)
-			ad := server.NewActionDispatcher(d, l, ss, server.NewWS())
+			ws := server.NewWS()
+			ss := server.NewStore(d, ws, l)
+			ad := server.NewActionDispatcher(d, l, ss, ws)
 
 			err := server.New(ad, ss, server.Options{
 				Port:    viper.GetString("port"),

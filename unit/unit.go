@@ -51,6 +51,14 @@ func (u *Unit) HasAbility(a ability.Ability) bool {
 	return false
 }
 
+func (u *Unit) Name() string {
+	n, ok := names[u.Type]
+	if !ok {
+		return u.Type.String()
+	}
+	return n
+}
+
 var (
 	Units map[string]*Unit
 
@@ -78,6 +86,19 @@ var (
 		BlendMaster:   assets.BlendMasterFaceset_png,
 		Robot:         assets.RobotFaceset_png,
 		MonkeyBoxer:   assets.MonkeyBoxerFaceset_png,
+	}
+
+	names = map[Type]string{
+		Ninja:         "Ninja",
+		Statue:        "Statue",
+		Hunter:        "Hunter",
+		Slime:         "Slime",
+		Mole:          "Mole",
+		SkeletonDemon: "Skeleton Demon",
+		Butterfly:     "Butterfly",
+		BlendMaster:   "Blend Master",
+		Robot:         "Robot",
+		MonkeyBoxer:   "Monkey Boxer",
 	}
 )
 

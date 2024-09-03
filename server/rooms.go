@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/xescugc/go-flux"
@@ -19,10 +22,23 @@ type RoomsStore struct {
 
 	logger  *slog.Logger
 	mxRooms sync.RWMutex
+
+	ws WSConnector
 }
 
 type RoomsState struct {
-	Rooms                 map[string]*Room
+	// Searching are the current rooms that are searching for players
+	// the key of the map is a combination of the vs+ranked values
+	// so it can have 8 possible keys
+	Searching map[string]*Room
+
+	// Waiting is when a Searching Room it's ready to start we enter the Waiting
+	// where all the participants have to accept the game
+	Waiting map[string]*Room
+
+	// Rooms is when an Waiting room is ready to start
+	Rooms map[string]*Room
+
 	CurrentVs6WaitingRoom string
 	CurrentVs1WaitingRoom string
 }
@@ -34,6 +50,8 @@ type Room struct {
 
 	Connections map[string]string
 
+	// This is used so when the Room ends we
+	// cancel any connected process to it
 	Context         context.Context
 	ContextCancelFn context.CancelFunc
 	Bots            map[string]*bot.Bot
@@ -41,7 +59,18 @@ type Room struct {
 	Size      int
 	Countdown int
 
+	Ranked bool
+
 	Game *Game
+
+	SearchingSince time.Time
+	WaitingSince   time.Time
+
+	// PlayersAccepted is the list of players username that accepted the game
+	PlayersAccepted map[string]struct{}
+
+	// StartedAt is the time in which the Game started
+	StartedAt time.Time
 }
 
 type PlayerConn struct {
@@ -50,14 +79,17 @@ type PlayerConn struct {
 	IsBot      bool
 }
 
-func NewRoomsStore(d *flux.Dispatcher, s *Store, l *slog.Logger) *RoomsStore {
+func NewRoomsStore(d *flux.Dispatcher, s *Store, ws WSConnector, l *slog.Logger) *RoomsStore {
 	rs := &RoomsStore{
 		Store:  s,
 		logger: l,
+		ws:     ws,
 	}
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RoomsState{
-		Rooms: make(map[string]*Room),
+		Rooms:     make(map[string]*Room),
+		Searching: make(map[string]*Room),
+		Waiting:   make(map[string]*Room),
 	})
 
 	return rs
@@ -70,6 +102,30 @@ func (rs *RoomsStore) List() []*Room {
 	srooms := rs.GetState().(RoomsState)
 	rooms := make([]*Room, 0, len(srooms.Rooms))
 	for _, r := range srooms.Rooms {
+		rooms = append(rooms, r)
+	}
+	return rooms
+}
+
+func (rs *RoomsStore) ListSearching() []*Room {
+	rs.mxRooms.RLock()
+	defer rs.mxRooms.RUnlock()
+
+	srooms := rs.GetState().(RoomsState)
+	rooms := make([]*Room, 0, len(srooms.Rooms))
+	for _, r := range srooms.Searching {
+		rooms = append(rooms, r)
+	}
+	return rooms
+}
+
+func (rs *RoomsStore) ListWaiting() []*Room {
+	rs.mxRooms.RLock()
+	defer rs.mxRooms.RUnlock()
+
+	srooms := rs.GetState().(RoomsState)
+	rooms := make([]*Room, 0, len(srooms.Rooms))
+	for _, r := range srooms.Waiting {
 		rooms = append(rooms, r)
 	}
 	return rooms
@@ -129,32 +185,32 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 
 	switch act.Type {
 	case action.StartRoom:
-		rid := act.StartRoom.RoomID
+		//rid := act.StartRoom.RoomID
 
-		rd := flux.NewDispatcher()
-		g := NewGame(rd, rs.logger)
-		cr := rstate.Rooms[rid]
-		ctx := context.Background()
-		cr.Context, cr.ContextCancelFn = context.WithCancel(ctx)
-		cr.Game = g
-		pcount := 0
-		for pid, pc := range rstate.Rooms[rid].Players {
-			if pc.IsBot {
-				g.Dispatch(action.NewAddPlayer(pid, pid, pcount))
-				cr.Bots[pid] = bot.New(cr.Context, rd, g.Store, pid)
-			} else {
-				u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
-				g.Dispatch(action.NewAddPlayer(pid, u.Username, pcount))
-			}
-			pcount++
-		}
-		if rid == rstate.CurrentVs6WaitingRoom {
-			rstate.CurrentVs6WaitingRoom = ""
-		}
-		if rid == rstate.CurrentVs1WaitingRoom {
-			rstate.CurrentVs1WaitingRoom = ""
-		}
-		g.Dispatch(action.NewStartGame())
+		//rd := flux.NewDispatcher()
+		//g := NewGame(rd, rs.logger)
+		//cr := rstate.Rooms[rid]
+		//ctx := context.Background()
+		//cr.Context, cr.ContextCancelFn = context.WithCancel(ctx)
+		//cr.Game = g
+		//pcount := 0
+		//for pid, pc := range rstate.Rooms[rid].Players {
+		//if pc.IsBot {
+		//g.Dispatch(action.NewAddPlayer(pid, pid, pcount))
+		//cr.Bots[pid] = bot.New(cr.Context, rd, g.Store, pid)
+		//} else {
+		//u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
+		//g.Dispatch(action.NewAddPlayer(pid, u.Username, pcount))
+		//}
+		//pcount++
+		//}
+		//if rid == rstate.CurrentVs6WaitingRoom {
+		//rstate.CurrentVs6WaitingRoom = ""
+		//}
+		//if rid == rstate.CurrentVs1WaitingRoom {
+		//rstate.CurrentVs1WaitingRoom = ""
+		//}
+		//g.Dispatch(action.NewStartGame(rs.SyncState(cr)))
 	case action.StartLobby:
 		l := rs.Store.Lobbies.FindByID(act.StartLobby.LobbyID)
 		r := &Room{
@@ -183,6 +239,127 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		}
 
 		rstate.Rooms[l.ID] = r
+
+		rs.startRoom(rstate, l.ID)
+	case action.FindGame:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		size := 2
+		if !act.FindGame.Vs1 {
+			size = 6
+		}
+
+		// If it has the VsBots true it'll never match as we'll never set it
+		// so with VsBots we'll always create a new Room but before setting it
+		// we'll do the logic
+		sID := fmt.Sprintf("vs1=%b-ranked=%bbot=%b", act.FindGame.Vs1, act.FindGame.Ranked, act.FindGame.VsBots)
+
+		sr, ok := rstate.Searching[sID]
+		if !ok {
+			rid := uuid.Must(uuid.NewV4())
+			sr = &Room{
+				Name:        rid.String(),
+				Players:     make(map[string]PlayerConn),
+				Connections: make(map[string]string),
+				Bots:        make(map[string]*bot.Bot),
+
+				Size: size,
+
+				Ranked: act.FindGame.Ranked,
+
+				SearchingSince: time.Now(),
+
+				PlayersAccepted: make(map[string]struct{}),
+			}
+		}
+
+		us, _ := rs.Store.Users.FindByUsername(act.FindGame.Username)
+		sr.Players[us.ID] = PlayerConn{
+			Conn:       us.Conn,
+			RemoteAddr: us.RemoteAddr,
+		}
+		sr.Connections[us.RemoteAddr] = us.ID
+
+		// If the number of players is reached then we move the Room
+		// to the waiting state
+		if len(sr.Players) == sr.Size {
+			sr.SearchingSince = time.Time{}
+			sr.WaitingSince = time.Now()
+			rstate.Waiting[sr.Name] = sr
+
+			delete(rstate.Searching, sID)
+		} else {
+			if act.FindGame.VsBots {
+				// If we play against bots we'll add the Bots, and make them all Accept
+				// so the player is prompted with the accept modal
+				sr.SearchingSince = time.Time{}
+				sr.WaitingSince = time.Now()
+				for i := range make([]int, sr.Size-1) {
+					bn := fmt.Sprintf("Bot-%d", i+1)
+					sr.Players[bn] = PlayerConn{
+						IsBot: true,
+					}
+					sr.PlayersAccepted[bn] = struct{}{}
+				}
+				rstate.Waiting[sr.Name] = sr
+			} else {
+				rstate.Searching[sID] = sr
+			}
+		}
+	case action.ExitSearchingGame:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		// TODO: Potentially add this to the RemovePlayer
+		us, _ := rs.Store.Users.FindByUsername(act.ExitSearchingGame.Username)
+		for sID, sr := range rstate.Searching {
+			if _, ok := sr.Players[us.ID]; ok {
+				delete(sr.Players, us.ID)
+				delete(sr.Connections, us.RemoteAddr)
+				if len(sr.Players) == 0 {
+					delete(rstate.Searching, sID)
+				}
+			}
+		}
+	case action.AcceptWaitingGame:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		us, _ := rs.Store.Users.FindByUsername(act.AcceptWaitingGame.Username)
+		for wrID, wr := range rstate.Waiting {
+			if _, ok := wr.Players[us.ID]; ok {
+				wr.PlayersAccepted[us.Username] = struct{}{}
+			}
+			if len(wr.PlayersAccepted) == len(wr.Players) {
+				rstate.Rooms[wrID] = wr
+				wr.WaitingSince = time.Time{}
+				wr.PlayersAccepted = nil
+
+				delete(rstate.Waiting, wrID)
+				rs.startRoom(rstate, wrID)
+			}
+		}
+	case action.CancelWaitingGame:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		us, _ := rs.Store.Users.FindByUsername(act.CancelWaitingGame.Username)
+		for wrID, wr := range rstate.Waiting {
+			if _, ok := wr.Players[us.ID]; ok {
+
+				for _, pc := range wr.Players {
+					if pc.IsBot {
+						continue
+					}
+					err := rs.ws.Write(context.Background(), pc.Conn, act)
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+				delete(rstate.Waiting, wrID)
+			}
+		}
 
 	case action.RemovePlayer:
 		rs.mxRooms.Lock()
@@ -297,6 +474,9 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		if act.Room == "" {
 			for _, r := range rstate.Rooms {
 				if r.Name != rstate.CurrentVs6WaitingRoom && r.Name != rstate.CurrentVs1WaitingRoom {
+					if r.Game == nil {
+						return rstate
+					}
 					go r.Game.Dispatch(act)
 				}
 			}
@@ -311,32 +491,158 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 }
 
 func removePlayer(rstate *RoomsState, pid, room string) {
-	pc := rstate.Rooms[room].Players[pid]
-	delete(rstate.Rooms[room].Players, pid)
-	delete(rstate.Rooms[room].Connections, pc.RemoteAddr)
+	if room != "" {
+		pc := rstate.Rooms[room].Players[pid]
+		delete(rstate.Rooms[room].Players, pid)
+		delete(rstate.Rooms[room].Connections, pc.RemoteAddr)
 
-	rstate.Rooms[room].Game.Dispatch(action.NewRemovePlayer(pid))
+		rstate.Rooms[room].Game.Dispatch(action.NewRemovePlayer(pid))
 
-	if pc.IsBot {
-		rstate.Rooms[room].Bots[pid].Stop()
-		delete(rstate.Rooms[room].Bots, pid)
+		if pc.IsBot {
+			rstate.Rooms[room].Bots[pid].Stop()
+			delete(rstate.Rooms[room].Bots, pid)
+		}
+
+		if len(rstate.Rooms[room].Players) == 0 {
+			delete(rstate.Rooms, room)
+		}
+		var humanFound bool
+		for _, pc := range rstate.Rooms[room].Players {
+			if !pc.IsBot {
+				humanFound = true
+				break
+			}
+		}
+		// If no human was found left alive we just remove the room
+		if !humanFound {
+			for _, b := range rstate.Rooms[room].Bots {
+				b.Stop()
+			}
+			delete(rstate.Rooms, room)
+		}
+	} else {
+		// TODO: Fix this
+		// Search for the Waiting rooms
+		//for sID, sr := range rs.Waiting {
+		//if _, ok := sr.Players[pid]; ok {
+		//delete(sr.Players, pid)
+		//delete(sr.Connections, pc.RemoteAddr)
+		//if len(sr.Players) == 0 {
+		//delete(rs.Waiting, sID)
+		//}
+		//}
+		//}
 	}
+}
 
-	if len(rstate.Rooms[room].Players) == 0 {
-		delete(rstate.Rooms, room)
+func (rs RoomsStore) startRoom(rstate RoomsState, rid string) {
+	rd := flux.NewDispatcher()
+	g := NewGame(rd, rs.logger)
+	cr := rstate.Rooms[rid]
+	cr.StartedAt = time.Now()
+	ctx := context.Background()
+	cr.Context, cr.ContextCancelFn = context.WithCancel(ctx)
+	cr.Game = g
+	pcount := 0
+	for pid, pc := range cr.Players {
+		if pc.IsBot {
+			g.Dispatch(action.NewAddPlayer(pid, pid, pcount))
+			cr.Bots[pid] = bot.New(cr.Context, rd, g.Store, pid)
+		} else {
+			u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
+			g.Dispatch(action.NewAddPlayer(pid, u.Username, pcount))
+		}
+		pcount++
 	}
-	var humanFound bool
-	for _, pc := range rstate.Rooms[room].Players {
-		if !pc.IsBot {
-			humanFound = true
-			break
+	if rid == rstate.CurrentVs6WaitingRoom {
+		rstate.CurrentVs6WaitingRoom = ""
+	}
+	if rid == rstate.CurrentVs1WaitingRoom {
+		rstate.CurrentVs1WaitingRoom = ""
+	}
+	ssp := rs.SyncState(cr, "")
+	sga := action.NewStartGame(ssp)
+
+	g.Dispatch(sga)
+	for pid, pc := range cr.Players {
+		if pc.IsBot {
+			cr.Bots[pid].Start()
+			continue
+		} else {
+			u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
+			ssp := rs.SyncState(cr, u.ID)
+			sga := action.NewStartGame(ssp)
+			err := rs.ws.Write(context.Background(), pc.Conn, sga)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
-	// If no human was found left alive we just remove the room
-	if !humanFound {
-		for _, b := range rstate.Rooms[room].Bots {
-			b.Stop()
+
+}
+
+func (rs RoomsStore) SyncState(r *Room, pid string) action.SyncStatePayload {
+	// Players
+	players := make(map[string]*action.SyncStatePlayerPayload)
+	lplayers := r.Game.Store.Lines.ListPlayers()
+	for _, p := range lplayers {
+		ap := p
+		uspp := action.SyncStatePlayerPayload{
+			ID:          ap.ID,
+			Name:        ap.Name,
+			Lives:       ap.Lives,
+			LineID:      ap.LineID,
+			Income:      ap.Income,
+			Gold:        ap.Gold,
+			Current:     ap.Current,
+			Winner:      ap.Winner,
+			UnitUpdates: make(map[string]action.SyncStatePlayerUnitUpdatePayload),
 		}
-		delete(rstate.Rooms, room)
+		// TODO: Make it concurrently safe
+		for t, uu := range ap.UnitUpdates {
+			uspp.UnitUpdates[t] = action.SyncStatePlayerUnitUpdatePayload(uu)
+		}
+		if pid == ap.ID {
+			uspp.Current = true
+		}
+		players[ap.ID] = &uspp
+	}
+
+	// Lines
+	lines := make(map[int]*action.SyncStateLinePayload)
+	llines := r.Game.Store.Lines.ListLines()
+	for _, l := range llines {
+		al := l
+		// Towers
+		towers := make(map[string]*action.SyncStateTowerPayload)
+		for _, t := range al.Towers {
+			at := t
+			ustp := action.SyncStateTowerPayload(*at)
+			towers[at.ID] = &ustp
+		}
+
+		// Units
+		units := make(map[string]*action.SyncStateUnitPayload)
+		for _, u := range al.Units {
+			au := u
+			usup := action.SyncStateUnitPayload(*au)
+			units[au.ID] = &usup
+		}
+		lines[al.ID] = &action.SyncStateLinePayload{
+			ID:     al.ID,
+			Towers: towers,
+			Units:  units,
+		}
+	}
+
+	return action.SyncStatePayload{
+		&action.SyncStatePlayersPayload{
+			Players:     players,
+			IncomeTimer: r.Game.Store.Lines.GetIncomeTimer(),
+		},
+		&action.SyncStateLinesPayload{
+			Lines: lines,
+		},
+		r.StartedAt,
 	}
 }

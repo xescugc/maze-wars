@@ -53,6 +53,7 @@ type LinesState struct {
 
 	// IncomeTimer is the internal counter that goes from 15 to 0
 	IncomeTimer int
+	StartedAt   time.Time
 }
 
 type Line struct {
@@ -98,7 +99,9 @@ type Tower struct {
 	LastAttack   time.Time
 }
 
-func (t *Tower) FacetKey() string { return tower.Towers[t.Type].FacesetKey() }
+func (t *Tower) FacetKey() string   { return tower.Towers[t.Type].FacesetKey() }
+func (t *Tower) IdleKey() string    { return tower.Towers[t.Type].IdleKey() }
+func (t *Tower) ProfileKey() string { return tower.Towers[t.Type].ProfileKey() }
 func (t *Tower) CanTarget(env environment.Environment) bool {
 	return tower.Towers[t.Type].CanTarget(env)
 }
@@ -370,14 +373,15 @@ func (u *Unit) CanAttack(tm time.Time) bool {
 }
 
 type Player struct {
-	ID      string
-	Name    string
-	Lives   int
-	LineID  int
-	Income  int
-	Gold    int
-	Current bool
-	Winner  bool
+	ID       string
+	Name     string
+	Lives    int
+	LineID   int
+	Income   int
+	Gold     int
+	Current  bool
+	Winner   bool
+	Capacity int
 
 	// UnitUpdates holds the current unit level
 	UnitUpdates map[string]UnitUpdate
@@ -399,7 +403,7 @@ type UnitUpdate struct {
 }
 
 func (p Player) CanSummonUnit(ut string) bool {
-	return (p.Gold - p.UnitUpdates[ut].Current.Gold) >= 0
+	return (p.Gold-p.UnitUpdates[ut].Current.Gold) >= 0 && (p.Capacity+1 <= utils.MaxCapacity)
 }
 func (p Player) CanUpdateUnit(ut string) bool {
 	return (p.Gold - p.UnitUpdates[ut].UpdateCost) >= 0
@@ -417,6 +421,7 @@ func NewLines(d *flux.Dispatcher, s *Store) *Lines {
 		Lines:       make(map[int]*Line),
 		Players:     make(map[string]*Player),
 		IncomeTimer: incomeTimer,
+		StartedAt:   time.Now(),
 	})
 
 	return l
@@ -524,6 +529,14 @@ func (ls *Lines) GetIncomeTimer() int {
 	return lsstate.IncomeTimer
 }
 
+func (ls *Lines) GetStartedAt() time.Time {
+	ls.mxLines.RLock()
+	defer ls.mxLines.RUnlock()
+
+	lsstate := ls.GetState().(LinesState)
+	return lsstate.StartedAt
+}
+
 func (ls *Lines) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)
 	if !ok {
@@ -569,7 +582,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Lives:  20,
 			LineID: act.AddPlayer.LineID,
 			Income: 25,
-			Gold:   40,
+			Gold:   40000,
 
 			UnitUpdates: make(map[string]UnitUpdate),
 		}
@@ -590,6 +603,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		for _, p := range lstate.Players {
 			lstate.Lines[p.LineID] = ls.newLine(p.LineID)
 		}
+		ls.syncState(&lstate, act.StartGame.State)
 	case action.PlaceTower:
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
@@ -662,6 +676,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		}
 		lstate.Players[act.SummonUnit.PlayerID].Income += cp.UnitUpdates[act.SummonUnit.Type].Current.Income
 		lstate.Players[act.SummonUnit.PlayerID].Gold -= cp.UnitUpdates[act.SummonUnit.Type].Current.Gold
+		//lstate.Players[act.SummonUnit.PlayerID].Capacity += 1
+		cp.Capacity += 1
 
 		uu := cp.UnitUpdates[act.SummonUnit.Type]
 		bu := unit.Units[act.SummonUnit.Type]
@@ -754,137 +770,9 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		ls.mxLines.Lock()
 		defer ls.mxLines.Unlock()
 
-		// Sync Lines
-		for lid, l := range act.SyncState.Lines.Lines {
-			cl, ok := lstate.Lines[lid]
-			if !ok {
-				cl = ls.newLine(lid)
-				lstate.Lines[lid] = cl
-			}
+		ls.syncState(&lstate, *act.SyncState)
 
-			// Units
-			uids := make(map[string]struct{})
-			for id := range cl.Units {
-				uids[id] = struct{}{}
-			}
-			for id, u := range l.Units {
-				delete(uids, id)
-				nu := Unit(*u)
-				ou, ok := cl.Units[id]
-
-				if ok {
-					_ = ou
-					//If the unit already exists and have the same Hash then ignore the server
-					//coordinates and path
-					if ou.HashPath == nu.HashPath {
-						nu.Path = ou.Path
-						nu.X = ou.X
-						nu.Y = ou.Y
-					}
-				}
-				if nu.Abilities != nil {
-					for k, v := range nu.Abilities {
-						switch k {
-						case ability.Split.String():
-							var a AbilitySplit
-							_ = mapstructure.Decode(v, &a)
-							nu.Abilities[k] = a
-						case ability.Burrow.String():
-							var a AbilityBurrow
-							d, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-								DecodeHook:       mapstructure.StringToTimeHookFunc(time.RFC3339Nano),
-								WeaklyTypedInput: true,
-								Result:           &a,
-							})
-							_ = d.Decode(v)
-							nu.Abilities[k] = a
-						case ability.Resurrection.String():
-							var a AbilityResurrection
-							d, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-								DecodeHook:       mapstructure.StringToTimeHookFunc(time.RFC3339Nano),
-								WeaklyTypedInput: true,
-								Result:           &a,
-							})
-							_ = d.Decode(v)
-							nu.Abilities[k] = a
-						default:
-							log.Fatal(fmt.Sprintf("ability %s not found", k))
-						}
-					}
-				}
-				//if nu.Buffs != nil {
-				//for k, v := range nu.Buffs {
-				//switch k {
-				//case buff.Burrowoed.String():
-				//var b BuffBurrowed
-				//_ = mapstructure.Decode(v, &b)
-				//nu.Buffs[k] = b
-				//default:
-				//log.Fatal(fmt.Sprintf("buff %s not found", k))
-				//}
-				//}
-				//}
-
-				cl.Units[id] = &nu
-			}
-			for id := range uids {
-				delete(cl.Units, id)
-			}
-
-			// Towers
-			tids := make(map[string]struct{})
-			for id := range cl.Towers {
-				tids[id] = struct{}{}
-			}
-			atws := make(map[string]struct{})
-			for id, t := range l.Towers {
-				at := t
-				if _, ok := tids[id]; !ok {
-					atws[id] = struct{}{}
-				}
-				delete(tids, id)
-				nt := Tower(*at)
-				cl.Towers[id] = &nt
-			}
-			for id := range tids {
-				cl.Graph.RemoveTower(id)
-				delete(cl.Towers, id)
-			}
-			for id := range atws {
-				t := cl.Towers[id]
-				cl.Graph.AddTower(id, int(t.X), int(t.Y), t.W, t.H)
-			}
-		}
-
-		// Sync Players
-		pids := make(map[string]struct{})
-		for id := range lstate.Players {
-			pids[id] = struct{}{}
-		}
-		for id, p := range act.SyncState.Players.Players {
-			delete(pids, id)
-			np := Player{
-				ID:          p.ID,
-				Name:        p.Name,
-				Lives:       p.Lives,
-				LineID:      p.LineID,
-				Income:      p.Income,
-				Gold:        p.Gold,
-				Current:     p.Current,
-				Winner:      p.Winner,
-				UnitUpdates: make(map[string]UnitUpdate),
-			}
-			for t, uu := range p.UnitUpdates {
-				np.UnitUpdates[t] = UnitUpdate(uu)
-			}
-			lstate.Players[id] = &np
-		}
-		for id := range pids {
-			delete(lstate.Players, id)
-		}
-		lstate.IncomeTimer = act.SyncState.Players.IncomeTimer
 	}
-
 	return lstate
 }
 
@@ -1005,6 +893,19 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 					// If the next line is the owner of the Unit we remove it
 					// If not then we change the unit to the next line
 					if nlid == u.PlayerLineID {
+						cp := lstate.Players[u.PlayerID]
+						// We check if the unit is a Split and then we check if the other partner is in
+						// the same line
+						if u.HasAbility(ability.Split) && u.Abilities != nil {
+							if as, ok := u.Abilities[ability.Split.String()].(AbilitySplit); ok {
+								if _, ok := l.Units[as.UnitID]; !ok {
+									// We know now the other is not in the line and it's the last one so we can reduce capacity
+									cp.Capacity -= 1
+								}
+							}
+						} else {
+							cp.Capacity -= 1
+						}
 						delete(lstate.Lines[lid].Units, u.ID)
 					} else {
 						ls.changeUnitLine(lstate, u, nlid)
@@ -1145,6 +1046,13 @@ func (ls Lines) checkAfterDamage(lstate LinesState, l *Line, tw *Tower, u *Unit,
 						// Unit Killed by player so we give gold to the player
 						cp := lstate.Players[tw.PlayerID]
 						cp.Gold += u.Bounty
+
+						// Delete Unit as we know this is the last one of the split left
+						// in the lane so we also reduce the capacity
+						up := lstate.Players[u.PlayerID]
+						up.Capacity -= 1
+						delete(l.Units, u.ID)
+						return
 					}
 				}
 			} else {
@@ -1211,6 +1119,8 @@ func (ls Lines) checkAfterDamage(lstate LinesState, l *Line, tw *Tower, u *Unit,
 		}
 
 		// Delete Unit
+		up := lstate.Players[u.PlayerID]
+		up.Capacity -= 1
 		delete(l.Units, u.ID)
 	}
 }
@@ -1309,4 +1219,137 @@ func (ls *Lines) newTower(tt string, p *Player, o utils.Object) *Tower {
 		Health:     ot.Health,
 		LastAttack: time.Now(),
 	}
+}
+
+func (ls *Lines) syncState(lstate *LinesState, ss action.SyncStatePayload) {
+	for lid, l := range ss.Lines.Lines {
+		cl, ok := lstate.Lines[lid]
+		if !ok {
+			cl = ls.newLine(lid)
+			lstate.Lines[lid] = cl
+		}
+
+		// Units
+		uids := make(map[string]struct{})
+		for id := range cl.Units {
+			uids[id] = struct{}{}
+		}
+		for id, u := range l.Units {
+			delete(uids, id)
+			nu := Unit(*u)
+			ou, ok := cl.Units[id]
+
+			if ok {
+				_ = ou
+				//If the unit already exists and have the same Hash then ignore the server
+				//coordinates and path
+				if ou.HashPath == nu.HashPath {
+					nu.Path = ou.Path
+					nu.X = ou.X
+					nu.Y = ou.Y
+				}
+			}
+			if nu.Abilities != nil {
+				for k, v := range nu.Abilities {
+					switch k {
+					case ability.Split.String():
+						var a AbilitySplit
+						_ = mapstructure.Decode(v, &a)
+						nu.Abilities[k] = a
+					case ability.Burrow.String():
+						var a AbilityBurrow
+						d, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+							DecodeHook:       mapstructure.StringToTimeHookFunc(time.RFC3339Nano),
+							WeaklyTypedInput: true,
+							Result:           &a,
+						})
+						_ = d.Decode(v)
+						nu.Abilities[k] = a
+					case ability.Resurrection.String():
+						var a AbilityResurrection
+						d, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+							DecodeHook:       mapstructure.StringToTimeHookFunc(time.RFC3339Nano),
+							WeaklyTypedInput: true,
+							Result:           &a,
+						})
+						_ = d.Decode(v)
+						nu.Abilities[k] = a
+					default:
+						log.Fatal(fmt.Sprintf("ability %s not found", k))
+					}
+				}
+			}
+			//if nu.Buffs != nil {
+			//for k, v := range nu.Buffs {
+			//switch k {
+			//case buff.Burrowoed.String():
+			//var b BuffBurrowed
+			//_ = mapstructure.Decode(v, &b)
+			//nu.Buffs[k] = b
+			//default:
+			//log.Fatal(fmt.Sprintf("buff %s not found", k))
+			//}
+			//}
+			//}
+
+			cl.Units[id] = &nu
+		}
+		for id := range uids {
+			delete(cl.Units, id)
+		}
+
+		// Towers
+		tids := make(map[string]struct{})
+		for id := range cl.Towers {
+			tids[id] = struct{}{}
+		}
+		atws := make(map[string]struct{})
+		for id, t := range l.Towers {
+			at := t
+			if _, ok := tids[id]; !ok {
+				atws[id] = struct{}{}
+			}
+			delete(tids, id)
+			nt := Tower(*at)
+			cl.Towers[id] = &nt
+		}
+		for id := range tids {
+			cl.Graph.RemoveTower(id)
+			delete(cl.Towers, id)
+		}
+		for id := range atws {
+			t := cl.Towers[id]
+			cl.Graph.AddTower(id, int(t.X), int(t.Y), t.W, t.H)
+		}
+	}
+
+	// Sync Players
+	pids := make(map[string]struct{})
+	for id := range lstate.Players {
+		pids[id] = struct{}{}
+	}
+	for id, p := range ss.Players.Players {
+		delete(pids, id)
+		np := Player{
+			ID:          p.ID,
+			Name:        p.Name,
+			Lives:       p.Lives,
+			LineID:      p.LineID,
+			Income:      p.Income,
+			Gold:        p.Gold,
+			Current:     p.Current,
+			Winner:      p.Winner,
+			Capacity:    p.Capacity,
+			UnitUpdates: make(map[string]UnitUpdate),
+		}
+		for t, uu := range p.UnitUpdates {
+			np.UnitUpdates[t] = UnitUpdate(uu)
+		}
+		lstate.Players[id] = &np
+	}
+	for id := range pids {
+		delete(lstate.Players, id)
+	}
+	lstate.IncomeTimer = ss.Players.IncomeTimer
+	lstate.StartedAt = ss.StartedAt
 }

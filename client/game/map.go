@@ -41,7 +41,7 @@ func (m *Map) Draw(screen *ebiten.Image) {
 	s := m.game.Camera.GetState().(CameraState)
 	op.GeoM.Scale(s.Zoom, s.Zoom)
 	inverseZoom := maxZoom - s.Zoom + zoomScale
-	screen.DrawImage(imagesCache.Get(m.game.Store.Map.GetImageKey()).SubImage(image.Rect(int(s.X), int(s.Y), int(float64((int(s.X)+s.W))*inverseZoom), int(float64((int(s.Y)+s.H))*inverseZoom))).(*ebiten.Image), op)
+	screen.DrawImage(cutils.Images.Get(m.game.Store.Map.GetImageKey()).SubImage(image.Rect(int(s.X), int(s.Y), int(float64((int(s.X)+s.W))*inverseZoom), int(float64((int(s.Y)+s.H))*inverseZoom))).(*ebiten.Image), op)
 
 	cs := m.game.Camera.GetState().(CameraState)
 	cp := m.game.Store.Lines.FindCurrentPlayer()

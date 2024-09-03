@@ -235,3 +235,35 @@ func (ac *ActionDispatcher) StartLobby(lid string) {
 	sla := action.NewStartLobby(lid)
 	wsSend(sla)
 }
+
+func (ac *ActionDispatcher) SetupGame(d bool) {
+	sga := action.NewSetupGame(d)
+	ac.Dispatch(sga)
+}
+
+func (ac *ActionDispatcher) FindGame(un string, vs, ranked, vsBots bool) {
+	fga := action.NewFindGame(un, vs, ranked, vsBots)
+	wsSend(fga)
+	ac.Dispatch(fga)
+}
+
+func (ac *ActionDispatcher) ExitSearchingGame(un string) {
+	esga := action.NewExitSearchingGame(un)
+	wsSend(esga)
+	ac.Dispatch(esga)
+}
+
+func (ac *ActionDispatcher) AcceptWaitingGame(un string) {
+	awga := action.NewAcceptWaitingGame(un)
+	wsSend(awga)
+}
+
+func (ac *ActionDispatcher) SeenLobbies() {
+	lsa := action.NewSeenLobbies()
+	ac.Dispatch(lsa)
+}
+
+func (ac *ActionDispatcher) CancelWaitingGame(un string) {
+	cwga := action.NewCancelWaitingGame(un)
+	wsSend(cwga)
+}

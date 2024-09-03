@@ -7,8 +7,8 @@ type Type int
 const (
 	Range1 Type = iota
 	Range2
-	RangeSingel1
-	RangeSingel2
+	RangeSingle1
+	RangeSingle2
 	RangeAoE1
 	RangeAoE2
 

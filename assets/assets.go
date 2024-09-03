@@ -84,6 +84,12 @@ var MonkeyBoxerFaceset_png []byte
 //go:embed towers.png
 var Towers_png []byte
 
+//go:embed towers_faceset.png
+var TowersFacet_png []byte
+
+//go:embed towers_profile.png
+var TowersProfile_png []byte
+
 //go:embed TilesetHouse.png
 var TilesetHouse_png []byte
 
@@ -114,8 +120,11 @@ var NoButton_png []byte
 //go:embed units.json
 var Units_json []byte
 
-//go:embed kongtext.ttf
-var Kongtext_ttf []byte
+//go:embed munro.ttf
+var Munro_ttf []byte
+
+//go:embed munro-small.ttf
+var MunroSmall_ttf []byte
 
 //go:embed LifeBarMiniProgress.png
 var LifeBarMiniProgress_png []byte
@@ -134,3 +143,168 @@ var LifeBarBigUnder_png []byte
 
 //go:embed Arrow.png
 var Arrow_png []byte
+
+//go:embed bg25.png
+var BG_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/button_pressed.png
+var ButtonPressed_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/button_normal.png
+var ButtonNormal_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/button_hover.png
+var ButtonHover_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/button_disabled.png
+var ButtonDisabled_png []byte
+
+//go:embed 4xbutton_pressed.png
+var BigButtonPressed_png []byte
+
+//go:embed 4xbutton_normal.png
+var BigButtonNormal_png []byte
+
+//go:embed 4xbutton_hover.png
+var BigButtonHover_png []byte
+
+//go:embed 4xbutton_disabled.png
+var BigButtonDisabled_png []byte
+
+//go:embed logo.png
+var Logo_png []byte
+
+//go:embed menu_button_pressed.png
+var MenuButtonPressed_png []byte
+
+//go:embed menu_button_hover.png
+var MenuButtonHover_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/Wip/ThemeMetal/nine_path_panel.png
+var Border4_png []byte
+
+//go:embed setup_game_bg25.png
+var SetupGameBG_png []byte
+
+//go:embed setup_game_frame.png
+var SetupGameFrame_png []byte
+
+//go:embed big_button_disabled_left_tab.png
+var BigButtonDisabledLeftTab_png []byte
+
+//go:embed big_button_disabled_right_tab.png
+var BigButtonDisabledRightTab_png []byte
+
+//go:embed big_button_pressed_left_tab.png
+var BigButtonPressedLeftTab_png []byte
+
+//go:embed big_button_pressed_right_tab.png
+var BigButtonPressedRightTab_png []byte
+
+//go:embed big_button_normal_left_tab.png
+var BigButtonNormalLeftTab_png []byte
+
+//go:embed big_button_normal_right_tab.png
+var BigButtonNormalRightTab_png []byte
+
+//go:embed big_button_hover_left_tab.png
+var BigButtonHoverLeftTab_png []byte
+
+//go:embed big_button_hover_right_tab.png
+var BigButtonHoverRightTab_png []byte
+
+//go:embed lobbies_table.png
+var LobbiesTable_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/nine_path_bg_2.png
+var DarkInputBG_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/nine_path_bg.png
+var GrayInputBG_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/h_slidder_grabber.png
+var HSliderGrabber_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/h_slidder_grabber_hover.png
+var HSliderGrabberHover_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/Theme/ThemeWood/h_slidder_grabber_disabled.png
+var HSliderGrabberDisabled_png []byte
+
+//go:embed checkbox_checked.png
+var CheckboxChecked_png []byte
+
+//go:embed checkbox_unchecked.png
+var CheckboxUnchecked_png []byte
+
+//go:embed big_cancel_button_normal.png
+var BigCancelButtonNormal_png []byte
+
+//go:embed big_cancel_button_hover.png
+var BigCancelButtonHover_png []byte
+
+//go:embed big_cancel_button_pressed.png
+var BigCancelButtonPressed_png []byte
+
+//go:embed display_default.png
+var DisplayDefaultBG_png []byte
+
+//go:embed display_default_towers.png
+var DisplayDefaultTowersBG_png []byte
+
+//go:embed button_border_normal.png
+var ButtonBorderNormal_png []byte
+
+//go:embed button_border_hover.png
+var ButtonBorderHover_png []byte
+
+//go:embed button_border_pressed.png
+var ButtonBorderPressed_png []byte
+
+//go:embed button_border_disabled.png
+var ButtonBorderDisabled_png []byte
+
+//go:embed scoreboard_row_bg.png
+var ScoreboardRowBG_png []byte
+
+//go:embed gold_icon.png
+var GoldIcon_png []byte
+
+//go:embed income_icon.png
+var IncomeIcon_png []byte
+
+//go:embed income_timer_icon.png
+var IncomeTimerIcon_png []byte
+
+//go:embed info_left_bg.png
+var InfoLeftBG_png []byte
+
+//go:embed info_middle_bg.png
+var InfoMiddleBG_png []byte
+
+//go:embed info_right_bg.png
+var InfoRightBG_png []byte
+
+//go:embed unit_update_button_animation.png
+var UnitUpdateButtonAnimation_png []byte
+
+//go:embed ninja_adventure_asset_pack/Ui/LifeReceptacle/heart.png
+var Hearts_png []byte
+
+//go:embed sell_icon.png
+var SellIcon_png []byte
+
+//go:embed display_target_image.png
+var DisplayTargetImageBG []byte
+
+//go:embed display_target_details.png
+var DisplayTargetDetailsBG []byte
+
+//go:embed damage_icon.png
+var DamageIcon_png []byte
+
+//go:embed attack_speed_icon.png
+var AttackSpeedIcon_png []byte
+
+//go:embed range_icon.png
+var RangeIcon_png []byte

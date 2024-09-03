@@ -121,7 +121,7 @@ func (lv *LobbiesView) buildUI() {
 		),
 
 		// specify the images to sue
-		widget.ButtonOpts.Image(buttonImageL),
+		widget.ButtonOpts.Image(cutils.ButtonImage),
 
 		// specify the button's text, the font face, and the color
 		widget.ButtonOpts.Text("New Lobby", cutils.SmallFont, &widget.ButtonTextColor{
@@ -152,7 +152,7 @@ func (lv *LobbiesView) buildUI() {
 		),
 
 		// specify the images to sue
-		widget.ButtonOpts.Image(buttonImageL),
+		widget.ButtonOpts.Image(cutils.ButtonImage),
 
 		// specify the button's text, the font face, and the color
 		widget.ButtonOpts.Text("Refresh", cutils.SmallFont, &widget.ButtonTextColor{
@@ -183,7 +183,7 @@ func (lv *LobbiesView) buildUI() {
 		),
 
 		// specify the images to sue
-		widget.ButtonOpts.Image(buttonImageL),
+		widget.ButtonOpts.Image(cutils.ButtonImage),
 
 		// specify the button's text, the font face, and the color
 		widget.ButtonOpts.Text("Back", cutils.SmallFont, &widget.ButtonTextColor{

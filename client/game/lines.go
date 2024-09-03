@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/xescugc/maze-wars/assets"
+	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
 	"github.com/xescugc/maze-wars/unit/ability"
@@ -54,6 +56,7 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(ls.game.Logger, b, "lines draw")
 
+	hst := ls.game.HUD.GetState().(HUDState)
 	for _, l := range ls.game.Store.Lines.ListLines() {
 		for _, t := range l.Towers {
 			ls.DrawTower(screen, ls.game.Camera, t)
@@ -64,6 +67,12 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 		for _, t := range l.Towers {
 			ls.DrawTowerHelath(screen, ls.game.Camera, t)
 		}
+		if hst.OpenTowerMenu != nil {
+			t, ok := l.Towers[hst.OpenTowerMenu.ID]
+			if ok {
+				ls.DrawTowerSelected(screen, ls.game.Camera, t)
+			}
+		}
 	}
 }
 
@@ -72,10 +81,12 @@ func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower)
 	if !t.IsColliding(cs.Object) {
 		return
 	}
+	x := float64(t.X - cs.X)
+	y := float64(t.Y - cs.Y)
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(t.X-cs.X), float64(t.Y-cs.Y))
+	op.GeoM.Translate(x, y)
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
-	screen.DrawImage(imagesCache.Get(t.FacetKey()), op)
+	screen.DrawImage(cutils.Images.Get(t.IdleKey()), op)
 }
 
 func (ls *Lines) DrawTowerHelath(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
@@ -87,16 +98,28 @@ func (ls *Lines) DrawTowerHelath(screen *ebiten.Image, c *CameraStore, t *store.
 	ot := tower.Towers[t.Type]
 	// Only draw the Health bar if the Tower has been hit
 	if t.Health != ot.Health {
-		lbui := imagesCache.Get(lifeBarBigUnderKey)
+		lbui := cutils.Images.Get(cutils.LifeBarBigUnderKey)
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(t.X-cs.X-1, t.Y-cs.Y-float64(lbui.Bounds().Dy()))
 		screen.DrawImage(lbui, op)
 
-		lbpi := imagesCache.Get(lifeBarBigProgressKey)
+		lbpi := cutils.Images.Get(cutils.LifeBarBigProgressKey)
 		op = &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(t.X-cs.X-1, t.Y-cs.Y-float64(lbpi.Bounds().Dy()))
 		screen.DrawImage(lbpi.SubImage(image.Rect(0, 0, int(float64(lbpi.Bounds().Dx())*(t.Health/ot.Health)), lbpi.Bounds().Dy())).(*ebiten.Image), op)
 	}
+}
+func (ls *Lines) DrawTowerSelected(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
+	cs := c.GetState().(CameraState)
+	if !t.IsColliding(cs.Object) {
+		return
+	}
+	x := float64(t.X - cs.X)
+	y := float64(t.Y - cs.Y)
+	ot := tower.Towers[t.Type]
+
+	vector.StrokeRect(screen, float32(x-1), float32(y-1), 34, 34, 2, cutils.Green, false)
+	vector.StrokeCircle(screen, float32(x+16), float32(y+16), float32(ot.Range*32), 2, cutils.Green, false)
 }
 
 func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
@@ -117,30 +140,30 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	sy := i * u.H
 	if u.HasBuff(buff.Burrowoed) {
 		if u.CanUnburrow(time.Now()) {
-			screen.DrawImage(imagesCache.Get(buffBurrowedReadyKey), op)
+			screen.DrawImage(cutils.Images.Get(cutils.BuffBurrowedReadyKey), op)
 		} else {
-			screen.DrawImage(imagesCache.Get(buffBurrowedKey), op)
+			screen.DrawImage(cutils.Images.Get(cutils.BuffBurrowedKey), op)
 		}
 	} else if u.HasBuff(buff.Resurrecting) {
-		screen.DrawImage(imagesCache.Get(buffResurrectingKey), op)
+		screen.DrawImage(cutils.Images.Get(cutils.BuffResurrectingKey), op)
 	} else if u.HasAbility(ability.Attack) && len(u.Path) == 0 {
 		if (u.AnimationCount/10)%2 == 0 {
-			screen.DrawImage(imagesCache.Get(u.AttackKey()).SubImage(image.Rect(sx, 0, sx+u.W, u.H)).(*ebiten.Image), op)
+			screen.DrawImage(cutils.Images.Get(u.AttackKey()).SubImage(image.Rect(sx, 0, sx+u.W, u.H)).(*ebiten.Image), op)
 		} else {
-			screen.DrawImage(imagesCache.Get(u.IdleKey()).SubImage(image.Rect(sx, 0, sx+u.W, u.H)).(*ebiten.Image), op)
+			screen.DrawImage(cutils.Images.Get(u.IdleKey()).SubImage(image.Rect(sx, 0, sx+u.W, u.H)).(*ebiten.Image), op)
 		}
 	} else {
-		screen.DrawImage(imagesCache.Get(u.WalkKey()).SubImage(image.Rect(sx, sy, sx+u.W, sy+u.H)).(*ebiten.Image), op)
+		screen.DrawImage(cutils.Images.Get(u.WalkKey()).SubImage(image.Rect(sx, sy, sx+u.W, sy+u.H)).(*ebiten.Image), op)
 	}
 
 	// Only draw the Health bar if the unit has been hit
 	if u.Health != u.MaxHealth {
-		lbui := imagesCache.Get(lifeBarUnderKey)
+		lbui := cutils.Images.Get(cutils.LifeBarUnderKey)
 		op = &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(u.X-cs.X-1, u.Y-cs.Y-float64(lbui.Bounds().Dy()))
 		screen.DrawImage(lbui, op)
 
-		lbpi := imagesCache.Get(lifeBarProgressKey)
+		lbpi := cutils.Images.Get(cutils.LifeBarProgressKey)
 		op = &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(u.X-cs.X-1, u.Y-cs.Y-float64(lbpi.Bounds().Dy()))
 		screen.DrawImage(lbpi.SubImage(image.Rect(0, 0, int(float64(lbpi.Bounds().Dx())*(u.Health/u.MaxHealth)), lbpi.Bounds().Dy())).(*ebiten.Image), op)
@@ -148,12 +171,12 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 
 	// Only draw the Shield bar if the unit has been hit
 	if u.Shield != u.MaxShield && u.Shield != 0 {
-		lbui := imagesCache.Get(lifeBarUnderKey)
+		lbui := cutils.Images.Get(cutils.LifeBarUnderKey)
 		op = &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(u.X-cs.X-1, u.Y-cs.Y-float64(lbui.Bounds().Dy()))
 		screen.DrawImage(lbui, op)
 
-		sbpi := imagesCache.Get(shieldBarProgressKey)
+		sbpi := cutils.Images.Get(cutils.ShieldBarProgressKey)
 		op = &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(u.X-cs.X-1, u.Y-cs.Y-float64(sbpi.Bounds().Dy()))
 		screen.DrawImage(sbpi.SubImage(image.Rect(0, 0, int(float64(sbpi.Bounds().Dx())*(u.Shield/u.MaxShield)), sbpi.Bounds().Dy())).(*ebiten.Image), op)
@@ -164,7 +187,7 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	//i := (u.AnimationCount / 15) % 8
 	//op = &ebiten.DrawImageOptions{}
 	//op.GeoM.Translate(u.X-cs.X-float64(u.W/2), u.Y-cs.Y-float64(u.H/2))
-	//img := imagesCache.Get(buffBurrowedKey)
+	//img := cutils.Images.Get(buffBurrowedKey)
 	//screen.DrawImage(img.SubImage(image.Rect(i*32, 0, i*32+32, i*32+32)).(*ebiten.Image), op)
 	//}
 }

@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-const _TypeName = "range1range2rangesingel1rangesingel2rangeaoe1rangeaoe2melee1melee2meleesingle1meleesingle2meleeaoe1meleeaoe2"
+const _TypeName = "range1range2rangesingle1rangesingle2rangeaoe1rangeaoe2melee1melee2meleesingle1meleesingle2meleeaoe1meleeaoe2"
 
 var _TypeIndex = [...]uint8{0, 6, 12, 24, 36, 45, 54, 60, 66, 78, 90, 99, 108}
 
-const _TypeLowerName = "range1range2rangesingel1rangesingel2rangeaoe1rangeaoe2melee1melee2meleesingle1meleesingle2meleeaoe1meleeaoe2"
+const _TypeLowerName = "range1range2rangesingle1rangesingle2rangeaoe1rangeaoe2melee1melee2meleesingle1meleesingle2meleeaoe1meleeaoe2"
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_TypeIndex)-1) {
@@ -26,8 +26,8 @@ func _TypeNoOp() {
 	var x [1]struct{}
 	_ = x[Range1-(0)]
 	_ = x[Range2-(1)]
-	_ = x[RangeSingel1-(2)]
-	_ = x[RangeSingel2-(3)]
+	_ = x[RangeSingle1-(2)]
+	_ = x[RangeSingle2-(3)]
 	_ = x[RangeAoE1-(4)]
 	_ = x[RangeAoE2-(5)]
 	_ = x[Melee1-(6)]
@@ -38,17 +38,17 @@ func _TypeNoOp() {
 	_ = x[MeleeAoE2-(11)]
 }
 
-var _TypeValues = []Type{Range1, Range2, RangeSingel1, RangeSingel2, RangeAoE1, RangeAoE2, Melee1, Melee2, MeleeSingle1, MeleeSingle2, MeleeAoE1, MeleeAoE2}
+var _TypeValues = []Type{Range1, Range2, RangeSingle1, RangeSingle2, RangeAoE1, RangeAoE2, Melee1, Melee2, MeleeSingle1, MeleeSingle2, MeleeAoE1, MeleeAoE2}
 
 var _TypeNameToValueMap = map[string]Type{
 	_TypeName[0:6]:         Range1,
 	_TypeLowerName[0:6]:    Range1,
 	_TypeName[6:12]:        Range2,
 	_TypeLowerName[6:12]:   Range2,
-	_TypeName[12:24]:       RangeSingel1,
-	_TypeLowerName[12:24]:  RangeSingel1,
-	_TypeName[24:36]:       RangeSingel2,
-	_TypeLowerName[24:36]:  RangeSingel2,
+	_TypeName[12:24]:       RangeSingle1,
+	_TypeLowerName[12:24]:  RangeSingle1,
+	_TypeName[24:36]:       RangeSingle2,
+	_TypeLowerName[24:36]:  RangeSingle2,
 	_TypeName[36:45]:       RangeAoE1,
 	_TypeLowerName[36:45]:  RangeAoE1,
 	_TypeName[45:54]:       RangeAoE2,

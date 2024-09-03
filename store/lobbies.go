@@ -5,7 +5,6 @@ import (
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
-	"github.com/xescugc/maze-wars/utils"
 )
 
 type Lobbies struct {
@@ -16,6 +15,9 @@ type Lobbies struct {
 
 type LobbiesState struct {
 	Lobbies map[string]*Lobby
+	// Marks if the Lobbies have been Seen
+	// it's used to render or not the values
+	Seen bool
 }
 
 type Lobby struct {
@@ -51,6 +53,14 @@ func (ls *Lobbies) List() []*Lobby {
 		lobbies = append(lobbies, l)
 	}
 	return lobbies
+}
+
+func (ls *Lobbies) Seen() bool {
+	ls.mxLobbies.RLock()
+	defer ls.mxLobbies.RUnlock()
+
+	slobbies := ls.GetState().(LobbiesState)
+	return slobbies.Seen
 }
 
 func (ls *Lobbies) FindCurrent() *Lobby {
@@ -136,17 +146,12 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 		for id := range clbs {
 			delete(lstate.Lobbies, id)
 		}
-	case action.NavigateTo:
+		lstate.Seen = false
+	case action.SeenLobbies:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		// If we navigate out of the Show page we should
-		// unset the current
-		if act.NavigateTo.Route != utils.ShowLobbyRoute {
-			for _, l := range lstate.Lobbies {
-				l.Current = false
-			}
-		}
+		lstate.Seen = true
 	case action.SelectLobby:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
@@ -182,5 +187,5 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 		}
 	}
 
-	return state
+	return lstate
 }

@@ -52,7 +52,7 @@ func wsHandler(ctx context.Context) {
 		var act *action.Action
 		err := wsjson.Read(ctx, wsc, &act)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err, act)
 		}
 
 		actionDispatcher.Dispatch(act)

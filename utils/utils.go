@@ -1,5 +1,7 @@
 package utils
 
+const MaxCapacity = 200
+
 type Object struct {
 	X, Y float64
 	W, H int

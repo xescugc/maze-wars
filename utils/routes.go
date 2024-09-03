@@ -9,4 +9,6 @@ const (
 	LobbiesRoute        = "lobbies"
 	NewLobbyRoute       = "new_lobby"
 	ShowLobbyRoute      = "show_lobby"
+	LearnRoute          = "learn"
+	HomeRoute           = "home"
 )

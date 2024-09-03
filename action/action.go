@@ -29,6 +29,12 @@ type Action struct {
 	ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
 	TPS                  *TPSPayload                  `json:"tps,omitempty"`
 	VersionError         *VersionErrorPayload         `json:"version_error,omitempty"`
+	SetupGame            *SetupGamePayload            `json:"setup_game,omitempty"`
+	FindGame             *FindGamePayload             `json:"find_game,omitempty"`
+	ExitSearchingGame    *ExitSearchingGamePayload    `json:"exit_searching_game,omitempty"`
+	AcceptWaitingGame    *AcceptWaitingGamePayload    `json:"accept_waiting_game,omitempty"`
+	CancelWaitingGame    *CancelWaitingGamePayload    `json:"cancel_waiting_game,omitempty"`
+	ShowScoreboard       *ShowScoreboardPayload       `json:"show_scoreboard,omitempty"`
 
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu,omitempty"`
 	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu,omitempty"`
@@ -55,9 +61,9 @@ type Action struct {
 	ExitVs1WaitingRoom *ExitVs1WaitingRoomPayload `json:"exit_vs1_waiting_room,omitempty"`
 	StartRoom          *StartRoomPayload          `json:"start_room,omitempty"`
 	SyncState          *SyncStatePayload          `json:"sync_state,omitempty"`
-	SyncUsers          *SyncUsersPayload          `json:"sync_users,omitempty"`
 	SyncVs6WaitingRoom *SyncVs6WaitingRoomPayload `json:"sync_vs6_waiting_room,omitempty"`
 	SyncVs1WaitingRoom *SyncVs1WaitingRoomPayload `json:"sync_vs1_waiting_room,omitempty"`
+	SyncWaitingRoom    *SyncWaitingRoomPayload    `json:"sync_waiting_room,omitempty"`
 }
 
 type CursorMovePayload struct {
@@ -261,12 +267,15 @@ func NewNavigateTo(route string) *Action {
 }
 
 type StartGamePayload struct {
+	State SyncStatePayload
 }
 
-func NewStartGame() *Action {
+func NewStartGame(state SyncStatePayload) *Action {
 	return &Action{
-		Type:      StartGame,
-		StartGame: &StartGamePayload{},
+		Type: StartGame,
+		StartGame: &StartGamePayload{
+			State: state,
+		},
 	}
 }
 
@@ -465,8 +474,9 @@ func NewSyncVs1WaitingRoom(tp, s int) *Action {
 }
 
 type SyncStatePayload struct {
-	Players *SyncStatePlayersPayload
-	Lines   *SyncStateLinesPayload
+	Players   *SyncStatePlayersPayload
+	Lines     *SyncStateLinesPayload
+	StartedAt time.Time
 }
 
 type SyncStateLinesPayload struct {
@@ -485,14 +495,15 @@ type SyncStatePlayersPayload struct {
 }
 
 type SyncStatePlayerPayload struct {
-	ID      string
-	Name    string
-	Lives   int
-	LineID  int
-	Income  int
-	Gold    int
-	Current bool
-	Winner  bool
+	ID       string
+	Name     string
+	Lives    int
+	LineID   int
+	Income   int
+	Gold     int
+	Current  bool
+	Winner   bool
+	Capacity int
 
 	UnitUpdates map[string]SyncStatePlayerUnitUpdatePayload
 }
@@ -551,25 +562,13 @@ type SyncStateUnitPayload struct {
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated
-func NewSyncState(players *SyncStatePlayersPayload, lines *SyncStateLinesPayload) *Action {
+func NewSyncState(players *SyncStatePlayersPayload, lines *SyncStateLinesPayload, sa time.Time) *Action {
 	return &Action{
 		Type: SyncState,
 		SyncState: &SyncStatePayload{
-			Players: players,
-			Lines:   lines,
-		},
-	}
-}
-
-type SyncUsersPayload struct {
-	TotalUsers int
-}
-
-func NewSyncUsers(totalUsers int) *Action {
-	return &Action{
-		Type: SyncUsers,
-		SyncUsers: &SyncUsersPayload{
-			TotalUsers: totalUsers,
+			Players:   players,
+			Lines:     lines,
+			StartedAt: sa,
 		},
 	}
 }
@@ -739,6 +738,120 @@ func NewStartLobby(lid string) *Action {
 		Type: StartLobby,
 		StartLobby: &StartLobbyPayload{
 			LobbyID: lid,
+		},
+	}
+}
+
+type SetupGamePayload struct {
+	Display bool
+}
+
+func NewSetupGame(d bool) *Action {
+	return &Action{
+		Type: SetupGame,
+		SetupGame: &SetupGamePayload{
+			Display: d,
+		},
+	}
+}
+
+type FindGamePayload struct {
+	Vs1      bool
+	Ranked   bool
+	VsBots   bool
+	Username string
+}
+
+func NewFindGame(un string, vs, rank, vsBots bool) *Action {
+	return &Action{
+		Type: FindGame,
+		FindGame: &FindGamePayload{
+			Vs1:      vs,
+			Ranked:   rank,
+			VsBots:   vsBots,
+			Username: un,
+		},
+	}
+}
+
+type ExitSearchingGamePayload struct {
+	Username string
+}
+
+func NewExitSearchingGame(un string) *Action {
+	return &Action{
+		Type: ExitSearchingGame,
+		ExitSearchingGame: &ExitSearchingGamePayload{
+			Username: un,
+		},
+	}
+}
+
+type SyncWaitingRoomPayload struct {
+	Size         int
+	Ranked       bool
+	Players      []SyncWaitingRoomPlayersPayload
+	WaitingSince time.Time
+}
+
+type SyncWaitingRoomPlayersPayload struct {
+	Username string
+	Accepted bool
+}
+
+func NewSyncWaitingRoom(s int, rank bool, players []SyncWaitingRoomPlayersPayload, ws time.Time) *Action {
+	return &Action{
+		Type: SyncWaitingRoom,
+		SyncWaitingRoom: &SyncWaitingRoomPayload{
+			Size:         s,
+			Ranked:       rank,
+			Players:      players,
+			WaitingSince: ws,
+		},
+	}
+}
+
+type AcceptWaitingGamePayload struct {
+	Username string
+}
+
+func NewAcceptWaitingGame(un string) *Action {
+	return &Action{
+		Type: AcceptWaitingGame,
+		AcceptWaitingGame: &AcceptWaitingGamePayload{
+			Username: un,
+		},
+	}
+}
+
+type CancelWaitingGamePayload struct {
+	Username string
+}
+
+func NewCancelWaitingGame(un string) *Action {
+	return &Action{
+		Type: CancelWaitingGame,
+		CancelWaitingGame: &CancelWaitingGamePayload{
+			Username: un,
+		},
+	}
+}
+
+func NewSeenLobbies() *Action {
+	return &Action{
+		Type: SeenLobbies,
+	}
+}
+
+type ShowScoreboardPayload struct {
+	Display bool
+}
+
+func NewShowScoreboard(d bool) *Action {
+	return &Action{
+		Type: ShowScoreboard,
+		ShowScoreboard: &ShowScoreboardPayload{
+			Display: d,
 		},
 	}
 }

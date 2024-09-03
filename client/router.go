@@ -86,18 +86,12 @@ func (rs *RouterStore) Update() error {
 	switch rstate.Route {
 	case utils.SignUpRoute:
 		rs.signUp.Update()
-	case utils.RootRoute:
+	case utils.RootRoute, utils.LobbiesRoute, utils.LearnRoute, utils.HomeRoute, utils.NewLobbyRoute, utils.ShowLobbyRoute:
 		rs.root.Update()
 	case utils.Vs6WaitingRoomRoute:
 		rs.vs6WaitingRoom.Update()
 	case utils.Vs1WaitingRoomRoute:
 		rs.vs1WaitingRoom.Update()
-	case utils.LobbiesRoute:
-		rs.lobbies.Update()
-	case utils.NewLobbyRoute:
-		rs.newLobby.Update()
-	case utils.ShowLobbyRoute:
-		rs.showLobby.Update()
 	case utils.GameRoute:
 		rs.game.Update()
 	}
@@ -138,18 +132,12 @@ func (rs *RouterStore) Draw(screen *ebiten.Image) {
 	switch rstate.Route {
 	case utils.SignUpRoute:
 		rs.signUp.Draw(screen)
-	case utils.RootRoute:
+	case utils.RootRoute, utils.LobbiesRoute, utils.LearnRoute, utils.HomeRoute, utils.NewLobbyRoute, utils.ShowLobbyRoute:
 		rs.root.Draw(screen)
 	case utils.Vs6WaitingRoomRoute:
 		rs.vs6WaitingRoom.Draw(screen)
 	case utils.Vs1WaitingRoomRoute:
 		rs.vs1WaitingRoom.Draw(screen)
-	case utils.LobbiesRoute:
-		rs.lobbies.Draw(screen)
-	case utils.NewLobbyRoute:
-		rs.newLobby.Draw(screen)
-	case utils.ShowLobbyRoute:
-		rs.showLobby.Draw(screen)
 	case utils.GameRoute:
 		rs.game.Draw(screen)
 	}
