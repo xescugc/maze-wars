@@ -67,9 +67,9 @@ func (lv *LobbiesView) Draw(screen *ebiten.Image) {
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].(cutils.ListEntry).ID > entries[j].(cutils.ListEntry).ID
 	})
-	if !cutils.EqualListEntries(entries, lv.lobbiesListW.Entries().([]any)) {
-		lv.lobbiesListW.SetEntries(entries)
-	}
+	//if !cutils.EqualListEntries(entries, lv.lobbiesListW.Entries().([]any)) {
+	//lv.lobbiesListW.SetEntries(entries)
+	//}
 
 	lv.ui.Draw(screen)
 }

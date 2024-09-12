@@ -135,11 +135,24 @@ func (ac *ActionDispatcher) CloseTowerMenu() {
 	ac.Dispatch(ctm)
 }
 
-func (ac *ActionDispatcher) ToggleStats() {
-	tsa := action.NewToggleStats()
-
-	ac.Dispatch(tsa)
+// OpenUnitMenu when a unit is clicked and the menu of
+// the unit is displayed
+func (ac *ActionDispatcher) OpenUnitMenu(uid string) {
+	oum := action.NewOpenUnitMenu(uid)
+	ac.Dispatch(oum)
 }
+
+// CloseUnitMenu when a tower menu needs to be closed
+func (ac *ActionDispatcher) CloseUnitMenu() {
+	cum := action.NewCloseUnitMenu()
+	ac.Dispatch(cum)
+}
+
+//func (ac *ActionDispatcher) ToggleStats() {
+//tsa := action.NewToggleStats()
+
+//ac.Dispatch(tsa)
+//}
 
 // GoHome will move the camera to the current player home line
 func (ac *ActionDispatcher) GoHome() {

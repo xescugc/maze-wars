@@ -8,6 +8,7 @@ import (
 
 	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/unit/environment"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type Tower struct {
@@ -62,6 +63,14 @@ func (t *Tower) Name() string {
 	return n
 }
 
+func (t *Tower) Description() string {
+	n, ok := descriptions[t.Type]
+	if !ok {
+		return t.Type.String()
+	}
+	return n
+}
+
 var (
 	names = map[Type]string{
 		Range1:       "Range - T1",
@@ -77,6 +86,22 @@ var (
 		MeleeSingle2: "Melee Single - T4",
 		MeleeAoE1:    "Melee AoE - T3",
 		MeleeAoE2:    "Melee AoE - T4",
+	}
+
+	descriptions = map[Type]string{
+		Range1:       `Basic range tower`,
+		Range2:       `Updated basic range tower`,
+		RangeSingle1: `Powerful single target range tower`,
+		RangeSingle2: `More powerful single target range tower`,
+		RangeAoE1:    `Ground AoE tower, slow but powerful`,
+		RangeAoE2:    `Updated ground AoE tower, slow but powerful`,
+
+		Melee1:       `Basic melee tower`,
+		Melee2:       `Updated basic melee tower`,
+		MeleeSingle1: `Improved single target melee tower`,
+		MeleeSingle2: `Powerful single target melee tower`,
+		MeleeAoE1:    `Flying AoE tower`,
+		MeleeAoE2:    `Updated Flying AoE tower`,
 	}
 
 	Towers = map[string]*Tower{
@@ -257,7 +282,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	profile, _, err := image.Decode(bytes.NewReader(assets.TowersProfile_png))
+	profiles, _, err := image.Decode(bytes.NewReader(assets.TowersProfile_png))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -278,14 +303,10 @@ func init() {
 			y += 1
 			x = 3
 		}
-		Towers[ty.String()].Idle = img.(SubImager).SubImage(image.Rect(x*wh, y*wh, x*wh+wh, y*wh+wh))
-		Towers[ty.String()].Faceset = face.(SubImager).SubImage(image.Rect(x*fwh, y*fwh, x*fwh+fwh, y*fwh+fwh))
-		Towers[ty.String()].Profile = profile.(SubImager).SubImage(image.Rect(x*pwh, y*pwh, x*pwh+pwh, y*pwh+pwh))
+		Towers[ty.String()].Idle = img.(utils.SubImager).SubImage(image.Rect(x*wh, y*wh, x*wh+wh, y*wh+wh))
+		Towers[ty.String()].Faceset = face.(utils.SubImager).SubImage(image.Rect(x*fwh, y*fwh, x*fwh+fwh, y*fwh+fwh))
+		Towers[ty.String()].Profile = profiles.(utils.SubImager).SubImage(image.Rect(x*pwh, y*pwh, x*pwh+pwh, y*pwh+pwh))
 		Towers[ty.String()].Type = ty
 		Towers[ty.String()].initTargets()
 	}
-}
-
-type SubImager interface {
-	SubImage(r image.Rectangle) image.Image
 }

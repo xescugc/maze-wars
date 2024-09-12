@@ -72,9 +72,9 @@ func (sl *ShowLobbyView) Draw(screen *ebiten.Image) {
 		sort.Slice(entries, func(i, j int) bool {
 			return entries[i].(cutils.ListEntry).ID > entries[j].(cutils.ListEntry).ID
 		})
-		if !cutils.EqualListEntries(entries, sl.playersListW.Entries().([]any)) {
-			sl.playersListW.SetEntries(entries)
-		}
+		//if !cutils.EqualListEntries(entries, sl.playersListW.Entries().([]any)) {
+		//sl.playersListW.SetEntries(entries)
+		//}
 
 		if sl.Store.Users.Username() == cl.Owner {
 			sl.startBtnW.GetWidget().Visibility = widget.Visibility_Show

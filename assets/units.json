@@ -4,21 +4,24 @@
     "gold": 5,
     "keybind":"1",
     "environment":"terrestrial",
-    "movement_speed": 60
+    "movement_speed": 60,
+    "abilities": ["efficiency"]
   },
   "statue":{
     "health": 40,
     "gold": 10,
     "keybind":"2",
     "environment":"terrestrial",
-    "movement_speed": 40
+    "movement_speed": 40,
+    "abilities": ["tank"]
   },
   "hunter":{
     "health": 5,
     "gold": 5,
     "keybind":"3",
     "environment":"terrestrial",
-    "movement_speed": 90
+    "movement_speed": 90,
+    "abilities": ["fast"]
   },
   "slime":{
     "health": 10,
@@ -49,7 +52,8 @@
     "gold": 20,
     "keybind":"7",
     "environment":"aerial",
-    "movement_speed": 30
+    "movement_speed": 30,
+    "abilities": ["fly"]
   },
   "blend_master":{
     "health": 10,

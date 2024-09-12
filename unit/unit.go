@@ -10,6 +10,7 @@ import (
 	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/unit/ability"
 	"github.com/xescugc/maze-wars/unit/environment"
+	"github.com/xescugc/maze-wars/utils"
 )
 
 type Unit struct {
@@ -26,6 +27,7 @@ type Unit struct {
 	Walk    image.Image
 	Attack  image.Image
 	Idle    image.Image
+	Profile image.Image
 }
 
 type Stats struct {
@@ -42,6 +44,7 @@ func (u *Unit) FacesetKey() string { return fmt.Sprintf("u-f-%s", u.Type) }
 func (u *Unit) WalkKey() string    { return fmt.Sprintf("u-w-%s", u.Type) }
 func (u *Unit) AttackKey() string  { return fmt.Sprintf("u-a-%s", u.Type) }
 func (u *Unit) IdleKey() string    { return fmt.Sprintf("u-i-%s", u.Type) }
+func (u *Unit) ProfileKey() string { return fmt.Sprintf("u-p-%s", u.Type) }
 func (u *Unit) HasAbility(a ability.Ability) bool {
 	for _, ab := range u.Abilities {
 		if a == ab {
@@ -108,11 +111,14 @@ func init() {
 		log.Fatal(err)
 	}
 
-	for t, u := range Units {
-		ty, err := TypeString(t)
-		if err != nil {
-			log.Fatal(err)
-		}
+	profiles, _, err := image.Decode(bytes.NewReader(assets.UnitsProfile_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pwh := 106
+	for i, ty := range TypeValues() {
+		u := Units[ty.String()]
 
 		fb, ok := facesets[ty]
 		if !ok {
@@ -149,5 +155,7 @@ func init() {
 			}
 			u.Idle = mi
 		}
+		u.Profile = profiles.(utils.SubImager).SubImage(image.Rect(i*pwh, 0, i*pwh+pwh, pwh))
+
 	}
 }

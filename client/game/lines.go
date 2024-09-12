@@ -72,6 +72,11 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 			if ok {
 				ls.DrawTowerSelected(screen, ls.game.Camera, t)
 			}
+		} else if hst.OpenUnitMenu != nil {
+			u, ok := l.Units[hst.OpenUnitMenu.ID]
+			if ok {
+				ls.DrawUnitSelected(screen, ls.game.Camera, u)
+			}
 		}
 	}
 }
@@ -109,6 +114,7 @@ func (ls *Lines) DrawTowerHelath(screen *ebiten.Image, c *CameraStore, t *store.
 		screen.DrawImage(lbpi.SubImage(image.Rect(0, 0, int(float64(lbpi.Bounds().Dx())*(t.Health/ot.Health)), lbpi.Bounds().Dy())).(*ebiten.Image), op)
 	}
 }
+
 func (ls *Lines) DrawTowerSelected(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
 	cs := c.GetState().(CameraState)
 	if !t.IsColliding(cs.Object) {
@@ -120,6 +126,17 @@ func (ls *Lines) DrawTowerSelected(screen *ebiten.Image, c *CameraStore, t *stor
 
 	vector.StrokeRect(screen, float32(x-1), float32(y-1), 34, 34, 2, cutils.Green, false)
 	vector.StrokeCircle(screen, float32(x+16), float32(y+16), float32(ot.Range*32), 2, cutils.Green, false)
+}
+
+func (ls *Lines) DrawUnitSelected(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
+	cs := c.GetState().(CameraState)
+	if !u.IsColliding(cs.Object) {
+		return
+	}
+	x := float64(u.X - cs.X)
+	y := float64(u.Y - cs.Y)
+
+	vector.StrokeRect(screen, float32(x-1), float32(y-1), 18, 18, 2, cutils.Green, false)
 }
 
 func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {

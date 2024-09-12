@@ -22,7 +22,9 @@ const (
 	NavigateTo
 	StartGame
 	OpenTowerMenu
+	OpenUnitMenu
 	CloseTowerMenu
+	CloseUnitMenu
 	GoHome
 	SignUpError
 	UserSignUp
@@ -33,7 +35,7 @@ const (
 	JoinVs1WaitingRoom
 	ExitVs1WaitingRoom
 	StartRoom
-	ToggleStats
+	//ToggleStats
 	VersionError
 	SetupGame
 	FindGame

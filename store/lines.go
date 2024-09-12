@@ -582,7 +582,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Lives:  20,
 			LineID: act.AddPlayer.LineID,
 			Income: 25,
-			Gold:   40000,
+			Gold:   4000,
 
 			UnitUpdates: make(map[string]UnitUpdate),
 		}

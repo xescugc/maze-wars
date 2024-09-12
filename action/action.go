@@ -26,18 +26,20 @@ type Action struct {
 	NavigateTo           *NavigateToPayload           `json:"navigate_to,omitempty"`
 	StartGame            *StartGamePayload            `json:"start_game,omitempty"`
 	GoHome               *GoHomePayload               `json:"go_home,omitempty"`
-	ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
-	TPS                  *TPSPayload                  `json:"tps,omitempty"`
-	VersionError         *VersionErrorPayload         `json:"version_error,omitempty"`
-	SetupGame            *SetupGamePayload            `json:"setup_game,omitempty"`
-	FindGame             *FindGamePayload             `json:"find_game,omitempty"`
-	ExitSearchingGame    *ExitSearchingGamePayload    `json:"exit_searching_game,omitempty"`
-	AcceptWaitingGame    *AcceptWaitingGamePayload    `json:"accept_waiting_game,omitempty"`
-	CancelWaitingGame    *CancelWaitingGamePayload    `json:"cancel_waiting_game,omitempty"`
-	ShowScoreboard       *ShowScoreboardPayload       `json:"show_scoreboard,omitempty"`
+	//ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
+	TPS               *TPSPayload               `json:"tps,omitempty"`
+	VersionError      *VersionErrorPayload      `json:"version_error,omitempty"`
+	SetupGame         *SetupGamePayload         `json:"setup_game,omitempty"`
+	FindGame          *FindGamePayload          `json:"find_game,omitempty"`
+	ExitSearchingGame *ExitSearchingGamePayload `json:"exit_searching_game,omitempty"`
+	AcceptWaitingGame *AcceptWaitingGamePayload `json:"accept_waiting_game,omitempty"`
+	CancelWaitingGame *CancelWaitingGamePayload `json:"cancel_waiting_game,omitempty"`
+	ShowScoreboard    *ShowScoreboardPayload    `json:"show_scoreboard,omitempty"`
 
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu,omitempty"`
+	OpenUnitMenu   *OpenUnitMenuPayload   `json:"open_unit_menu,omitempty"`
 	CloseTowerMenu *CloseTowerMenuPayload `json:"close_tower_menu,omitempty"`
+	CloseUnitMenu  *CloseUnitMenuPayload  `json:"close_unit_menu,omitempty"`
 
 	CreateLobby *CreateLobbyPayload `json:"create_lobby,omitempty"`
 	DeleteLobby *DeleteLobbyPayload `json:"delete_lobby,omitempty"`
@@ -305,12 +307,34 @@ func NewOpenTowerMenu(tid string) *Action {
 	}
 }
 
+type OpenUnitMenuPayload struct {
+	UnitID string
+}
+
+func NewOpenUnitMenu(uid string) *Action {
+	return &Action{
+		Type: OpenUnitMenu,
+		OpenUnitMenu: &OpenUnitMenuPayload{
+			UnitID: uid,
+		},
+	}
+}
+
 type CloseTowerMenuPayload struct{}
 
 func NewCloseTowerMenu() *Action {
 	return &Action{
 		Type:           CloseTowerMenu,
 		CloseTowerMenu: &CloseTowerMenuPayload{},
+	}
+}
+
+type CloseUnitMenuPayload struct{}
+
+func NewCloseUnitMenu() *Action {
+	return &Action{
+		Type:          CloseUnitMenu,
+		CloseUnitMenu: &CloseUnitMenuPayload{},
 	}
 }
 
@@ -323,15 +347,15 @@ func NewGoHome() *Action {
 	}
 }
 
-type ToggleStatsPayload struct {
-}
+//type ToggleStatsPayload struct {
+//}
 
-func NewToggleStats() *Action {
-	return &Action{
-		Type:        ToggleStats,
-		ToggleStats: &ToggleStatsPayload{},
-	}
-}
+//func NewToggleStats() *Action {
+//return &Action{
+//Type:        ToggleStats,
+//ToggleStats: &ToggleStatsPayload{},
+//}
+//}
 
 type SignUpErrorPayload struct {
 	Error string

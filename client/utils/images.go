@@ -85,7 +85,8 @@ const (
 	ButtonBorderHoverKey    = "button-border-hover"
 	ButtonBorderDisabledKey = "button-border-disabled"
 
-	ScoreboardRowBGKey = "scoreboard-row-bg"
+	ScoreboardRowBGKey        = "scoreboard-row-bg"
+	ScoreboardRowCurrentBGKey = "scoreboard-row-current-bg"
 
 	GoldIconKey        = "gold-icon"
 	CapIconKey         = "cap-icon"
@@ -104,9 +105,13 @@ const (
 	DisplayTargetImageBGKey   = "display-target-image-bg"
 	DisplayTargetDetailsBGKey = "display-target-details-bg"
 
-	DamageIconKey      = "damage-icon"
-	AttackSpeedIconKey = "attack-speed-icon"
-	RangeIconKey       = "range-icon"
+	DamageIconKey        = "damage-icon"
+	AttackSpeedIconKey   = "attack-speed-icon"
+	RangeIconKey         = "range-icon"
+	MovementSpeedIconKey = "movement-speed-icon"
+	PlayerIconKey        = "player-icon"
+
+	ToolTipBGKey = "tooltip-bg"
 )
 
 // ImagesCache is a simple cache for all the images, so instead
@@ -132,10 +137,14 @@ func init() {
 	for _, u := range unit.Units {
 		Images.images[u.FacesetKey()] = ebiten.NewImageFromImage(u.Faceset)
 		Images.images[u.WalkKey()] = ebiten.NewImageFromImage(u.Walk)
+		Images.images[u.ProfileKey()] = ebiten.NewImageFromImage(u.Profile)
 		if u.HasAbility(ability.Attack) {
 			Images.images[u.AttackKey()] = ebiten.NewImageFromImage(u.Attack)
 			Images.images[u.IdleKey()] = ebiten.NewImageFromImage(u.Idle)
 		}
+	}
+	for k, i := range ability.Images {
+		Images.images[ability.Key(k)] = ebiten.NewImageFromImage(i)
 	}
 	for _, t := range tower.Towers {
 		Images.images[t.FacesetKey()] = ebiten.NewImageFromImage(t.Faceset)
@@ -167,6 +176,12 @@ func init() {
 	Images.images[BuffBurrowedKey] = ebiten.NewImageFromImage(ebiten.NewImageFromImage(tsn).SubImage(image.Rect(6*16, 17*16, 6*16+16, 17*16+16)))
 
 	Images.images[CapIconKey] = ebiten.NewImageFromImage(Images.images[unit.Units[unit.Ninja.String()].WalkKey()].SubImage(image.Rect(0, 0, 16, 16)))
+
+	vli, _, err := image.Decode(bytes.NewReader(assets.VillagerIdle_png))
+	if err != nil {
+		panic(err)
+	}
+	Images.images[PlayerIconKey] = ebiten.NewImageFromImage(ebiten.NewImageFromImage(vli).SubImage(image.Rect(0, 0, 16, 16)))
 
 	hearts, _, err := image.Decode(bytes.NewReader(assets.Hearts_png))
 	if err != nil {
@@ -227,7 +242,8 @@ func init() {
 		ButtonBorderHoverKey:    assets.ButtonBorderHover_png,
 		ButtonBorderDisabledKey: assets.ButtonBorderDisabled_png,
 
-		ScoreboardRowBGKey: assets.ScoreboardRowBG_png,
+		ScoreboardRowBGKey:        assets.ScoreboardRowBG_png,
+		ScoreboardRowCurrentBGKey: assets.ScoreboardRowCurrentBG_png,
 
 		GoldIconKey:        assets.GoldIcon_png,
 		IncomeIconKey:      assets.IncomeIcon_png,
@@ -244,9 +260,12 @@ func init() {
 		DisplayTargetImageBGKey:   assets.DisplayTargetImageBG,
 		DisplayTargetDetailsBGKey: assets.DisplayTargetDetailsBG,
 
-		DamageIconKey:      assets.DamageIcon_png,
-		AttackSpeedIconKey: assets.AttackSpeedIcon_png,
-		RangeIconKey:       assets.RangeIcon_png,
+		DamageIconKey:        assets.DamageIcon_png,
+		AttackSpeedIconKey:   assets.AttackSpeedIcon_png,
+		RangeIconKey:         assets.RangeIcon_png,
+		MovementSpeedIconKey: assets.MovementSpeedIcon_png,
+
+		ToolTipBGKey: assets.ToolTipBG_png,
 	}
 
 	for k, b := range keyImage {

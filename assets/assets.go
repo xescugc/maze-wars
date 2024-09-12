@@ -79,6 +79,9 @@ var MonkeyBoxerIdle_png []byte
 //go:embed ninja_adventure_asset_pack/Actor/Characters/MonkeyBoxerRed/Faceset.png
 var MonkeyBoxerFaceset_png []byte
 
+//go:embed units_profile.png
+var UnitsProfile_png []byte
+
 // END UNITS
 
 //go:embed towers.png
@@ -267,6 +270,9 @@ var ButtonBorderDisabled_png []byte
 //go:embed scoreboard_row_bg.png
 var ScoreboardRowBG_png []byte
 
+//go:embed scoreboard_row_current_bg.png
+var ScoreboardRowCurrentBG_png []byte
+
 //go:embed gold_icon.png
 var GoldIcon_png []byte
 
@@ -308,3 +314,15 @@ var AttackSpeedIcon_png []byte
 
 //go:embed range_icon.png
 var RangeIcon_png []byte
+
+//go:embed movement_speed_icon.png
+var MovementSpeedIcon_png []byte
+
+//go:embed ninja_adventure_asset_pack/Actor/Characters/Villager/SeparateAnim/Idle.png
+var VillagerIdle_png []byte
+
+//go:embed units_basic_abilities.png
+var UnitsBasicAbilities_png []byte
+
+//go:embed tooltip_bg.png
+var ToolTipBG_png []byte

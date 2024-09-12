@@ -9,7 +9,7 @@ import (
 var (
 	Green = color.RGBA{116, 163, 52, 255}
 	//LightGreen  = color.RGBA{173, 188, 58, 255}
-	Red         = color.RGBA{0x80, 0x00, 0x00, 0xff}
+	Red         = color.RGBA{209, 75, 52, 255}
 	Transparent = color.RGBA{0, 0, 0, 0}
 	Black       = color.RGBA{0, 0, 0, 255}
 	BlackT      = color.RGBA{0, 0, 0, 120}
@@ -26,6 +26,8 @@ var (
 	ButtonTextHoverColor    = color.RGBA{242, 242, 242, 255}
 
 	ButtonTextCancelPressedColor = color.RGBA{238, 207, 155, 255}
+
+	White = TextColor
 )
 
 func TextInputColor() *widget.TextInputColor {

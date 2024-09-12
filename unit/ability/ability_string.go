@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _AbilityName = "splitburrowresurrectionhybridcamouflageattack"
+const _AbilityName = "efficiencytankfastsplitburrowresurrectionflycamouflagehybridattack"
 
-var _AbilityIndex = [...]uint8{0, 5, 11, 23, 29, 39, 45}
+var _AbilityIndex = [...]uint8{0, 10, 14, 18, 23, 29, 41, 44, 54, 60, 66}
 
-const _AbilityLowerName = "splitburrowresurrectionhybridcamouflageattack"
+const _AbilityLowerName = "efficiencytankfastsplitburrowresurrectionflycamouflagehybridattack"
 
 func (i Ability) String() string {
 	if i < 0 || i >= Ability(len(_AbilityIndex)-1) {
@@ -25,38 +25,54 @@ func (i Ability) String() string {
 // Re-run the stringer command to generate them again.
 func _AbilityNoOp() {
 	var x [1]struct{}
-	_ = x[Split-(0)]
-	_ = x[Burrow-(1)]
-	_ = x[Resurrection-(2)]
-	_ = x[Hybrid-(3)]
-	_ = x[Camouflage-(4)]
-	_ = x[Attack-(5)]
+	_ = x[Efficiency-(0)]
+	_ = x[Tank-(1)]
+	_ = x[Fast-(2)]
+	_ = x[Split-(3)]
+	_ = x[Burrow-(4)]
+	_ = x[Resurrection-(5)]
+	_ = x[Fly-(6)]
+	_ = x[Camouflage-(7)]
+	_ = x[Hybrid-(8)]
+	_ = x[Attack-(9)]
 }
 
-var _AbilityValues = []Ability{Split, Burrow, Resurrection, Hybrid, Camouflage, Attack}
+var _AbilityValues = []Ability{Efficiency, Tank, Fast, Split, Burrow, Resurrection, Fly, Camouflage, Hybrid, Attack}
 
 var _AbilityNameToValueMap = map[string]Ability{
-	_AbilityName[0:5]:        Split,
-	_AbilityLowerName[0:5]:   Split,
-	_AbilityName[5:11]:       Burrow,
-	_AbilityLowerName[5:11]:  Burrow,
-	_AbilityName[11:23]:      Resurrection,
-	_AbilityLowerName[11:23]: Resurrection,
-	_AbilityName[23:29]:      Hybrid,
-	_AbilityLowerName[23:29]: Hybrid,
-	_AbilityName[29:39]:      Camouflage,
-	_AbilityLowerName[29:39]: Camouflage,
-	_AbilityName[39:45]:      Attack,
-	_AbilityLowerName[39:45]: Attack,
+	_AbilityName[0:10]:       Efficiency,
+	_AbilityLowerName[0:10]:  Efficiency,
+	_AbilityName[10:14]:      Tank,
+	_AbilityLowerName[10:14]: Tank,
+	_AbilityName[14:18]:      Fast,
+	_AbilityLowerName[14:18]: Fast,
+	_AbilityName[18:23]:      Split,
+	_AbilityLowerName[18:23]: Split,
+	_AbilityName[23:29]:      Burrow,
+	_AbilityLowerName[23:29]: Burrow,
+	_AbilityName[29:41]:      Resurrection,
+	_AbilityLowerName[29:41]: Resurrection,
+	_AbilityName[41:44]:      Fly,
+	_AbilityLowerName[41:44]: Fly,
+	_AbilityName[44:54]:      Camouflage,
+	_AbilityLowerName[44:54]: Camouflage,
+	_AbilityName[54:60]:      Hybrid,
+	_AbilityLowerName[54:60]: Hybrid,
+	_AbilityName[60:66]:      Attack,
+	_AbilityLowerName[60:66]: Attack,
 }
 
 var _AbilityNames = []string{
-	_AbilityName[0:5],
-	_AbilityName[5:11],
-	_AbilityName[11:23],
+	_AbilityName[0:10],
+	_AbilityName[10:14],
+	_AbilityName[14:18],
+	_AbilityName[18:23],
 	_AbilityName[23:29],
-	_AbilityName[29:39],
-	_AbilityName[39:45],
+	_AbilityName[29:41],
+	_AbilityName[41:44],
+	_AbilityName[44:54],
+	_AbilityName[54:60],
+	_AbilityName[60:66],
 }
 
 // AbilityString retrieves an enum value from the enum constants string name.

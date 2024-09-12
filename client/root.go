@@ -181,7 +181,7 @@ func (rs *RootStore) Draw(screen *ebiten.Image) {
 		sort.Slice(entries, func(i, j int) bool {
 			return entries[i].(cutils.ListEntry).ID > entries[j].(cutils.ListEntry).ID
 		})
-		if !cutils.EqualListEntries(entries, rs.showLobbyPlayersL.Entries().([]any)) {
+		if !cutils.EqualListEntries(entries, rs.showLobbyPlayersL.Entries()) {
 			rs.showLobbyPlayersL.SetEntries(entries)
 		}
 
