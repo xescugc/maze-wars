@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -15,8 +16,16 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/client"
 	"github.com/xescugc/maze-wars/client/game"
+	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 )
+
+const isOnServer = true
+
+type config struct {
+	Username string `json:"username"`
+	ImageKey string `json:"image_key"`
+}
 
 var (
 	defaultHost = "http://localhost:5555"
@@ -37,6 +46,18 @@ var (
 				ScreenH: screenH,
 				Version: version,
 			}
+
+			configFilePath, err := xdg.ConfigFile("maze-wars/user.json")
+			if err != nil {
+				return err
+			}
+			b, err := os.ReadFile(configFilePath)
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+
+			var cfg cutils.Config
+			err = json.Unmarshal(b, &cfg)
 
 			d := flux.NewDispatcher()
 
@@ -59,7 +80,7 @@ var (
 				Level: lvl,
 			}))
 
-			s := store.NewStore(d, l)
+			s := store.NewStore(d, l, !isOnServer)
 			ad := client.NewActionDispatcher(d, s, l, opt)
 
 			g := client.NewGame(s, d, l)
@@ -86,19 +107,12 @@ var (
 				return fmt.Errorf("failed to initialize RootStore: %w", err)
 			}
 
-			su, err := client.NewSignUpStore(d, s, l)
+			su, err := client.NewSignUpStore(d, s, cfg.Username, cfg.ImageKey, l)
 			if err != nil {
 				return fmt.Errorf("failed to initial SignUpStore: %w", err)
 			}
 
-			wr6 := client.NewVs6WaitingRoomStore(d, cls, l)
-			wr1 := client.NewVs1WaitingRoomStore(d, cls, l)
-
-			lv := client.NewLobbiesView(cls, l)
-			nlv := client.NewNewLobbyView(cls, l)
-			slv := client.NewShowLobbyView(cls, l)
-
-			rs := client.NewRouterStore(d, su, ros, wr6, wr1, g, lv, nlv, slv, l)
+			rs := client.NewRouterStore(d, su, ros, g, l)
 			ctx := context.Background()
 
 			err = client.New(ctx, ad, rs, opt)

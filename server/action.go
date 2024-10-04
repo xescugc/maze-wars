@@ -9,6 +9,7 @@ import (
 
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
 	"nhooyr.io/websocket"
 )
@@ -48,21 +49,13 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 	defer utils.LogTime(ac.logger, b, "action dispatch", "action", a.Type)
 
 	switch a.Type {
-	case action.JoinVs6WaitingRoom:
-		ac.dispatcher.Dispatch(a)
-
-		ac.startGame(vs6, noRoomID)
-	case action.JoinVs1WaitingRoom:
-		ac.dispatcher.Dispatch(a)
-
-		ac.startGame(vs1, noRoomID)
 	case action.DeleteLobby:
 		l := ac.store.Lobbies.FindByID(a.DeleteLobby.LobbyID)
 		ac.dispatcher.Dispatch(a)
 		ac.notifyPlayersLobbyDeleted(l.Players)
 	case action.UserSignOut:
 		// TODO: Kill the bot
-		u, _ := ac.store.Users.FindByUsername(a.UserSignOut.Username)
+		u, _ := ac.store.Rooms.FindUserByUsername(a.UserSignOut.Username)
 		l := ac.store.Lobbies.FindByID(u.CurrentLobbyID)
 		ac.dispatcher.Dispatch(a)
 		if l != nil {
@@ -105,7 +98,7 @@ func (ac *ActionDispatcher) notifyPlayersLobbyDeleted(uns map[string]bool) {
 		if ib {
 			continue
 		}
-		u, ok := ac.store.Users.FindByUsername(un)
+		u, ok := ac.store.Rooms.FindUserByUsername(un)
 		if !ok {
 			continue
 		}
@@ -127,11 +120,6 @@ func (ac *ActionDispatcher) startGame(vs, roid string) {
 	// will only start if it has the number of players
 	if rid == "" {
 		var r *Room
-		if vs == vs6 {
-			r = ac.store.Rooms.FindCurrentVs6WaitingRoom()
-		} else if vs == vs1 {
-			r = ac.store.Rooms.FindCurrentVs1WaitingRoom()
-		}
 		if r == nil || (len(r.Players) != r.Size) {
 			return
 		}
@@ -140,9 +128,7 @@ func (ac *ActionDispatcher) startGame(vs, roid string) {
 
 	rstate := ac.store.Rooms.GetState().(RoomsState)
 	r := rstate.Rooms[rid]
-	sra := action.NewStartRoom(rid)
 
-	ac.Dispatch(sra)
 	ac.SyncState(ac.store.Rooms)
 
 	for pid, p := range r.Players {
@@ -152,7 +138,7 @@ func (ac *ActionDispatcher) startGame(vs, roid string) {
 			continue
 		}
 		sga := action.NewStartGame(ac.store.Rooms.SyncState(r, pid))
-		err := ac.ws.Write(context.Background(), p.Conn, sga)
+		err := ac.ws.Write(context.Background(), p.User.Conn, sga)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -164,15 +150,8 @@ func (ac *ActionDispatcher) IncomeTick(rooms *RoomsStore) {
 	ac.Dispatch(ita)
 }
 
-func (ac *ActionDispatcher) WaitRoomCountdownTick() {
-	wrcta := action.NewWaitRoomCountdownTick()
-	ac.Dispatch(wrcta)
-
-	ac.startGame(vs6, noRoomID)
-}
-
-func (ac *ActionDispatcher) UserSignUp(un string) {
-	ac.Dispatch(action.NewUserSignUp(un))
+func (ac *ActionDispatcher) UserSignUp(un, ik string) {
+	ac.Dispatch(action.NewUserSignUp(un, ik))
 }
 
 func (ac *ActionDispatcher) UserSignIn(un, ra string, ws *websocket.Conn) {
@@ -189,13 +168,8 @@ func (ac *ActionDispatcher) UserSignOut(un string) {
 
 func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 	ac.Dispatch(action.NewTPS(time.Now()))
-	rms := rooms.List()
-	cwvs6r := rooms.FindCurrentVs6WaitingRoom()
-	cwvs1r := rooms.FindCurrentVs1WaitingRoom()
+	rms := rooms.ListRooms()
 	for _, r := range rms {
-		if (cwvs6r != nil && r.Name == cwvs6r.Name) || (cwvs1r != nil && r.Name == cwvs1r.Name) {
-			continue
-		}
 		for id, pc := range r.Players {
 			// We do not want to communicate state to a bot
 			if pc.IsBot {
@@ -209,10 +183,12 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 				uspp := action.SyncStatePlayerPayload{
 					ID:          ap.ID,
 					Name:        ap.Name,
+					ImageKey:    ap.ImageKey,
 					Lives:       ap.Lives,
 					LineID:      ap.LineID,
 					Income:      ap.Income,
 					Gold:        ap.Gold,
+					IsBot:       ap.IsBot,
 					Current:     ap.Current,
 					Winner:      ap.Winner,
 					Capacity:    ap.Capacity,
@@ -237,21 +213,31 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 				towers := make(map[string]*action.SyncStateTowerPayload)
 				for _, t := range al.Towers {
 					at := t
-					ustp := action.SyncStateTowerPayload(*at)
-					towers[at.ID] = &ustp
+					payload := action.SyncStateTowerPayload(*at)
+					towers[at.ID] = &payload
 				}
 
 				// Units
 				units := make(map[string]*action.SyncStateUnitPayload)
 				for _, u := range al.Units {
 					au := u
-					usup := action.SyncStateUnitPayload(*au)
-					units[au.ID] = &usup
+					payload := action.SyncStateUnitPayload(*au)
+					units[au.ID] = &payload
 				}
+
+				// Projectiles
+				projectiles := make(map[string]*action.SyncStateProjectilePayload)
+				for _, p := range al.Projectiles {
+					ap := p
+					payload := action.SyncStateProjectilePayload(*ap)
+					projectiles[ap.ID] = &payload
+				}
+
 				lines[al.ID] = &action.SyncStateLinePayload{
-					ID:     al.ID,
-					Towers: towers,
-					Units:  units,
+					ID:          al.ID,
+					Towers:      towers,
+					Units:       units,
+					Projectiles: projectiles,
 				}
 			}
 
@@ -265,42 +251,7 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 				},
 				r.StartedAt,
 			)
-			err := ac.ws.Write(context.Background(), pc.Conn, aus)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-}
-
-func (ac *ActionDispatcher) SyncVs6WaitingRoom(rooms *RoomsStore) {
-	rstate := rooms.GetState().(RoomsState)
-	if rstate.CurrentVs6WaitingRoom != "" {
-		cwr := rstate.Rooms[rstate.CurrentVs6WaitingRoom]
-		swra := action.NewSyncVs6WaitingRoom(
-			len(cwr.Players),
-			cwr.Size,
-			cwr.Countdown,
-		)
-		for _, p := range cwr.Players {
-			err := ac.ws.Write(context.Background(), p.Conn, swra)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-}
-
-func (ac *ActionDispatcher) SyncVs1WaitingRoom(rooms *RoomsStore) {
-	rstate := rooms.GetState().(RoomsState)
-	if rstate.CurrentVs1WaitingRoom != "" {
-		cwr := rstate.Rooms[rstate.CurrentVs1WaitingRoom]
-		swra := action.NewSyncVs1WaitingRoom(
-			len(cwr.Players),
-			cwr.Size,
-		)
-		for _, p := range cwr.Players {
-			err := ac.ws.Write(context.Background(), p.Conn, swra)
+			err := ac.ws.Write(context.Background(), pc.User.Conn, aus)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -325,7 +276,7 @@ func (ac *ActionDispatcher) SyncLobbies(s *Store) {
 			if ib {
 				continue
 			}
-			u, ok := s.Users.FindByUsername(p)
+			u, ok := s.Rooms.FindUserByUsername(p)
 			if ok {
 				err := ac.ws.Write(context.Background(), u.Conn, ula)
 				if err != nil {
@@ -338,20 +289,22 @@ func (ac *ActionDispatcher) SyncLobbies(s *Store) {
 
 // SyncLobbies will just sync the info of each lobby to the players on it
 func (ac *ActionDispatcher) SyncWaitingRooms(s *Store) {
-	for _, w := range s.Rooms.ListWaiting() {
+	for _, w := range s.Rooms.ListWaitingRooms() {
 		var players = make([]action.SyncWaitingRoomPlayersPayload, 0, 0)
 		for pid, p := range w.Players {
-			u, ok := s.Users.FindByID(pid)
+			u, ok := s.Rooms.FindUserByID(pid)
 			if !ok {
 				if !p.IsBot {
 					continue
 				}
 				u.Username = pid
+				u.ImageKey = unit.TypeStrings()[0]
 			}
 			_, ok = w.PlayersAccepted[u.Username]
 			players = append(players, action.SyncWaitingRoomPlayersPayload{
 				Username: u.Username,
 				Accepted: ok,
+				ImageKey: u.ImageKey,
 			})
 		}
 		sort.Slice(players, func(i, j int) bool {
@@ -363,7 +316,7 @@ func (ac *ActionDispatcher) SyncWaitingRooms(s *Store) {
 			if pc.IsBot {
 				continue
 			}
-			err := ac.ws.Write(context.Background(), pc.Conn, swra)
+			err := ac.ws.Write(context.Background(), pc.User.Conn, swra)
 			if err != nil {
 				log.Fatal(err)
 			}

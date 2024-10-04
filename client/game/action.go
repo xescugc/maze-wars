@@ -172,3 +172,9 @@ func (ac *ActionDispatcher) ShowScoreboard(d bool) {
 	ssa := action.NewShowScoreboard(d)
 	ac.Dispatch(ssa)
 }
+
+// GoHome will move the camera to the current player home line
+func (ac *ActionDispatcher) AddError(err string) {
+	ssa := action.NewAddError(err)
+	ac.Dispatch(ssa)
+}

@@ -144,9 +144,6 @@ var LifeBarBigProgress_png []byte
 //go:embed LifeBarBigUnder.png
 var LifeBarBigUnder_png []byte
 
-//go:embed Arrow.png
-var Arrow_png []byte
-
 //go:embed bg25.png
 var BG_png []byte
 
@@ -326,3 +323,15 @@ var UnitsBasicAbilities_png []byte
 
 //go:embed tooltip_bg.png
 var ToolTipBG_png []byte
+
+//go:embed arrow.png
+var Arrow_png []byte
+
+//go:embed cannonball.png
+var Cannonball_png []byte
+
+//go:embed edit_icon.png
+var EditIcon_png []byte
+
+//go:embed home_widgets_bg.png
+var HomeWidgetsBG_png []byte

@@ -73,8 +73,8 @@ maze.`,
 )
 
 func Key(a string) string          { return fmt.Sprintf("u-ab-%s", a) }
-func Description(a Ability) string { return descriptions[a] }
 func Name(a Ability) string        { return names[a] }
+func Description(a Ability) string { return descriptions[a] }
 func init() {
 	Images = make(map[string]image.Image)
 

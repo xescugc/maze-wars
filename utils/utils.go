@@ -1,5 +1,7 @@
 package utils
 
+import "math"
+
 const MaxCapacity = 200
 
 type Object struct {
@@ -60,6 +62,13 @@ func (o Object) IsCollidingCircle(c Object, r float64) bool {
 	dy := c.Y - cy
 
 	return dx*dx+dy*dy < r*r
+}
+
+// PDistance calculates the Pythagoras distance between o and to
+func (o Object) PDistance(to Object) float64 {
+	return math.Sqrt(
+		math.Pow(to.X-o.X, 2) + math.Pow(to.Y-o.Y, 2),
+	)
 }
 
 type MovingObject struct {

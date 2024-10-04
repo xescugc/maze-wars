@@ -26,15 +26,15 @@ type Action struct {
 	NavigateTo           *NavigateToPayload           `json:"navigate_to,omitempty"`
 	StartGame            *StartGamePayload            `json:"start_game,omitempty"`
 	GoHome               *GoHomePayload               `json:"go_home,omitempty"`
-	//ToggleStats          *ToggleStatsPayload          `json:"toggle_stats,omitempty"`
-	TPS               *TPSPayload               `json:"tps,omitempty"`
-	VersionError      *VersionErrorPayload      `json:"version_error,omitempty"`
-	SetupGame         *SetupGamePayload         `json:"setup_game,omitempty"`
-	FindGame          *FindGamePayload          `json:"find_game,omitempty"`
-	ExitSearchingGame *ExitSearchingGamePayload `json:"exit_searching_game,omitempty"`
-	AcceptWaitingGame *AcceptWaitingGamePayload `json:"accept_waiting_game,omitempty"`
-	CancelWaitingGame *CancelWaitingGamePayload `json:"cancel_waiting_game,omitempty"`
-	ShowScoreboard    *ShowScoreboardPayload    `json:"show_scoreboard,omitempty"`
+	TPS                  *TPSPayload                  `json:"tps,omitempty"`
+	VersionError         *VersionErrorPayload         `json:"version_error,omitempty"`
+	SetupGame            *SetupGamePayload            `json:"setup_game,omitempty"`
+	FindGame             *FindGamePayload             `json:"find_game,omitempty"`
+	ExitSearchingGame    *ExitSearchingGamePayload    `json:"exit_searching_game,omitempty"`
+	AcceptWaitingGame    *AcceptWaitingGamePayload    `json:"accept_waiting_game,omitempty"`
+	CancelWaitingGame    *CancelWaitingGamePayload    `json:"cancel_waiting_game,omitempty"`
+	ShowScoreboard       *ShowScoreboardPayload       `json:"show_scoreboard,omitempty"`
+	AddError             *AddErrorPayload             `json:"add_error,omitempty"`
 
 	OpenTowerMenu  *OpenTowerMenuPayload  `json:"open_tower_menu,omitempty"`
 	OpenUnitMenu   *OpenUnitMenuPayload   `json:"open_unit_menu,omitempty"`
@@ -50,22 +50,16 @@ type Action struct {
 	UpdateLobby *UpdateLobbyPayload `json:"update_lobby,omitempty"`
 	StartLobby  *StartLobbyPayload  `json:"start_lobby,omitempty"`
 
-	UserSignUp  *UserSignUpPayload  `json:"user_sign_up,omitempty"`
-	SignUpError *SignUpErrorPayload `json:"sign_in_error,omitempty"`
-	UserSignIn  *UserSignInPayload  `json:"user_sign_in,omitempty"`
-	UserSignOut *UserSignOutPayload `json:"user_sign_out,omitempty"`
+	UserSignUp            *UserSignUpPayload            `json:"user_sign_up,omitempty"`
+	UserSignUpChangeImage *UserSignUpChangeImagePayload `json:"user_sign_up_change_image,omitempty"`
+	SignUpError           *SignUpErrorPayload           `json:"sign_in_error,omitempty"`
+	UserSignIn            *UserSignInPayload            `json:"user_sign_in,omitempty"`
+	UserSignOut           *UserSignOutPayload           `json:"user_sign_out,omitempty"`
 
-	AddPlayer          *AddPlayerPayload          `json:"add_player,omitempty"`
-	RemovePlayer       *RemovePlayerPayload       `json:"remove_player,omitempty"`
-	JoinVs6WaitingRoom *JoinVs6WaitingRoomPayload `json:"join_vs6_waiting_room,omitempty"`
-	ExitVs6WaitingRoom *ExitVs6WaitingRoomPayload `json:"exit_vs6_waiting_room,omitempty"`
-	JoinVs1WaitingRoom *JoinVs1WaitingRoomPayload `json:"join_vs1_waiting_room,omitempty"`
-	ExitVs1WaitingRoom *ExitVs1WaitingRoomPayload `json:"exit_vs1_waiting_room,omitempty"`
-	StartRoom          *StartRoomPayload          `json:"start_room,omitempty"`
-	SyncState          *SyncStatePayload          `json:"sync_state,omitempty"`
-	SyncVs6WaitingRoom *SyncVs6WaitingRoomPayload `json:"sync_vs6_waiting_room,omitempty"`
-	SyncVs1WaitingRoom *SyncVs1WaitingRoomPayload `json:"sync_vs1_waiting_room,omitempty"`
-	SyncWaitingRoom    *SyncWaitingRoomPayload    `json:"sync_waiting_room,omitempty"`
+	AddPlayer       *AddPlayerPayload       `json:"add_player,omitempty"`
+	RemovePlayer    *RemovePlayerPayload    `json:"remove_player,omitempty"`
+	SyncState       *SyncStatePayload       `json:"sync_state,omitempty"`
+	SyncWaitingRoom *SyncWaitingRoomPayload `json:"sync_waiting_room,omitempty"`
 }
 
 type CursorMovePayload struct {
@@ -204,12 +198,6 @@ func NewIncomeTick() *Action {
 	}
 }
 
-func NewWaitRoomCountdownTick() *Action {
-	return &Action{
-		Type: WaitRoomCountdownTick,
-	}
-}
-
 type WindowResizingPayload struct {
 	Width  int
 	Height int
@@ -226,18 +214,22 @@ func NewWindowResizing(w, h int) *Action {
 }
 
 type AddPlayerPayload struct {
-	ID     string
-	Name   string
-	LineID int
+	ID       string
+	Name     string
+	ImageKey string
+	LineID   int
+	IsBot    bool
 }
 
-func NewAddPlayer(id, name string, lid int) *Action {
+func NewAddPlayer(id, name, ik string, lid int, ib bool) *Action {
 	return &Action{
 		Type: AddPlayer,
 		AddPlayer: &AddPlayerPayload{
-			ID:     id,
-			Name:   name,
-			LineID: lid,
+			ID:       id,
+			Name:     name,
+			ImageKey: ik,
+			LineID:   lid,
+			IsBot:    ib,
 		},
 	}
 }
@@ -277,19 +269,6 @@ func NewStartGame(state SyncStatePayload) *Action {
 		Type: StartGame,
 		StartGame: &StartGamePayload{
 			State: state,
-		},
-	}
-}
-
-type StartRoomPayload struct {
-	RoomID string
-}
-
-func NewStartRoom(rid string) *Action {
-	return &Action{
-		Type: StartRoom,
-		StartRoom: &StartRoomPayload{
-			RoomID: rid,
 		},
 	}
 }
@@ -374,6 +353,7 @@ type UserSignInPayload struct {
 	Username   string
 	Websocket  *websocket.Conn
 	RemoteAddr string
+	ImageKey   string
 }
 
 // NewUserSignIn initializes the UserSignIn with just the username
@@ -402,97 +382,28 @@ func NewUserSignOut(un string) *Action {
 
 type UserSignUpPayload struct {
 	Username string
+	ImageKey string
 }
 
-func NewUserSignUp(un string) *Action {
+func NewUserSignUp(un, ik string) *Action {
 	return &Action{
 		Type: UserSignUp,
 		UserSignUp: &UserSignUpPayload{
 			Username: un,
+			ImageKey: ik,
 		},
 	}
 }
 
-type JoinVs6WaitingRoomPayload struct {
-	Username string
+type UserSignUpChangeImagePayload struct {
+	ImageKey string
 }
 
-func NewJoinVs6WaitingRoom(un string) *Action {
+func NewUserSignUpChangeImage(ik string) *Action {
 	return &Action{
-		Type: JoinVs6WaitingRoom,
-		JoinVs6WaitingRoom: &JoinVs6WaitingRoomPayload{
-			Username: un,
-		},
-	}
-}
-
-type ExitVs6WaitingRoomPayload struct {
-	Username string
-}
-
-func NewExitVs6WaitingRoom(un string) *Action {
-	return &Action{
-		Type: ExitVs6WaitingRoom,
-		ExitVs6WaitingRoom: &ExitVs6WaitingRoomPayload{
-			Username: un,
-		},
-	}
-}
-
-type SyncVs6WaitingRoomPayload struct {
-	TotalPlayers int
-	Size         int
-	Countdown    int
-}
-
-func NewSyncVs6WaitingRoom(tp, s, cd int) *Action {
-	return &Action{
-		Type: SyncVs6WaitingRoom,
-		SyncVs6WaitingRoom: &SyncVs6WaitingRoomPayload{
-			TotalPlayers: tp,
-			Size:         s,
-			Countdown:    cd,
-		},
-	}
-}
-
-type JoinVs1WaitingRoomPayload struct {
-	Username string
-}
-
-func NewJoinVs1WaitingRoom(un string) *Action {
-	return &Action{
-		Type: JoinVs1WaitingRoom,
-		JoinVs1WaitingRoom: &JoinVs1WaitingRoomPayload{
-			Username: un,
-		},
-	}
-}
-
-type ExitVs1WaitingRoomPayload struct {
-	Username string
-}
-
-func NewExitVs1WaitingRoom(un string) *Action {
-	return &Action{
-		Type: ExitVs1WaitingRoom,
-		ExitVs1WaitingRoom: &ExitVs1WaitingRoomPayload{
-			Username: un,
-		},
-	}
-}
-
-type SyncVs1WaitingRoomPayload struct {
-	TotalPlayers int
-	Size         int
-}
-
-func NewSyncVs1WaitingRoom(tp, s int) *Action {
-	return &Action{
-		Type: SyncVs1WaitingRoom,
-		SyncVs1WaitingRoom: &SyncVs1WaitingRoomPayload{
-			TotalPlayers: tp,
-			Size:         s,
+		Type: UserSignUpChangeImage,
+		UserSignUpChangeImage: &UserSignUpChangeImagePayload{
+			ImageKey: ik,
 		},
 	}
 }
@@ -501,6 +412,9 @@ type SyncStatePayload struct {
 	Players   *SyncStatePlayersPayload
 	Lines     *SyncStateLinesPayload
 	StartedAt time.Time
+
+	Error   string
+	ErrorAt time.Time
 }
 
 type SyncStateLinesPayload struct {
@@ -508,9 +422,10 @@ type SyncStateLinesPayload struct {
 }
 
 type SyncStateLinePayload struct {
-	ID     int
-	Towers map[string]*SyncStateTowerPayload
-	Units  map[string]*SyncStateUnitPayload
+	ID          int
+	Towers      map[string]*SyncStateTowerPayload
+	Units       map[string]*SyncStateUnitPayload
+	Projectiles map[string]*SyncStateProjectilePayload
 }
 
 type SyncStatePlayersPayload struct {
@@ -521,10 +436,12 @@ type SyncStatePlayersPayload struct {
 type SyncStatePlayerPayload struct {
 	ID       string
 	Name     string
+	ImageKey string
 	Lives    int
 	LineID   int
 	Income   int
 	Gold     int
+	IsBot    bool
 	Current  bool
 	Winner   bool
 	Capacity int
@@ -583,6 +500,24 @@ type SyncStateUnitPayload struct {
 
 	TargetTowerID string
 	LastAttack    time.Time
+}
+
+type SyncStateProjectilePayload struct {
+	ID string
+
+	utils.Object
+
+	TargetUnitID string
+	Damage       float64
+
+	AoE       int
+	AoEDamage float64
+
+	PlayerID string
+
+	ImageKey string
+
+	Type string
 }
 
 // TODO: or make the action.Action separated or make the store.Player separated
@@ -820,6 +755,7 @@ type SyncWaitingRoomPayload struct {
 
 type SyncWaitingRoomPlayersPayload struct {
 	Username string
+	ImageKey string
 	Accepted bool
 }
 
@@ -876,6 +812,19 @@ func NewShowScoreboard(d bool) *Action {
 		Type: ShowScoreboard,
 		ShowScoreboard: &ShowScoreboardPayload{
 			Display: d,
+		},
+	}
+}
+
+type AddErrorPayload struct {
+	Error string
+}
+
+func NewAddError(err string) *Action {
+	return &Action{
+		Type: AddError,
+		AddError: &AddErrorPayload{
+			Error: err,
 		},
 	}
 }

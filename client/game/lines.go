@@ -78,6 +78,13 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 				ls.DrawUnitSelected(screen, ls.game.Camera, u)
 			}
 		}
+		for _, p := range l.Projectiles {
+			// TODO: Why is this happening?
+			if p.ImageKey == "" {
+				continue
+			}
+			ls.DrawProjectile(screen, ls.game.Camera, p)
+		}
 	}
 }
 
@@ -92,6 +99,16 @@ func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower)
 	op.GeoM.Translate(x, y)
 	op.GeoM.Scale(cs.Zoom, cs.Zoom)
 	screen.DrawImage(cutils.Images.Get(t.IdleKey()), op)
+
+	//x := float64(p.X - cs.X)
+	//y := float64(p.Y - cs.Y)
+	//ni := ebiten.NewImage(4, 4)
+	//ni.Fill(color.Black)
+
+	//op := &ebiten.DrawImageOptions{}
+	//op.GeoM.Translate(x, y)
+	//op.GeoM.Scale(cs.Zoom, cs.Zoom)
+	//screen.DrawImage(ni, op)
 }
 
 func (ls *Lines) DrawTowerHelath(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
@@ -125,7 +142,7 @@ func (ls *Lines) DrawTowerSelected(screen *ebiten.Image, c *CameraStore, t *stor
 	ot := tower.Towers[t.Type]
 
 	vector.StrokeRect(screen, float32(x-1), float32(y-1), 34, 34, 2, cutils.Green, false)
-	vector.StrokeCircle(screen, float32(x+16), float32(y+16), float32(ot.Range*32), 2, cutils.Green, false)
+	vector.StrokeCircle(screen, float32(x+16), float32(y+16), float32(ot.Range*32+16), 2, cutils.Green, false)
 }
 
 func (ls *Lines) DrawUnitSelected(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
@@ -207,4 +224,19 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 	//img := cutils.Images.Get(buffBurrowedKey)
 	//screen.DrawImage(img.SubImage(image.Rect(i*32, 0, i*32+32, i*32+32)).(*ebiten.Image), op)
 	//}
+}
+
+func (ls *Lines) DrawProjectile(screen *ebiten.Image, c *CameraStore, p *store.Projectile) {
+	cs := c.GetState().(CameraState)
+	if !p.IsColliding(cs.Object) {
+		return
+	}
+	x := float64(p.X - cs.X)
+	y := float64(p.Y - cs.Y)
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(x, y)
+	op.GeoM.Scale(cs.Zoom, cs.Zoom)
+	screen.DrawImage(cutils.Images.Get(p.ImageKey), op)
+	//screen.DrawImage(ni, op)
 }

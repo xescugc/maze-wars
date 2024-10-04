@@ -45,7 +45,7 @@ type queueItem struct {
 // with W,H equal to the Scale in the designed Environment(env).
 // If atScale is true it'll return the 1:1 result, if not it'll return
 // the 1:Scale result
-func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env environment.Environment, isAttacker, atScale bool) (steps []Step, towerID string) {
+func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env environment.Environment, isAttacker, atScale, useCache bool) (steps []Step, towerID string) {
 	nm := stepMap{}
 	nq := &queue{}
 	heap.Init(nq)
@@ -85,7 +85,7 @@ func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env env
 		// * It's aerial, which means it just goes straight down, noting to calculate
 		// * It's an attacker
 		if current.step.Node.ID == tn.ID ||
-			checkConsecutiveSteps(current, consecutiveSteps) ||
+			(checkConsecutiveSteps(current, consecutiveSteps) && useCache) ||
 			env == environment.Aerial ||
 			(isAttacker && current.step.Node.HasTower()) {
 

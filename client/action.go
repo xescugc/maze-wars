@@ -8,10 +8,13 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/server/models"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
@@ -114,10 +117,15 @@ func (ac *ActionDispatcher) CheckVersion() {
 	return
 }
 
-func (ac *ActionDispatcher) SignUpSubmit(un string) {
+func (ac *ActionDispatcher) UserSignUpChangeImage(ik string) {
+	usci := action.NewUserSignUpChangeImage(ik)
+	ac.Dispatch(usci)
+}
+
+func (ac *ActionDispatcher) SignUpSubmit(un, ik string) {
 	httpu, _ := url.Parse(ac.opt.HostURL)
 	httpu.Path = "/users"
-	resp, err := http.Post(httpu.String(), "application/json", bytes.NewBuffer([]byte(fmt.Sprintf(`{"username":"%s"}`, un))))
+	resp, err := http.Post(httpu.String(), "application/json", bytes.NewBuffer([]byte(fmt.Sprintf(`{"username":"%s","image_key":"%s"}`, un, ik))))
 	if err != nil {
 		ac.Dispatch(action.NewSignUpError(err.Error()))
 		return
@@ -156,6 +164,7 @@ func (ac *ActionDispatcher) SignUpSubmit(un string) {
 	wsc.SetReadLimit(-1)
 
 	usia := action.NewUserSignIn(un)
+	usia.UserSignIn.ImageKey = ik
 	err = wsjson.Write(ctx, wsc, usia)
 	if err != nil {
 		panic(fmt.Errorf("failed to write JSON: %w", err))
@@ -166,40 +175,30 @@ func (ac *ActionDispatcher) SignUpSubmit(un string) {
 	go wsHandler(ctx)
 
 	ac.Dispatch(action.NewNavigateTo(utils.RootRoute))
+
+	configFilePath, err := xdg.ConfigFile("maze-wars/user.json")
+	if err != nil {
+		ac.logger.Error(fmt.Errorf("Failed to ConfigFile: %w", err).Error())
+	}
+	cfg := cutils.Config{
+		Username: un,
+		ImageKey: ik,
+	}
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		panic(fmt.Errorf("Failed to Marshal Config: %w", err))
+	}
+	err = os.WriteFile(configFilePath, b, 0666)
+	if err != nil {
+		ac.logger.Error(fmt.Errorf("Failed to WriteFile: %w", err).Error())
+	}
+
 }
 
 // GoHome will move the camera to the current player home line
 func (ac *ActionDispatcher) GoHome() {
 	gha := action.NewGoHome()
 	ac.Dispatch(gha)
-}
-
-func (ac *ActionDispatcher) JoinVs6WaitingRoom(un string) {
-	jwra := action.NewJoinVs6WaitingRoom(un)
-	wsSend(jwra)
-
-	ac.Dispatch(action.NewNavigateTo(utils.Vs6WaitingRoomRoute))
-}
-
-func (ac *ActionDispatcher) ExitVs6WaitingRoom(un string) {
-	ewra := action.NewExitVs6WaitingRoom(un)
-	wsSend(ewra)
-
-	ac.Dispatch(action.NewNavigateTo(utils.RootRoute))
-}
-
-func (ac *ActionDispatcher) JoinVs1WaitingRoom(un string) {
-	jwra := action.NewJoinVs1WaitingRoom(un)
-	wsSend(jwra)
-
-	ac.Dispatch(action.NewNavigateTo(utils.Vs1WaitingRoomRoute))
-}
-
-func (ac *ActionDispatcher) ExitVs1WaitingRoom(un string) {
-	ewra := action.NewExitVs1WaitingRoom(un)
-	wsSend(ewra)
-
-	ac.Dispatch(action.NewNavigateTo(utils.RootRoute))
 }
 
 func (ac *ActionDispatcher) CreateLobby(lid, o, ln string, lmp int) {

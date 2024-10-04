@@ -28,14 +28,9 @@ const (
 	GoHome
 	SignUpError
 	UserSignUp
+	UserSignUpChangeImage
 	UserSignIn
 	UserSignOut
-	JoinVs6WaitingRoom
-	ExitVs6WaitingRoom
-	JoinVs1WaitingRoom
-	ExitVs1WaitingRoom
-	StartRoom
-	//ToggleStats
 	VersionError
 	SetupGame
 	FindGame
@@ -43,6 +38,7 @@ const (
 	AcceptWaitingGame
 	CancelWaitingGame
 	ShowScoreboard
+	AddError
 
 	CreateLobby
 	DeleteLobby
@@ -58,9 +54,6 @@ const (
 	AddPlayer
 	RemovePlayer
 	SyncState
-	WaitRoomCountdownTick
-	SyncVs6WaitingRoom
-	SyncVs1WaitingRoom
 	SyncSearchingRoom
 	SyncWaitingRoom
 )

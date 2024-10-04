@@ -16,6 +16,8 @@ import (
 	"github.com/xescugc/maze-wars/store"
 )
 
+const isOnServer = true
+
 func main() {
 	js.Global().Set("new_client", NewClient())
 	select {}
@@ -43,7 +45,7 @@ func NewClient() js.Func {
 		l := slog.New(slog.NewTextHandler(ioutil.Discard, nil))
 
 		d := flux.NewDispatcher()
-		s := store.NewStore(d, l)
+		s := store.NewStore(d, l, !isOnServer)
 
 		ad := client.NewActionDispatcher(d, s, l, opt)
 
@@ -71,18 +73,12 @@ func NewClient() js.Func {
 			return fmt.Errorf("failed to initialize RootStore: %w", err)
 		}
 
-		u, err := client.NewSignUpStore(d, s, l)
+		u, err := client.NewSignUpStore(d, s, "", "", l)
 		if err != nil {
 			return fmt.Errorf("failed to initial SignUpStore: %w", err)
 		}
 
-		wr6 := client.NewVs6WaitingRoomStore(d, cls, l)
-		wr1 := client.NewVs1WaitingRoomStore(d, cls, l)
-		lv := client.NewLobbiesView(cls, l)
-		nlv := client.NewNewLobbyView(cls, l)
-		slv := client.NewShowLobbyView(cls, l)
-
-		rs := client.NewRouterStore(d, u, ros, wr6, wr1, g, lv, nlv, slv, l)
+		rs := client.NewRouterStore(d, u, ros, g, l)
 
 		ctx := context.Background()
 		// We need to run this in a goroutine so when it's compiled to WASM

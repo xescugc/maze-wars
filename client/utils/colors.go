@@ -7,9 +7,8 @@ import (
 )
 
 var (
-	Green = color.RGBA{116, 163, 52, 255}
-	//LightGreen  = color.RGBA{173, 188, 58, 255}
-	Red         = color.RGBA{209, 75, 52, 255}
+	Green       = color.RGBA{116, 163, 52, 255}
+	Red         = color.RGBA{224, 57, 76, 255}
 	Transparent = color.RGBA{0, 0, 0, 0}
 	Black       = color.RGBA{0, 0, 0, 255}
 	BlackT      = color.RGBA{0, 0, 0, 120}

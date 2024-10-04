@@ -18,6 +18,7 @@ import (
 	"github.com/xescugc/maze-wars/server/assets"
 	"github.com/xescugc/maze-wars/server/models"
 	"github.com/xescugc/maze-wars/server/templates"
+	"github.com/xescugc/maze-wars/unit"
 
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
@@ -131,6 +132,7 @@ func docsHandler(v string) func(w http.ResponseWriter, r *http.Request) {
 
 type usersCreateRequest struct {
 	Username string `json:"username"`
+	ImageKey string `json:"image_key"`
 }
 
 type errorResponse struct {
@@ -153,20 +155,23 @@ func usersCreateHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 			json.NewEncoder(w).Encode(errorResponse{Error: "Username cannot be empty"})
 			return
 		}
+		if ucr.ImageKey == "" {
+			ucr.ImageKey = unit.TypeStrings()[0]
+		}
 
-		if _, ok := s.Users.FindByUsername(ucr.Username); ok {
+		if _, ok := s.Rooms.FindUserByUsername(ucr.Username); ok {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(errorResponse{Error: "User already exists"})
 			return
 		}
 
-		if _, ok := s.Users.FindByRemoteAddress(r.RemoteAddr); ok {
+		if _, ok := s.Rooms.FindUserByRemoteAddress(r.RemoteAddr); ok {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(errorResponse{Error: "A session already exists from this computer"})
 			return
 		}
 
-		actionDispatcher.UserSignUp(ucr.Username)
+		actionDispatcher.UserSignUp(ucr.Username, ucr.ImageKey)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -237,14 +242,14 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 				// We cannot move this 'u' call outside as the Read
 				// block until a new message is received so it may have
 				// a wrong value stored inside
-				u, _ := s.Users.FindByRemoteAddress(hr.RemoteAddr)
+				u, _ := s.Rooms.FindUserByRemoteAddress(hr.RemoteAddr)
 				fmt.Printf("Error when reading the WS message: %s\n", err)
 
 				actionDispatcher.UserSignOut(u.Username)
 				break
 			}
 
-			u, _ := s.Users.FindByRemoteAddress(hr.RemoteAddr)
+			u, _ := s.Rooms.FindUserByRemoteAddress(hr.RemoteAddr)
 
 			// If the User is in a Room we set it directly on the
 			// action from the handler
@@ -253,6 +258,8 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 			switch msg.Type {
 			case action.UserSignIn:
 				actionDispatcher.UserSignIn(*&msg.UserSignIn.Username, hr.RemoteAddr, ws)
+			case action.RemovePlayer:
+				actionDispatcher.Dispatch(&msg)
 			default:
 				actionDispatcher.Dispatch(&msg)
 			}
@@ -294,9 +301,6 @@ func startLoop(ctx context.Context, s *Store) {
 			actionDispatcher.SyncState(s.Rooms)
 		case <-secondTicker.C:
 			actionDispatcher.IncomeTick(s.Rooms)
-			actionDispatcher.WaitRoomCountdownTick()
-			actionDispatcher.SyncVs6WaitingRoom(s.Rooms)
-			actionDispatcher.SyncVs1WaitingRoom(s.Rooms)
 			actionDispatcher.SyncLobbies(s)
 			actionDispatcher.SyncWaitingRooms(s)
 		case <-ctx.Done():

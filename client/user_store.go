@@ -11,6 +11,7 @@ type UserStore struct {
 
 type UserState struct {
 	Username string
+	ImageKey string
 }
 
 func NewUserStore(d *flux.Dispatcher) *UserStore {
@@ -21,6 +22,7 @@ func NewUserStore(d *flux.Dispatcher) *UserStore {
 }
 
 func (us *UserStore) Username() string { return us.GetState().(UserState).Username }
+func (us *UserStore) ImageKey() string { return us.GetState().(UserState).ImageKey }
 
 func (u *UserStore) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)
@@ -36,6 +38,7 @@ func (u *UserStore) Reduce(state, a interface{}) interface{} {
 	switch act.Type {
 	case action.UserSignIn:
 		ustate.Username = act.UserSignIn.Username
+		ustate.ImageKey = act.UserSignIn.ImageKey
 	}
 
 	return ustate

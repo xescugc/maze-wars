@@ -46,6 +46,10 @@ func (t *Tower) CanTarget(env environment.Environment) bool {
 	_, ok := t.targets[env]
 	return ok
 }
+func (t *Tower) ShootsArrows() bool {
+	_, ok := cannonball[t.Type]
+	return !ok
+}
 
 // initTargets will map the Targets to a map for easy access
 func (t *Tower) initTargets() {
@@ -102,6 +106,11 @@ var (
 		MeleeSingle2: `Powerful single target melee tower`,
 		MeleeAoE1:    `Flying AoE tower`,
 		MeleeAoE2:    `Updated Flying AoE tower`,
+	}
+
+	cannonball = map[Type]struct{}{
+		RangeAoE1: {},
+		RangeAoE2: {},
 	}
 
 	Towers = map[string]*Tower{

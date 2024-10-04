@@ -12,6 +12,8 @@ import (
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server/bot"
+	"github.com/xescugc/maze-wars/store"
+	"github.com/xescugc/maze-wars/unit"
 	"nhooyr.io/websocket"
 )
 
@@ -39,8 +41,7 @@ type RoomsState struct {
 	// Rooms is when an Waiting room is ready to start
 	Rooms map[string]*Room
 
-	CurrentVs6WaitingRoom string
-	CurrentVs1WaitingRoom string
+	Users map[string]*User
 }
 
 type Room struct {
@@ -73,10 +74,21 @@ type Room struct {
 	StartedAt time.Time
 }
 
-type PlayerConn struct {
+type User struct {
+	ID       string
+	Username string
+	ImageKey string
+
 	Conn       *websocket.Conn
 	RemoteAddr string
-	IsBot      bool
+
+	CurrentRoomID  string
+	CurrentLobbyID string
+}
+
+type PlayerConn struct {
+	User  *User
+	IsBot bool
 }
 
 func NewRoomsStore(d *flux.Dispatcher, s *Store, ws WSConnector, l *slog.Logger) *RoomsStore {
@@ -88,6 +100,7 @@ func NewRoomsStore(d *flux.Dispatcher, s *Store, ws WSConnector, l *slog.Logger)
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RoomsState{
 		Rooms:     make(map[string]*Room),
+		Users:     make(map[string]*User),
 		Searching: make(map[string]*Room),
 		Waiting:   make(map[string]*Room),
 	})
@@ -95,7 +108,7 @@ func NewRoomsStore(d *flux.Dispatcher, s *Store, ws WSConnector, l *slog.Logger)
 	return rs
 }
 
-func (rs *RoomsStore) List() []*Room {
+func (rs *RoomsStore) ListRooms() []*Room {
 	rs.mxRooms.RLock()
 	defer rs.mxRooms.RUnlock()
 
@@ -107,7 +120,7 @@ func (rs *RoomsStore) List() []*Room {
 	return rooms
 }
 
-func (rs *RoomsStore) ListSearching() []*Room {
+func (rs *RoomsStore) ListSearchingRooms() []*Room {
 	rs.mxRooms.RLock()
 	defer rs.mxRooms.RUnlock()
 
@@ -119,7 +132,7 @@ func (rs *RoomsStore) ListSearching() []*Room {
 	return rooms
 }
 
-func (rs *RoomsStore) ListWaiting() []*Room {
+func (rs *RoomsStore) ListWaitingRooms() []*Room {
 	rs.mxRooms.RLock()
 	defer rs.mxRooms.RUnlock()
 
@@ -131,31 +144,7 @@ func (rs *RoomsStore) ListWaiting() []*Room {
 	return rooms
 }
 
-func (rs *RoomsStore) FindCurrentVs6WaitingRoom() *Room {
-	rs.mxRooms.RLock()
-	defer rs.mxRooms.RUnlock()
-
-	srooms := rs.GetState().(RoomsState)
-	r, ok := srooms.Rooms[srooms.CurrentVs6WaitingRoom]
-	if !ok {
-		return nil
-	}
-	return r
-}
-
-func (rs *RoomsStore) FindCurrentVs1WaitingRoom() *Room {
-	rs.mxRooms.RLock()
-	defer rs.mxRooms.RUnlock()
-
-	srooms := rs.GetState().(RoomsState)
-	r, ok := srooms.Rooms[srooms.CurrentVs1WaitingRoom]
-	if !ok {
-		return nil
-	}
-	return r
-}
-
-func (rs *RoomsStore) FindByID(rid string) *Room {
+func (rs *RoomsStore) FindRoomByID(rid string) *Room {
 	rs.mxRooms.RLock()
 	defer rs.mxRooms.RUnlock()
 
@@ -172,6 +161,59 @@ func (rs *RoomsStore) GetNextID(room string) int {
 	return len(r.Players)
 }
 
+func (rs *RoomsStore) FindUserByUsername(un string) (User, bool) {
+	rs.mxRooms.RLock()
+	defer rs.mxRooms.RUnlock()
+
+	u, ok := rs.GetState().(RoomsState).Users[un]
+	if !ok {
+		return User{}, false
+	}
+	return *u, true
+}
+
+func (rs *RoomsStore) FindUserByID(uid string) (User, bool) {
+	rs.mxRooms.RLock()
+	defer rs.mxRooms.RUnlock()
+
+	for _, u := range rs.GetState().(RoomsState).Users {
+		if u.ID == uid {
+			return *u, true
+		}
+	}
+	return User{}, false
+}
+
+func (rs *RoomsStore) FindUserByRemoteAddress(ra string) (User, bool) {
+	rs.mxRooms.RLock()
+	defer rs.mxRooms.RUnlock()
+
+	rstate := rs.GetState().(RoomsState)
+
+	return rs.findUserByRemoteAddress(rstate, ra)
+}
+
+func (rs *RoomsStore) findUserByRemoteAddress(rstate RoomsState, ra string) (User, bool) {
+	for _, u := range rstate.Users {
+		if u.RemoteAddr == ra {
+			return *u, true
+		}
+	}
+	return User{}, false
+}
+
+func (rs *RoomsStore) ListUsers() []*User {
+	rs.mxRooms.RLock()
+	defer rs.mxRooms.RUnlock()
+
+	rstate := rs.GetState().(RoomsState)
+	users := make([]*User, 0, len(rstate.Users))
+	for _, u := range rstate.Users {
+		users = append(users, u)
+	}
+	return users
+}
+
 func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 	act, ok := a.(*action.Action)
 	if !ok {
@@ -184,33 +226,63 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 	}
 
 	switch act.Type {
-	case action.StartRoom:
-		//rid := act.StartRoom.RoomID
+	case action.UserSignUp:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
 
-		//rd := flux.NewDispatcher()
-		//g := NewGame(rd, rs.logger)
-		//cr := rstate.Rooms[rid]
-		//ctx := context.Background()
-		//cr.Context, cr.ContextCancelFn = context.WithCancel(ctx)
-		//cr.Game = g
-		//pcount := 0
-		//for pid, pc := range rstate.Rooms[rid].Players {
-		//if pc.IsBot {
-		//g.Dispatch(action.NewAddPlayer(pid, pid, pcount))
-		//cr.Bots[pid] = bot.New(cr.Context, rd, g.Store, pid)
-		//} else {
-		//u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
-		//g.Dispatch(action.NewAddPlayer(pid, u.Username, pcount))
-		//}
-		//pcount++
-		//}
-		//if rid == rstate.CurrentVs6WaitingRoom {
-		//rstate.CurrentVs6WaitingRoom = ""
-		//}
-		//if rid == rstate.CurrentVs1WaitingRoom {
-		//rstate.CurrentVs1WaitingRoom = ""
-		//}
-		//g.Dispatch(action.NewStartGame(rs.SyncState(cr)))
+		id := uuid.Must(uuid.NewV4())
+		rstate.Users[act.UserSignUp.Username] = &User{
+			ID:       id.String(),
+			Username: act.UserSignUp.Username,
+			ImageKey: act.UserSignUp.ImageKey,
+		}
+	case action.UserSignIn:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		if u, ok := rstate.Users[act.UserSignIn.Username]; ok {
+			u.Conn = act.UserSignIn.Websocket
+			u.RemoteAddr = act.UserSignIn.RemoteAddr
+		}
+	case action.UserSignOut:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		u, ok := rstate.Users[act.UserSignOut.Username]
+		if ok && u.CurrentRoomID != "" {
+			removePlayer(&rstate, u.ID, u.CurrentRoomID)
+		}
+
+		delete(rstate.Users, act.UserSignOut.Username)
+	case action.JoinLobby:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		if act.JoinLobby.IsBot {
+			break
+		}
+		rstate.Users[act.JoinLobby.Username].CurrentLobbyID = act.JoinLobby.LobbyID
+	case action.LeaveLobby:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		if un, ok := rstate.Users[act.LeaveLobby.Username]; ok {
+			un.CurrentLobbyID = ""
+		}
+	case action.DeleteLobby:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
+		// TODO: Potentially make it better if this could have access to the
+		// lobby and just target the users that we know need this.
+		// It has access but it would need a WaitFor in order so synchronize
+		for _, u := range rstate.Users {
+			if u.CurrentLobbyID == act.DeleteLobby.LobbyID {
+				u.CurrentLobbyID = ""
+			}
+		}
+	case action.CreateLobby:
+		rstate.Users[act.CreateLobby.Owner].CurrentLobbyID = act.CreateLobby.LobbyID
 	case action.StartLobby:
 		l := rs.Store.Lobbies.FindByID(act.StartLobby.LobbyID)
 		r := &Room{
@@ -230,10 +302,9 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 				}
 				continue
 			}
-			us, _ := rs.Store.Users.FindByUsername(p)
+			us, _ := rstate.Users[p]
 			r.Players[us.ID] = PlayerConn{
-				Conn:       us.Conn,
-				RemoteAddr: us.RemoteAddr,
+				User: us,
 			}
 			r.Connections[us.RemoteAddr] = us.ID
 		}
@@ -274,10 +345,9 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			}
 		}
 
-		us, _ := rs.Store.Users.FindByUsername(act.FindGame.Username)
+		us, _ := rstate.Users[act.FindGame.Username]
 		sr.Players[us.ID] = PlayerConn{
-			Conn:       us.Conn,
-			RemoteAddr: us.RemoteAddr,
+			User: us,
 		}
 		sr.Connections[us.RemoteAddr] = us.ID
 
@@ -312,7 +382,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		defer rs.mxRooms.Unlock()
 
 		// TODO: Potentially add this to the RemovePlayer
-		us, _ := rs.Store.Users.FindByUsername(act.ExitSearchingGame.Username)
+		us, _ := rstate.Users[act.ExitSearchingGame.Username]
 		for sID, sr := range rstate.Searching {
 			if _, ok := sr.Players[us.ID]; ok {
 				delete(sr.Players, us.ID)
@@ -326,7 +396,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
 
-		us, _ := rs.Store.Users.FindByUsername(act.AcceptWaitingGame.Username)
+		us, _ := rstate.Users[act.AcceptWaitingGame.Username]
 		for wrID, wr := range rstate.Waiting {
 			if _, ok := wr.Players[us.ID]; ok {
 				wr.PlayersAccepted[us.Username] = struct{}{}
@@ -344,7 +414,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
 
-		us, _ := rs.Store.Users.FindByUsername(act.CancelWaitingGame.Username)
+		us, _ := rstate.Users[act.CancelWaitingGame.Username]
 		for wrID, wr := range rstate.Waiting {
 			if _, ok := wr.Players[us.ID]; ok {
 
@@ -352,7 +422,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 					if pc.IsBot {
 						continue
 					}
-					err := rs.ws.Write(context.Background(), pc.Conn, act)
+					err := rs.ws.Write(context.Background(), pc.User.Conn, act)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -365,107 +435,14 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
 
+		for _, u := range rstate.Users {
+			if u.ID == act.RemovePlayer.ID {
+				u.CurrentRoomID = ""
+				break
+			}
+		}
+
 		removePlayer(&rstate, act.RemovePlayer.ID, act.Room)
-	case action.UserSignOut:
-		rs.mxRooms.Lock()
-		defer rs.mxRooms.Unlock()
-
-		u, ok := rs.Store.Users.FindByUsername(act.UserSignOut.Username)
-		if ok && u.CurrentRoomID != "" {
-			removePlayer(&rstate, u.ID, u.CurrentRoomID)
-		}
-	case action.JoinVs6WaitingRoom:
-		rs.mxRooms.Lock()
-		defer rs.mxRooms.Unlock()
-
-		if rstate.CurrentVs6WaitingRoom == "" {
-			rid := uuid.Must(uuid.NewV4())
-			rstate.Rooms[rid.String()] = &Room{
-				Name:        rid.String(),
-				Players:     make(map[string]PlayerConn),
-				Connections: make(map[string]string),
-
-				Size:      6,
-				Countdown: 10,
-			}
-			rstate.CurrentVs6WaitingRoom = rid.String()
-		}
-
-		us, _ := rs.Store.Users.FindByUsername(act.JoinVs6WaitingRoom.Username)
-		wr := rstate.Rooms[rstate.CurrentVs6WaitingRoom]
-		wr.Players[us.ID] = PlayerConn{
-			Conn:       us.Conn,
-			RemoteAddr: us.RemoteAddr,
-		}
-		wr.Connections[us.RemoteAddr] = us.ID
-	case action.JoinVs1WaitingRoom:
-		rs.mxRooms.Lock()
-		defer rs.mxRooms.Unlock()
-
-		if rstate.CurrentVs1WaitingRoom == "" {
-			rid := uuid.Must(uuid.NewV4())
-			rstate.Rooms[rid.String()] = &Room{
-				Name:        rid.String(),
-				Players:     make(map[string]PlayerConn),
-				Connections: make(map[string]string),
-
-				Size: 2,
-			}
-			rstate.CurrentVs1WaitingRoom = rid.String()
-		}
-
-		us, _ := rs.Store.Users.FindByUsername(act.JoinVs1WaitingRoom.Username)
-		wr := rstate.Rooms[rstate.CurrentVs1WaitingRoom]
-		wr.Players[us.ID] = PlayerConn{
-			Conn:       us.Conn,
-			RemoteAddr: us.RemoteAddr,
-		}
-		wr.Connections[us.RemoteAddr] = us.ID
-	case action.WaitRoomCountdownTick:
-		rs.mxRooms.Lock()
-		defer rs.mxRooms.Unlock()
-
-		if rstate.CurrentVs6WaitingRoom == "" {
-			break
-		}
-
-		wr := rstate.Rooms[rstate.CurrentVs6WaitingRoom]
-		wr.Countdown--
-		if wr.Countdown == -1 {
-			if wr.Size > 2 {
-				wr.Countdown = 10
-				wr.Size--
-			} else {
-				wr.Countdown = 0
-			}
-		}
-	case action.ExitVs6WaitingRoom:
-		rs.mxRooms.Lock()
-		defer rs.mxRooms.Unlock()
-
-		us, _ := rs.Store.Users.FindByUsername(act.ExitVs6WaitingRoom.Username)
-		delete(rstate.Rooms[rstate.CurrentVs6WaitingRoom].Players, us.ID)
-		delete(rstate.Rooms[rstate.CurrentVs6WaitingRoom].Connections, us.RemoteAddr)
-
-		// If there are no more players waiting remove the room
-		if len(rstate.Rooms[rstate.CurrentVs6WaitingRoom].Players) == 0 {
-			delete(rstate.Rooms, rstate.CurrentVs6WaitingRoom)
-			rstate.CurrentVs6WaitingRoom = ""
-		}
-	case action.ExitVs1WaitingRoom:
-		rs.mxRooms.Lock()
-		defer rs.mxRooms.Unlock()
-
-		us, _ := rs.Store.Users.FindByUsername(act.ExitVs1WaitingRoom.Username)
-		delete(rstate.Rooms[rstate.CurrentVs1WaitingRoom].Players, us.ID)
-		delete(rstate.Rooms[rstate.CurrentVs1WaitingRoom].Connections, us.RemoteAddr)
-
-		// If there are no more players waiting remove the room
-		if len(rstate.Rooms[rstate.CurrentVs1WaitingRoom].Players) == 0 {
-			delete(rstate.Rooms, rstate.CurrentVs1WaitingRoom)
-			rstate.CurrentVs1WaitingRoom = ""
-		}
-
 	default:
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
@@ -473,12 +450,10 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		// If no room means that is a broadcast
 		if act.Room == "" {
 			for _, r := range rstate.Rooms {
-				if r.Name != rstate.CurrentVs6WaitingRoom && r.Name != rstate.CurrentVs1WaitingRoom {
-					if r.Game == nil {
-						return rstate
-					}
-					go r.Game.Dispatch(act)
+				if r.Game == nil {
+					return rstate
 				}
+				go r.Game.Dispatch(act)
 			}
 		} else {
 			if r, ok := rstate.Rooms[act.Room]; ok {
@@ -494,7 +469,7 @@ func removePlayer(rstate *RoomsState, pid, room string) {
 	if room != "" {
 		pc := rstate.Rooms[room].Players[pid]
 		delete(rstate.Rooms[room].Players, pid)
-		delete(rstate.Rooms[room].Connections, pc.RemoteAddr)
+		delete(rstate.Rooms[room].Connections, pc.User.RemoteAddr)
 
 		rstate.Rooms[room].Game.Dispatch(action.NewRemovePlayer(pid))
 
@@ -509,6 +484,7 @@ func removePlayer(rstate *RoomsState, pid, room string) {
 		var humanFound bool
 		for _, pc := range rstate.Rooms[room].Players {
 			if !pc.IsBot {
+				fmt.Println("IN")
 				humanFound = true
 				break
 			}
@@ -518,6 +494,7 @@ func removePlayer(rstate *RoomsState, pid, room string) {
 			for _, b := range rstate.Rooms[room].Bots {
 				b.Stop()
 			}
+			fmt.Println("Deleting")
 			delete(rstate.Rooms, room)
 		}
 	} else {
@@ -546,19 +523,16 @@ func (rs RoomsStore) startRoom(rstate RoomsState, rid string) {
 	pcount := 0
 	for pid, pc := range cr.Players {
 		if pc.IsBot {
-			g.Dispatch(action.NewAddPlayer(pid, pid, pcount))
+			g.Dispatch(action.NewAddPlayer(pid, pid, unit.TypeStrings()[0], pcount, pc.IsBot))
 			cr.Bots[pid] = bot.New(cr.Context, rd, g.Store, pid)
 		} else {
-			u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
-			g.Dispatch(action.NewAddPlayer(pid, u.Username, pcount))
+			//u, _ := rs.findUserByRemoteAddress(rstate, pc.RemoteAddr)
+			//uu := rstate.Users[u.Username]
+			//uu.CurrentRoomID = rid
+			pc.User.CurrentRoomID = rid
+			g.Dispatch(action.NewAddPlayer(pid, pc.User.Username, pc.User.ImageKey, pcount, pc.IsBot))
 		}
 		pcount++
-	}
-	if rid == rstate.CurrentVs6WaitingRoom {
-		rstate.CurrentVs6WaitingRoom = ""
-	}
-	if rid == rstate.CurrentVs1WaitingRoom {
-		rstate.CurrentVs1WaitingRoom = ""
 	}
 	ssp := rs.SyncState(cr, "")
 	sga := action.NewStartGame(ssp)
@@ -569,10 +543,9 @@ func (rs RoomsStore) startRoom(rstate RoomsState, rid string) {
 			cr.Bots[pid].Start()
 			continue
 		} else {
-			u, _ := rs.Store.Users.FindByRemoteAddress(pc.RemoteAddr)
-			ssp := rs.SyncState(cr, u.ID)
+			ssp := rs.SyncState(cr, pc.User.ID)
 			sga := action.NewStartGame(ssp)
-			err := rs.ws.Write(context.Background(), pc.Conn, sga)
+			err := rs.ws.Write(context.Background(), pc.User.Conn, sga)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -584,12 +557,14 @@ func (rs RoomsStore) startRoom(rstate RoomsState, rid string) {
 func (rs RoomsStore) SyncState(r *Room, pid string) action.SyncStatePayload {
 	// Players
 	players := make(map[string]*action.SyncStatePlayerPayload)
+	lstate := r.Game.Store.Lines.GetState().(store.LinesState)
 	lplayers := r.Game.Store.Lines.ListPlayers()
 	for _, p := range lplayers {
 		ap := p
 		uspp := action.SyncStatePlayerPayload{
 			ID:          ap.ID,
 			Name:        ap.Name,
+			ImageKey:    ap.ImageKey,
 			Lives:       ap.Lives,
 			LineID:      ap.LineID,
 			Income:      ap.Income,
@@ -644,5 +619,7 @@ func (rs RoomsStore) SyncState(r *Room, pid string) action.SyncStatePayload {
 			Lines: lines,
 		},
 		r.StartedAt,
+		lstate.Error,
+		lstate.ErrorAt,
 	}
 }

@@ -54,7 +54,7 @@ func ButtonResource() *widget.ButtonImage {
 }
 
 func ButtonBorderResource() *widget.ButtonImage {
-	bp := LoadImageNineSlice(ButtonBorderPressedKey, 2, 2, isPressed)
+	bp := LoadImageNineSlice(ButtonBorderPressedKey, 2, 2, !isPressed)
 	bn := LoadImageNineSlice(ButtonBorderNormalKey, 2, 2, !isPressed)
 	bh := LoadImageNineSlice(ButtonBorderHoverKey, 2, 2, !isPressed)
 	bd := LoadImageNineSlice(ButtonBorderDisabledKey, 2, 2, !isPressed)

@@ -19,6 +19,7 @@ import (
 	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/unit"
+	"github.com/xescugc/maze-wars/unit/ability"
 	"github.com/xescugc/maze-wars/utils"
 )
 
@@ -31,6 +32,9 @@ var (
 		Bottom: 10,
 	}
 	isPressed = true
+	isBot     = true
+
+	unitToolTipTitleTmpl = "%s (%s)"
 )
 
 type RootStore struct {
@@ -42,6 +46,7 @@ type RootStore struct {
 	ui *ebitenui.UI
 
 	usernameTextW   *widget.Text
+	userImageGW     *widget.Graphic
 	playBtnW        *widget.Button
 	backToLobbyBtnW *widget.Button
 	matchInfoTxt    *widget.Text
@@ -51,6 +56,7 @@ type RootStore struct {
 	waitingRoomC                *widget.Container
 	waitingRoomPlayers          []*widget.Container
 	waitingRoomPlayersUsernames []*widget.Text
+	waitingRoomPlayersImages    []*widget.Graphic
 	waitingRoomSubTitle         *widget.Text
 
 	homeC *widget.Container
@@ -126,6 +132,7 @@ func (rs *RootStore) Draw(screen *ebiten.Image) {
 
 	rss := rs.GetState().(RootState)
 	rs.usernameTextW.Label = rs.Store.Users.Username()
+	rs.userImageGW.Image = cutils.Images.Get(unit.Units[rs.Store.Users.ImageKey()].FacesetKey())
 	if rss.SetupGame {
 		rs.loadModal(rs.setupGameW)
 	} else {
@@ -231,6 +238,7 @@ func (rs *RootStore) Draw(screen *ebiten.Image) {
 			if p.Accepted {
 				rs.waitingRoomPlayersUsernames[i].Color = cutils.GreenTextColor
 			}
+			rs.waitingRoomPlayersImages[i].Image = cutils.Images.Get(unit.Units[p.ImageKey].FacesetKey())
 			rs.waitingRoomPlayers[i].GetWidget().Visibility = widget.Visibility_Show
 		}
 		rs.waitingRoomSubTitle.Label = fmtVsRankedBots(rss.WaitingRoom.Size, rss.WaitingRoom.Ranked, false)
@@ -352,20 +360,21 @@ func (rs *RootStore) buildUI() {
 		Container: rootContainer,
 	}
 
-	rootContainer.AddChild(rs.playUI())
-	rootContainer.AddChild(rs.topbarUI())
-	rootContainer.AddChild(rs.profileUI())
-
-	rootContainer.AddChild(rs.homeUI())
-	rootContainer.AddChild(rs.showLobbyUI())
-	rootContainer.AddChild(rs.lobbiesUI())
-	rootContainer.AddChild(rs.learnUI())
+	rootContainer.AddChild(
+		rs.playUI(),
+		rs.topbarUI(),
+		rs.profileUI(),
+		rs.homeUI(),
+		rs.showLobbyUI(),
+		rs.lobbiesUI(),
+		rs.learnUI(),
+		rs.modalBackgroundUI(),
+	)
 
 	rs.setupGameModal()
 	rs.waitingRoomModal()
 	rs.newLobbyModal()
 
-	rootContainer.AddChild(rs.modalBackgroundUI())
 }
 
 func (rs *RootStore) modalBackgroundUI() *widget.Container {
@@ -510,7 +519,6 @@ func (rs *RootStore) topbarUI() *widget.Container {
 	topbarRC := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-			widget.RowLayoutOpts.Spacing(30),
 		)),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
@@ -537,8 +545,10 @@ func (rs *RootStore) topbarUI() *widget.Container {
 		}),
 	)
 
-	topbarRC.AddChild(logoBtnW)
-	topbarRC.AddChild(rs.topbarMenuUI())
+	topbarRC.AddChild(
+		logoBtnW,
+		rs.topbarMenuUI(),
+	)
 
 	topbarC.AddChild(topbarRC)
 
@@ -642,9 +652,11 @@ func (rs *RootStore) topbarMenuUI() *widget.Container {
 		widget.RadioGroupOpts.InitialElement(homeBtnW),
 	)
 
-	topbarMenuC.AddChild(homeBtnW)
-	topbarMenuC.AddChild(lobbiesBtnW)
-	topbarMenuC.AddChild(learnBtnW)
+	topbarMenuC.AddChild(
+		homeBtnW,
+		lobbiesBtnW,
+		learnBtnW,
+	)
 
 	return topbarMenuC
 }
@@ -674,18 +686,22 @@ func (rs *RootStore) profileUI() *widget.Container {
 		widget.ContainerOpts.Layout(widget.NewStackedLayout()),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-				Position: widget.RowLayoutPositionStart,
+				Position:  widget.RowLayoutPositionStart,
+				MaxWidth:  48,
+				MaxHeight: 48,
 			}),
 		),
 	)
 
 	imageBtnBtnW := widget.NewButton(
-		widget.ButtonOpts.Image(cutils.ButtonImageFromKey(cutils.Border4Key, 4, 6)),
+		widget.ButtonOpts.Image(cutils.ButtonImageFromKey(cutils.Border4Key, 4, 4)),
 	)
 	imageBtnGraphicW := widget.NewGraphic(widget.GraphicOpts.Image(cutils.Images.Get(unit.Units[unit.Ninja.String()].FacesetKey())))
 
-	imageBtnC.AddChild(imageBtnBtnW)
-	imageBtnC.AddChild(imageBtnGraphicW)
+	imageBtnC.AddChild(
+		imageBtnBtnW,
+		imageBtnGraphicW,
+	)
 
 	usernameTextW := widget.NewText(
 		widget.TextOpts.Text("", cutils.NormalFont, cutils.TextColor),
@@ -702,6 +718,7 @@ func (rs *RootStore) profileUI() *widget.Container {
 	profileC.AddChild(profileRC)
 
 	rs.usernameTextW = usernameTextW
+	rs.userImageGW = imageBtnGraphicW
 
 	return profileC
 }
@@ -1043,9 +1060,12 @@ func (rs *RootStore) waitingRoomModal() {
 			),
 		)
 
-		playerC.AddChild(imageBtnC)
-		playerC.AddChild(usernameTextW)
+		playerC.AddChild(
+			imageBtnC,
+			usernameTextW,
+		)
 		rs.waitingRoomPlayersUsernames = append(rs.waitingRoomPlayersUsernames, usernameTextW)
+		rs.waitingRoomPlayersImages = append(rs.waitingRoomPlayersImages, imageBtnGraphicW)
 		rs.waitingRoomPlayers = append(rs.waitingRoomPlayers, playerC)
 
 		playersC.AddChild(playerC)
@@ -1152,15 +1172,16 @@ func (rs *RootStore) homeUI() *widget.Container {
 	)
 
 	contentC := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(widget.Insets{
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Padding(widget.Insets{
 				Left:   261,
 				Right:  200,
 				Top:    200,
 				Bottom: 200,
 			}),
-			widget.RowLayoutOpts.Spacing(20),
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(0, 20),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
 		)),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
@@ -1172,17 +1193,133 @@ func (rs *RootStore) homeUI() *widget.Container {
 		),
 	)
 
-	titleTextW := widget.NewText(
-		widget.TextOpts.Text("HOME", cutils.Font60, cutils.TextColor),
-		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	warningC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.ToolTipBGKey, 8, 8, !isPressed)),
+	)
+	warnigTxtW := widget.NewText(
+		widget.TextOpts.Text("The server will be in maintenance for 10'", cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
 		widget.TextOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-				Position: widget.RowLayoutPositionStart,
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionCenter,
+				StretchVertical:    true,
 			}),
 		),
 	)
 
-	contentC.AddChild(titleTextW)
+	infoC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Spacing(50, 0),
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Stretch([]bool{true, true}, []bool{true}),
+		)),
+	)
+
+	newsTAW := widget.NewTextArea(
+		//Set gap between scrollbar and text
+		widget.TextAreaOpts.ControlWidgetSpacing(2),
+		//Tell the textarea to display bbcodes
+		widget.TextAreaOpts.ProcessBBCode(true),
+		//Set the font color
+		widget.TextAreaOpts.FontColor(cutils.TextColor),
+		//Set the font face (size) to use
+		widget.TextAreaOpts.FontFace(cutils.NormalFont),
+		//Set the initial text for the textarea
+		//It will automatically line wrap and process newlines characters
+		//If ProcessBBCode is true it will parse out bbcode
+		widget.TextAreaOpts.Text("[Thanks text to play Maze Wars Alpha]"),
+		//Tell the TextArea to show the vertical scrollbar
+		//widget.TextAreaOpts.ShowVerticalScrollbar(),
+		//Set padding between edge of the widget and where the text is drawn
+		widget.TextAreaOpts.TextPadding(widget.NewInsetsSimple(10)),
+		//This sets the background images for the scroll container
+		widget.TextAreaOpts.ScrollContainerOpts(
+			widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
+				Idle: cutils.LoadImageNineSlice(cutils.HomeWidgetsBGKey, 1, 1, !isPressed),
+				Mask: image.NewNineSliceColor(cutils.Black),
+			}),
+		),
+		//This sets the images to use for the sliders
+		widget.TextAreaOpts.SliderOpts(
+			widget.SliderOpts.Images(
+				// Set the track images
+				&widget.SliderTrackImage{
+					Idle:  image.NewNineSliceColor(cutils.Transparent),
+					Hover: image.NewNineSliceColor(cutils.Transparent),
+				},
+				// Set the handle images
+				&widget.ButtonImage{
+					Idle:    image.NewNineSliceColor(cutils.TableBlack),
+					Pressed: image.NewNineSliceColor(cutils.TableBlack),
+				},
+			),
+		),
+	)
+
+	releaseNotesTAW := widget.NewTextArea(
+		widget.TextAreaOpts.ContainerOpts(
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+					Stretch:  true,
+				}),
+			),
+		),
+		//Set gap between scrollbar and text
+		widget.TextAreaOpts.ControlWidgetSpacing(2),
+		//Tell the textarea to display bbcodes
+		widget.TextAreaOpts.ProcessBBCode(true),
+		//Set the font color
+		widget.TextAreaOpts.FontColor(cutils.TextColor),
+		//Set the font face (size) to use
+		widget.TextAreaOpts.FontFace(cutils.NormalFont),
+		//Set the initial text for the textarea
+		//It will automatically line wrap and process newlines characters
+		//If ProcessBBCode is true it will parse out bbcode
+		widget.TextAreaOpts.Text("[Release notes for the current version]"),
+		//Tell the TextArea to show the vertical scrollbar
+		//widget.TextAreaOpts.ShowVerticalScrollbar(),
+		//Set padding between edge of the widget and where the text is drawn
+		widget.TextAreaOpts.TextPadding(widget.NewInsetsSimple(10)),
+		//This sets the background images for the scroll container
+		widget.TextAreaOpts.ScrollContainerOpts(
+			widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
+				Idle: cutils.LoadImageNineSlice(cutils.HomeWidgetsBGKey, 1, 1, !isPressed),
+				Mask: image.NewNineSliceColor(cutils.Black),
+			}),
+		),
+		//This sets the images to use for the sliders
+		widget.TextAreaOpts.SliderOpts(
+			widget.SliderOpts.Images(
+				// Set the track images
+				&widget.SliderTrackImage{
+					Idle:  image.NewNineSliceColor(cutils.Transparent),
+					Hover: image.NewNineSliceColor(cutils.Transparent),
+				},
+				// Set the handle images
+				&widget.ButtonImage{
+					Idle:    image.NewNineSliceColor(cutils.TableBlack),
+					Pressed: image.NewNineSliceColor(cutils.TableBlack),
+				},
+			),
+		),
+	)
+
+	infoC.AddChild(
+		newsTAW,
+		releaseNotesTAW,
+	)
+
+	warningC.AddChild(
+		warnigTxtW,
+	)
+
+	contentC.AddChild(
+		warningC,
+		infoC,
+	)
 
 	homeC.AddChild(contentC)
 
@@ -2525,43 +2662,805 @@ func (rs *RootStore) newLobbyModal() {
 
 func (rs *RootStore) learnUI() *widget.Container {
 	learnC := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
-
-	contentC := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(widget.Insets{
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(0, 30),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
+			widget.GridLayoutOpts.Padding(widget.Insets{
 				Left:   261,
 				Right:  200,
 				Top:    200,
 				Bottom: 200,
 			}),
+		)),
+	)
+
+	learnBodyC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(3),
+			widget.GridLayoutOpts.Spacing(2, 0),
+			widget.GridLayoutOpts.Stretch([]bool{false, true, false}, []bool{true}),
+		)),
+	)
+
+	contentC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+		)),
+	)
+
+	generalC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(20),
+		)),
+	)
+
+	wimwTxtW := widget.NewText(
+		widget.TextOpts.Text("What is Maze Wars?", cutils.Font40, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	wimwBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+Maze Wars is a game in which you send units to the enemy player at your right and at the same time
+you build a maze to protect from the units sent by the enemy at your left.
+
+If a unit reaches the end of the line it'll steal a live from the player of that line and give it
+to the owner of the unit, the unit will proceed to the next line until it dies or reaches the
+owner line.
+
+The winner is the player that steals the lives of all the other players.
+
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	htsmwgTxtW := widget.NewText(
+		widget.TextOpts.Text("How to start Maze Wars game?", cutils.Font40, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	// TODO: Change this text when we are no longer in Alpha or when matchmaking is
+	// enabled globally on the game
+	htsmwgBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+There are 2 different ways in which you can start a Maze Wars game.
+
+Playing against bots by clicking "Play > (select 'Play with Bots?') > Start". This will
+match you against a bot (1 or 5 depending on your selection). For this Alpha version
+matchmaking with other players has been disabled momentarily.
+
+Creating a custom lobby by going to "Lobbies > Create Lobby > Create" and then waiting for
+people to joint this lobby.
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	generalC.AddChild(
+		wimwTxtW,
+		wimwBodyTxtW,
+		htsmwgTxtW,
+		htsmwgBodyTxtW,
+	)
+
+	inGameC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 			widget.RowLayoutOpts.Spacing(20),
 		)),
 		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-				HorizontalPosition: widget.AnchorLayoutPositionCenter,
-				VerticalPosition:   widget.AnchorLayoutPositionCenter,
-				StretchHorizontal:  true,
-				StretchVertical:    true,
-			}),
+			func(w *widget.Widget) {
+				w.Visibility = widget.Visibility_Hide
+			},
 		),
 	)
 
-	titleTextW := widget.NewText(
-		widget.TextOpts.Text("LEARN", cutils.Font60, cutils.TextColor),
+	igTxtW := widget.NewText(
+		widget.TextOpts.Text("How to play?", cutils.Font40, cutils.TextColor),
 		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
-		widget.TextOpts.WidgetOpts(
+	)
+
+	igBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+Once the Game has started there are 4 main components:
+* Your Line
+* The display to summon Units and place Towers
+* The information bar
+* The Scoreboard
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	igLineBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+There is one Line for each player, the line on the left is the one that sends units
+to the player and the one on the right is the one receiving units from the player.
+Your line is divided in 3 parts: top, middle and bottom.
+The Top part of the Line is where the enemy units are summoned in a random position.
+The Middle is where the player has to build the Maze with towers to kill the enemy
+units.
+The Bottom is where if the units reach it will steal one live and then move to the
+line to the right.
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	igDisplayBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+The Display can be seen at the bottom middle of the screen and it's divided in 2 
+parts, the Units (left) and the Towers (right).
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	igDisplayUnitsBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+There are 10 units that can be summoned using 1-0 keybinds (in the order they are
+displayed, being 1 the first one and 0 the last one). When a unit can be updated
+it'll display a dashed yellow inline. Shift clicking or Shift+Keybind will update
+the unit making it stronger. When displayed in read it means there is not enough
+gold to send it.
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	igDisplayTowersBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+There are 2 types of towers that can be placed into the line, one range and the
+other melee. Each one of those has 9 possible updates(Tiers).
+To update a tower you have to select it and click the updates or Z or X keybinds.
+Towers an also be sold for a 75% of the total cost.
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	igInfoBarBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+The info bar can be seen in the top middle of the screen and has the following 
+information in order from left to right:
+* Time: Time that the game as been going.
+* Gold: The amount of gold the player has.
+* Capacity: The maximum amount of units that can be send.
+* Lives: Total number of lives.
+* Income: Amount of gold received every income tick.
+* Income timer: Time left (every 15s) to receive the Income as gold.
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	igScoreboardBodyTxtW := widget.NewText(
+		widget.TextOpts.Text(`
+The Scoreboard can be found by clicking TAB and it'll display the stats of all
+the players on the current game.
+`, cutils.NormalFont, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	inGameC.AddChild(
+		igTxtW,
+		igBodyTxtW,
+		igLineBodyTxtW,
+		igDisplayBodyTxtW,
+		igDisplayUnitsBodyTxtW,
+		igDisplayTowersBodyTxtW,
+		igInfoBarBodyTxtW,
+		igScoreboardBodyTxtW,
+	)
+
+	unitsC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(20),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				//Position: widget.RowLayoutPositionCenter,
+				Stretch: true,
+			}),
+			func(w *widget.Widget) {
+				w.Visibility = widget.Visibility_Hide
+			},
+		),
+	)
+
+	unitsFacetsC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			//Define number of columns in the grid
+			widget.GridLayoutOpts.Columns(1),
+			//Define how much padding to inset the child content
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(3)),
+			//Define how far apart the rows and columns should be
+			widget.GridLayoutOpts.Spacing(2, 2),
+			//Define how to stretch the rows and columns. Note it is required to
+			//specify the Stretch for each row and column.
+			widget.GridLayoutOpts.Stretch([]bool{false}, []bool{false}),
+		)),
+		//widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.ToolTipBGKey, 8, 8, !isPressed)),
+		//widget.ContainerOpts.WidgetOpts(
+		//widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+		//Position: widget.RowLayoutPositionCenter,
+		//}),
+		//),
+		widget.ContainerOpts.WidgetOpts(
+			func(w *widget.Widget) {
+				w.Visibility = widget.Visibility_Hide
+			},
+		),
+	)
+
+	unitsDescriptionC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+	)
+
+	unitsDescription := map[string]*widget.Container{}
+
+	unitsBtns := make([]widget.RadioGroupElement, 0, 0)
+	for _, t := range unit.TypeStrings() {
+		aux := t
+		u := unit.Units[aux]
+		uu := store.CalculateUnitUpdate(aux, store.UnitUpdate{}, 1)
+		imageBtnC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewStackedLayout()),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					MaxWidth:  46,
+					MaxHeight: 46,
+				}),
+			),
+		)
+		ubtn := widget.NewButton(
+			// specify the images to sue
+			widget.ButtonOpts.Image(cutils.ButtonBorderResource()),
+
+			// add a handler that reacts to clicking the button
+			widget.ButtonOpts.ClickedHandler(func(t string) func(args *widget.ButtonClickedEventArgs) {
+				return func(args *widget.ButtonClickedEventArgs) {
+					for k, c := range unitsDescription {
+						c.GetWidget().Visibility = widget.Visibility_Hide
+						if k == aux {
+							c.GetWidget().Visibility = widget.Visibility_Show
+						}
+					}
+				}
+			}(aux)),
+		)
+		imageGraphicW := widget.NewGraphic(
+			widget.GraphicOpts.Image(
+				cutils.Images.Get(unit.Units[aux].FacesetKey()),
+			),
+			widget.GraphicOpts.WidgetOpts(
+				widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
+					//actionDispatcher.UserSignUpChangeImage(aux)
+				}),
+			),
+		)
+		imageBtnC.AddChild(
+			ubtn,
+			imageGraphicW,
+		)
+		unitsFacetsC.AddChild(imageBtnC)
+		unitsBtns = append(unitsBtns, ubtn)
+
+		unitInfoC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+				widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(20)),
+				widget.RowLayoutOpts.Spacing(5),
+			)),
+			widget.ContainerOpts.WidgetOpts(
+				func(w *widget.Widget) {
+					// If it's not the first one we hide it
+					if aux != unit.TypeStrings()[0] {
+						w.Visibility = widget.Visibility_Hide
+					}
+				},
+			),
+		)
+
+		unitInfoDetailsC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewGridLayout(
+				//Define number of columns in the grid
+				//widget.GridLayoutOpts.Columns(2),
+				widget.GridLayoutOpts.Columns(1),
+				//Define how much padding to inset the child content
+				//Define how far apart the rows and columns should be
+				widget.GridLayoutOpts.Spacing(10, 0),
+				//Define how to stretch the rows and columns. Note it is required to
+				//specify the Stretch for each row and column.
+				widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false}),
+			)),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Stretch: true,
+				}),
+			),
+			widget.ContainerOpts.AutoDisableChildren(),
+		)
+
+		unitInfoDetailsRows := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewGridLayout(
+				//Define number of columns in the grid
+				//widget.GridLayoutOpts.Columns(2),
+				widget.GridLayoutOpts.Columns(3),
+				//Define how far apart the rows and columns should be
+				widget.GridLayoutOpts.Spacing(20, 0),
+				//Define how to stretch the rows and columns. Note it is required to
+				//specify the Stretch for each row and column.
+				widget.GridLayoutOpts.Stretch([]bool{false, false, true}, []bool{false, false}),
+			)),
+		)
+
+		ttTitleTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf(unitToolTipTitleTmpl, u.Name(), u.Keybind), cutils.Font40, cutils.White),
+		)
+
+		goldIconC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		)
+		ttGoldGW := widget.NewGraphic(
+			widget.GraphicOpts.Image(cutils.Images.Get(cutils.GoldIconKey)),
+			widget.GraphicOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionStart,
+					VerticalPosition:   widget.AnchorLayoutPositionCenter,
+				}),
+			),
+		)
+		goldIconC.AddChild(ttGoldGW)
+
+		ttGoldTxtW := widget.NewText(
+			widget.TextOpts.Text(fmt.Sprint(uu.Current.Gold), cutils.NormalFont, cutils.White),
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+				}),
+			),
+		)
+
+		incomeIconC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		)
+		ttIncomeGW := widget.NewGraphic(
+			widget.GraphicOpts.Image(cutils.Images.Get(cutils.IncomeIconKey)),
+			widget.GraphicOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionStart,
+					VerticalPosition:   widget.AnchorLayoutPositionCenter,
+				}),
+			),
+		)
+		incomeIconC.AddChild(ttIncomeGW)
+
+		ttIncomeTxtW := widget.NewText(
+			widget.TextOpts.Text(fmt.Sprint(uu.Current.Income), cutils.NormalFont, cutils.White),
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+				}),
+			),
+		)
+
+		healthIconC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		)
+		ttHealthGW := widget.NewGraphic(
+			widget.GraphicOpts.Image(cutils.Images.Get(cutils.HeartIconKey)),
+			widget.GraphicOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionStart,
+					VerticalPosition:   widget.AnchorLayoutPositionCenter,
+				}),
+			),
+		)
+		healthIconC.AddChild(ttHealthGW)
+
+		ttHealthTxtW := widget.NewText(
+			widget.TextOpts.Text(fmt.Sprint(uu.Current.Health), cutils.NormalFont, cutils.White),
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+				}),
+			),
+		)
+
+		movementSpeedIconC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		)
+		ttMovementSpeedGW := widget.NewGraphic(
+			widget.GraphicOpts.Image(cutils.Images.Get(cutils.MovementSpeedIconKey)),
+			widget.GraphicOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionStart,
+					VerticalPosition:   widget.AnchorLayoutPositionCenter,
+				}),
+			),
+		)
+		movementSpeedIconC.AddChild(ttMovementSpeedGW)
+		ttMovementSpeedTxtW := widget.NewText(
+			widget.TextOpts.Text(fmt.Sprint(uu.Current.MovementSpeed), cutils.NormalFont, cutils.White),
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+				}),
+			),
+		)
+
+		nGoldC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			)),
+		)
+		ttNextGoldTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf("%d", uu.Next.Gold), cutils.NormalFont, cutils.White),
+		)
+		ttNextGoldDiffTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf(" (+%d)", uu.Next.Gold-uu.Current.Gold), cutils.NormalFont, cutils.Green),
+		)
+		nGoldC.AddChild(ttNextGoldTxt, ttNextGoldDiffTxt)
+
+		nIncomeC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			)),
+		)
+		ttNextIncomeTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf("%d", uu.Next.Income), cutils.NormalFont, cutils.White),
+		)
+		ttNextIncomeDiffTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf(" (+%d)", uu.Next.Income-uu.Current.Income), cutils.NormalFont, cutils.Green),
+		)
+		nIncomeC.AddChild(ttNextIncomeTxt, ttNextIncomeDiffTxt)
+
+		nHealthC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			)),
+		)
+		ttNextHealthTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf("%.0f", uu.Next.Health), cutils.NormalFont, cutils.White),
+		)
+		ttNextHealthDiffTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf(" (+%.0f)", uu.Next.Health-uu.Current.Health), cutils.NormalFont, cutils.Green),
+		)
+		nHealthC.AddChild(ttNextHealthTxt, ttNextHealthDiffTxt)
+
+		nMovementSpeedC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			)),
+		)
+		ttNextMovementSpeedTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf("%.0f", uu.Next.MovementSpeed), cutils.NormalFont, cutils.White),
+		)
+		ttNextMovementSpeedDiffTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text(fmt.Sprintf(" (+%.0f)", uu.Next.MovementSpeed-uu.Current.MovementSpeed), cutils.NormalFont, cutils.Green),
+		)
+		nMovementSpeedC.AddChild(ttNextMovementSpeedTxt, ttNextMovementSpeedDiffTxt)
+
+		ttCurrentLvlTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text("1", cutils.NormalFont, cutils.White),
+		)
+
+		ttNextLvlTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text("2", cutils.NormalFont, cutils.White),
+		)
+
+		unitInfoDetailsRows.AddChild(
+			widget.NewText(
+				widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+				widget.TextOpts.Text("lvl", cutils.NormalFont, cutils.White),
+			),
+			ttCurrentLvlTxt,
+			ttNextLvlTxt,
+
+			goldIconC,
+			ttGoldTxtW,
+			nGoldC,
+
+			incomeIconC,
+			ttIncomeTxtW,
+			nIncomeC,
+
+			healthIconC,
+			ttHealthTxtW,
+			nHealthC,
+
+			movementSpeedIconC,
+			ttMovementSpeedTxtW,
+			nMovementSpeedC,
+		)
+
+		unitInfoDetailsC.AddChild(
+			unitInfoDetailsRows,
+		)
+
+		ttAbilitiesTxt := widget.NewText(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.Text("Abilities:", cutils.NormalFont, cutils.White),
+		)
+
+		unitInfoC.AddChild(
+			ttTitleTxt,
+			unitInfoDetailsC,
+			ttAbilitiesTxt,
+		)
+
+		for _, a := range u.Abilities {
+			unitInfoC.AddChild(widget.NewText(
+				widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+				widget.TextOpts.Text(fmt.Sprintf("%s: %s", ability.Name(a), ability.Description(a)), cutils.NormalFont, cutils.White),
+			))
+		}
+
+		unitsDescription[aux] = unitInfoC
+	}
+
+	widget.NewRadioGroup(
+		widget.RadioGroupOpts.Elements(unitsBtns...),
+		widget.RadioGroupOpts.InitialElement(unitsBtns[0]),
+	)
+
+	for _, c := range unitsDescription {
+		unitsDescriptionC.AddChild(c)
+	}
+
+	unitsC.AddChild(
+		unitsDescriptionC,
+	)
+
+	towersC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(20),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			func(w *widget.Widget) {
+				w.Visibility = widget.Visibility_Hide
+			},
+		),
+	)
+
+	towersTxtW := widget.NewText(
+		widget.TextOpts.Text("List of Towers", cutils.Font40, cutils.TextColor),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionStart),
+	)
+
+	towersC.AddChild(
+		towersTxtW,
+	)
+
+	contentC.AddChild(
+		generalC,
+		inGameC,
+		unitsC,
+		towersC,
+	)
+
+	//Create the new ScrollContainer object
+	scrollContainer := widget.NewScrollContainer(
+		//Set the content that will be scrolled
+		widget.ScrollContainerOpts.Content(contentC),
+		//Tell the container to stretch the content width to match available space
+		widget.ScrollContainerOpts.StretchContentWidth(),
+		//Set the background images for the scrollable container
+		widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
+			Idle: image.NewNineSliceColor(cutils.Transparent),
+			Mask: image.NewNineSliceColor(cutils.Black),
+		}),
+	)
+
+	pageSizeFunc := func() int {
+		return int(math.Round(float64(scrollContainer.ViewRect().Dy()) / float64(contentC.GetWidget().Rect.Dy()) * 1000))
+	}
+
+	//Create a vertical Slider bar to control the ScrollableContainer
+	vSlider := widget.NewSlider(
+		widget.SliderOpts.Direction(widget.DirectionVertical),
+		widget.SliderOpts.MinMax(0, 1000),
+		widget.SliderOpts.PageSizeFunc(pageSizeFunc),
+		//On change update scroll location based on the Slider's value
+		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
+			scrollContainer.ScrollTop = float64(args.Slider.Current) / 1000
+		}),
+		widget.SliderOpts.Images(
+			// Set the track images
+			&widget.SliderTrackImage{
+				Idle:  image.NewNineSliceColor(cutils.Transparent),
+				Hover: image.NewNineSliceColor(cutils.Transparent),
+			},
+			// Set the handle images
+			&widget.ButtonImage{
+				Idle:    image.NewNineSliceColor(cutils.TableBlack),
+				Pressed: image.NewNineSliceColor(cutils.TableBlack),
+			},
+		),
+	)
+
+	//Set the slider's position if the scrollContainer is scrolled by other means than the slider
+	scrollContainer.GetWidget().ScrolledEvent.AddHandler(func(args interface{}) {
+		a := args.(*widget.WidgetScrolledEventArgs)
+		p := pageSizeFunc() / 3
+		if p < 1 {
+			p = 1
+		}
+		vSlider.Current -= int(math.Round(a.Y * float64(p)))
+	})
+
+	navbarC := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(15),
+		)),
+		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
 				Position: widget.RowLayoutPositionStart,
 			}),
 		),
 	)
 
-	contentC.AddChild(titleTextW)
+	generalBtnW := widget.NewButton(
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
 
-	learnC.AddChild(contentC)
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.TextButtonResource()),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("General", cutils.NormalFont, &cutils.ButtonTextColorNoPressed),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   10,
+			Right:  10,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			generalC.GetWidget().Visibility = widget.Visibility_Show
+
+			inGameC.GetWidget().Visibility = widget.Visibility_Hide
+			unitsC.GetWidget().Visibility = widget.Visibility_Hide
+			towersC.GetWidget().Visibility = widget.Visibility_Hide
+			unitsFacetsC.GetWidget().Visibility = widget.Visibility_Hide
+		}),
+	)
+	inGameBtnW := widget.NewButton(
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.TextButtonResource()),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("In Game", cutils.NormalFont, &cutils.ButtonTextColorNoPressed),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   10,
+			Right:  10,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			inGameC.GetWidget().Visibility = widget.Visibility_Show
+
+			generalC.GetWidget().Visibility = widget.Visibility_Hide
+			unitsC.GetWidget().Visibility = widget.Visibility_Hide
+			towersC.GetWidget().Visibility = widget.Visibility_Hide
+			unitsFacetsC.GetWidget().Visibility = widget.Visibility_Hide
+		}),
+	)
+	unitsBtnW := widget.NewButton(
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.TextButtonResource()),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("Units", cutils.NormalFont, &cutils.ButtonTextColorNoPressed),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   10,
+			Right:  10,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			unitsC.GetWidget().Visibility = widget.Visibility_Show
+			unitsFacetsC.GetWidget().Visibility = widget.Visibility_Show
+
+			generalC.GetWidget().Visibility = widget.Visibility_Hide
+			inGameC.GetWidget().Visibility = widget.Visibility_Hide
+			towersC.GetWidget().Visibility = widget.Visibility_Hide
+		}),
+	)
+	towersBtnW := widget.NewButton(
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
+
+		// specify the images to sue
+		widget.ButtonOpts.Image(cutils.TextButtonResource()),
+
+		// specify the button's text, the font face, and the color
+		widget.ButtonOpts.Text("Towers", cutils.NormalFont, &cutils.ButtonTextColorNoPressed),
+
+		// specify that the button's text needs some padding for correct display
+		widget.ButtonOpts.TextPadding(widget.Insets{
+			Left:   10,
+			Right:  10,
+			Top:    5,
+			Bottom: 5,
+		}),
+
+		// add a handler that reacts to clicking the button
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			towersC.GetWidget().Visibility = widget.Visibility_Show
+
+			generalC.GetWidget().Visibility = widget.Visibility_Hide
+			inGameC.GetWidget().Visibility = widget.Visibility_Hide
+			unitsC.GetWidget().Visibility = widget.Visibility_Hide
+			unitsFacetsC.GetWidget().Visibility = widget.Visibility_Hide
+		}),
+	)
+
+	widget.NewRadioGroup(
+		widget.RadioGroupOpts.Elements(generalBtnW, inGameBtnW, unitsBtnW, towersBtnW),
+		widget.RadioGroupOpts.InitialElement(generalBtnW),
+	)
+
+	navbarC.AddChild(
+		generalBtnW,
+		inGameBtnW,
+		unitsBtnW,
+		towersBtnW,
+	)
+
+	learnBodyC.AddChild(
+		unitsFacetsC,
+		scrollContainer,
+		vSlider,
+	)
+
+	learnC.AddChild(
+		navbarC,
+		learnBodyC,
+	)
 
 	rs.learnC = learnC
 

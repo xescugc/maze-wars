@@ -15,14 +15,9 @@ import (
 type RouterStore struct {
 	*flux.ReduceStore
 
-	game           *Game
-	root           *RootStore
-	signUp         *SignUpStore
-	vs6WaitingRoom *Vs6WaitingRoomStore
-	vs1WaitingRoom *Vs1WaitingRoomStore
-	lobbies        *LobbiesView
-	newLobby       *NewLobbyView
-	showLobby      *ShowLobbyView
+	game   *Game
+	root   *RootStore
+	signUp *SignUpStore
 
 	logger *slog.Logger
 }
@@ -31,16 +26,11 @@ type RouterState struct {
 	Route string
 }
 
-func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ros *RootStore, wr6 *Vs6WaitingRoomStore, wr1 *Vs1WaitingRoomStore, g *Game, lv *LobbiesView, nlv *NewLobbyView, slv *ShowLobbyView, l *slog.Logger) *RouterStore {
+func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ros *RootStore, g *Game, l *slog.Logger) *RouterStore {
 	rs := &RouterStore{
-		game:           g,
-		root:           ros,
-		signUp:         su,
-		vs6WaitingRoom: wr6,
-		vs1WaitingRoom: wr1,
-		lobbies:        lv,
-		newLobby:       nlv,
-		showLobby:      slv,
+		game:   g,
+		root:   ros,
+		signUp: su,
 
 		logger: l,
 	}
@@ -88,10 +78,6 @@ func (rs *RouterStore) Update() error {
 		rs.signUp.Update()
 	case utils.RootRoute, utils.LobbiesRoute, utils.LearnRoute, utils.HomeRoute, utils.NewLobbyRoute, utils.ShowLobbyRoute:
 		rs.root.Update()
-	case utils.Vs6WaitingRoomRoute:
-		rs.vs6WaitingRoom.Update()
-	case utils.Vs1WaitingRoomRoute:
-		rs.vs1WaitingRoom.Update()
 	case utils.GameRoute:
 		rs.game.Update()
 	}
@@ -134,10 +120,6 @@ func (rs *RouterStore) Draw(screen *ebiten.Image) {
 		rs.signUp.Draw(screen)
 	case utils.RootRoute, utils.LobbiesRoute, utils.LearnRoute, utils.HomeRoute, utils.NewLobbyRoute, utils.ShowLobbyRoute:
 		rs.root.Draw(screen)
-	case utils.Vs6WaitingRoomRoute:
-		rs.vs6WaitingRoom.Draw(screen)
-	case utils.Vs1WaitingRoomRoute:
-		rs.vs1WaitingRoom.Draw(screen)
 	case utils.GameRoute:
 		rs.game.Draw(screen)
 	}

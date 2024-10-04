@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	atScale = true
+	atScale  = true
+	useCache = true
 
 	incomeTimer = 15
 
@@ -33,6 +34,9 @@ const (
 	resurrectionRank1 = 0.25
 
 	noTowerID = ""
+
+	projectileCannonball = "cannonball"
+	projectileArrow      = "arrow"
 )
 
 var (
@@ -54,12 +58,16 @@ type LinesState struct {
 	// IncomeTimer is the internal counter that goes from 15 to 0
 	IncomeTimer int
 	StartedAt   time.Time
+
+	Error   string
+	ErrorAt time.Time
 }
 
 type Line struct {
-	ID     int
-	Towers map[string]*Tower
-	Units  map[string]*Unit
+	ID          int
+	Towers      map[string]*Tower
+	Projectiles map[string]*Projectile
+	Units       map[string]*Unit
 
 	Graph *graph.Graph
 
@@ -82,6 +90,50 @@ func (l *Line) ListSortedUnits() []*Unit {
 	}
 	sort.Slice(res, func(i, j int) bool { return res[i].ID > res[j].ID })
 	return res
+}
+
+type Projectile struct {
+	ID string
+
+	utils.Object
+
+	TargetUnitID string
+	Damage       float64
+
+	AoE       int
+	AoEDamage float64
+
+	PlayerID string
+
+	ImageKey string
+
+	Type string
+}
+
+func (p *Projectile) CalculateImageKey(vx, vy float64) {
+	if p.Type == projectileCannonball {
+		p.ImageKey = "cannonball"
+		return
+	}
+	at := math.Atan2(vy, vx)
+	angle := (at * (180 / math.Pi)) * -1
+	if angle > -22.5 && angle < 22.5 {
+		p.ImageKey = "arrow-right"
+	} else if angle < -22.5 && angle > -67.5 {
+		p.ImageKey = "arrow-down-right"
+	} else if angle < -67.5 && angle > -112.5 {
+		p.ImageKey = "arrow-down"
+	} else if angle < -112.5 && angle > -157.5 {
+		p.ImageKey = "arrow-down-left"
+	} else if angle > 22.5 && angle < 67.5 {
+		p.ImageKey = "arrow-up-right"
+	} else if angle > 67.5 && angle < 112.5 {
+		p.ImageKey = "arrow-up"
+	} else if angle > 112.5 && angle < 157.5 {
+		p.ImageKey = "arrow-up-left"
+	} else if angle > 157.5 && angle > -157.5 {
+		p.ImageKey = "arrow-left"
+	}
 }
 
 type Tower struct {
@@ -122,7 +174,7 @@ func (t *Tower) CanAttackUnit(u *Unit) bool {
 	// If we do not take the center of the tower, towers would calculate everything from the top right
 	// which is not good as a short range tower would not be able to attack from the right for example.
 	// We add 16 as it's the distance from the center of the tower to the edge of it so the range ignores that part
-	centerTower := utils.Object{X: t.X - 16, Y: t.Y - 16}
+	centerTower := utils.Object{X: t.X + 16, Y: t.Y + 16}
 	return u.Object.IsCollidingCircle(centerTower, tower.Towers[t.Type].Range*32+16)
 }
 
@@ -375,10 +427,12 @@ func (u *Unit) CanAttack(tm time.Time) bool {
 type Player struct {
 	ID       string
 	Name     string
+	ImageKey string
 	Lives    int
 	LineID   int
 	Income   int
 	Gold     int
+	IsBot    bool
 	Current  bool
 	Winner   bool
 	Capacity int
@@ -436,15 +490,20 @@ func (ls *Lines) ListLines() []*Line {
 	for _, l := range mlines.Lines {
 		us := make(map[string]*Unit)
 		ts := make(map[string]*Tower)
+		ps := make(map[string]*Projectile)
 		for uid, u := range l.Units {
 			us[uid] = u
 		}
 		for tid, t := range l.Towers {
 			ts[tid] = t
 		}
+		for pid, p := range l.Projectiles {
+			ps[pid] = p
+		}
 		ll := *l
 		ll.Units = us
 		ll.Towers = ts
+		ll.Projectiles = ps
 		lines = append(lines, &ll)
 	}
 	return lines
@@ -458,15 +517,20 @@ func (ls *Lines) FindLineByID(id int) *Line {
 
 	us := make(map[string]*Unit)
 	ts := make(map[string]*Tower)
+	ps := make(map[string]*Projectile)
 	for uid, u := range l.Units {
 		us[uid] = u
 	}
 	for tid, t := range l.Towers {
 		ts[tid] = t
 	}
+	for pid, p := range l.Projectiles {
+		ps[pid] = p
+	}
 	ll := *l
 	ll.Units = us
 	ll.Towers = ts
+	ll.Projectiles = ps
 
 	return &ll
 }
@@ -577,22 +641,25 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		}
 
 		p := &Player{
-			ID:     act.AddPlayer.ID,
-			Name:   act.AddPlayer.Name,
-			Lives:  20,
-			LineID: act.AddPlayer.LineID,
-			Income: 25,
-			Gold:   4000,
+			ID:       act.AddPlayer.ID,
+			Name:     act.AddPlayer.Name,
+			ImageKey: act.AddPlayer.ImageKey,
+			Lives:    20,
+			LineID:   act.AddPlayer.LineID,
+			Income:   25,
+			Gold:     4000,
+			IsBot:    act.AddPlayer.IsBot,
 
 			UnitUpdates: make(map[string]UnitUpdate),
 		}
 		for _, u := range unit.Units {
-			p.UnitUpdates[u.Type.String()] = UnitUpdate{
-				Current:    u.Stats,
-				Level:      1,
-				UpdateCost: updateCostFactor * u.Gold,
+			p.UnitUpdates[u.Type.String()] = CalculateUnitUpdate(u.Type.String(), UnitUpdate{
+				Current: u.Stats,
+				Level:   1,
+
+				UpdateCost: updateCostFactor * u.Stats.Gold,
 				Next:       unitUpdate(2, u.Type.String(), u.Stats),
-			}
+			}, 1)
 		}
 
 		lstate.Players[act.AddPlayer.ID] = p
@@ -611,6 +678,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		p := lstate.Players[act.PlaceTower.PlayerID]
 
 		if !p.CanPlaceTower(act.PlaceTower.Type) {
+			lstate.Error = fmt.Sprintf("Cannot place tower %s", tower.Towers[act.PlaceTower.Type].Name())
+			lstate.ErrorAt = time.Now()
 			break
 		}
 
@@ -625,6 +694,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		l := lstate.Lines[p.LineID]
 		err := l.Graph.AddTower(tw.ID, act.PlaceTower.X, act.PlaceTower.Y, tw.W, tw.H)
 		if err != nil {
+			lstate.Error = err.Error()
+			lstate.ErrorAt = time.Now()
 			break
 		}
 
@@ -641,6 +712,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		t := l.Towers[act.UpdateTower.TowerID]
 
 		if !t.CanUpdateTo(act.UpdateTower.TowerType) {
+			lstate.Error = fmt.Sprintf("Cannot update tower %s", tower.Towers[act.UpdateTower.TowerType].Name())
+			lstate.ErrorAt = time.Now()
 			break
 		}
 
@@ -672,6 +745,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 
 		cp := lstate.Players[act.SummonUnit.PlayerID]
 		if !cp.CanSummonUnit(act.SummonUnit.Type) {
+			lstate.Error = fmt.Sprintf("Cannot summon unit %s", unit.Units[act.SummonUnit.Type].Name())
+			lstate.ErrorAt = time.Now()
 			break
 		}
 		lstate.Players[act.SummonUnit.PlayerID].Income += cp.UnitUpdates[act.SummonUnit.Type].Current.Income
@@ -715,7 +790,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			u.Hybrid(cp.Income, ls.findPlayerByLineID(act.SummonUnit.CurrentLineID).Income)
 		}
 
-		u.Path, u.TargetTowerID = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, u.HasAbility(ability.Attack), atScale)
+		u.Path, u.TargetTowerID = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, u.HasAbility(ability.Attack), atScale, useCache)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.TPS:
@@ -755,6 +830,8 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		buu := lstate.Players[act.UpdateUnit.PlayerID].UnitUpdates[act.UpdateUnit.Type]
 
 		if !lstate.Players[act.UpdateUnit.PlayerID].CanUpdateUnit(act.UpdateUnit.Type) {
+			lstate.Error = fmt.Sprintf("Cannot update unit %s", unit.Units[act.UpdateUnit.Type].Name())
+			lstate.ErrorAt = time.Now()
 			break
 		}
 
@@ -795,11 +872,17 @@ func (ls *Lines) recalculateLineUnitSteps(lstate LinesState, lid int, twID strin
 		if u.HasAbility(ability.Attack) && ((twID == "" || u.TargetTowerID != twID) && len(u.Path) == 0) {
 			continue
 		}
-		u.Path, u.TargetTowerID = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale)
+		u.Path, u.TargetTowerID = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale, useCache)
 		u.HashPath = graph.HashSteps(u.Path)
 	}
 }
 
+// moveLineUnitsTo will move the units of 'lid' to the 't' time compared to the last time they
+// were moved.
+// It'll also check:
+// * If towers can attack
+// * If units can use abilities
+// * If units are dead, reached end or can go to the next line
 func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 	l := lstate.Lines[lid]
 	lmoves := 1
@@ -841,6 +924,8 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 			// TODO: Investigate why this is a case to check
 			// as if it's 0 it should be read for the next if
 			// and delete/change line
+			//
+			// This moves the unit to the next Path position
 			if len(u.Path) != 0 {
 				nextStep := u.Path[0]
 				u.Path = u.Path[1:]
@@ -850,6 +935,8 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				u.Facing = nextStep.Facing
 			}
 
+			// We check if the new path is stepping into a burrowed
+			// unit so we need to unburrow it
 			for bid, bu := range burrowedUnits {
 				if u.IsColliding(bu.Object) {
 					bu.Unburrow()
@@ -863,6 +950,7 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 			// reached the end of the line
 			if len(u.Path) == 0 {
 				if u.HasAbility(ability.Attack) && u.TargetTowerID != "" {
+					// Attacking the tower
 					u.AnimationCount += 1
 					if u.CanAttack(t) {
 						cu := lstate.Players[u.PlayerID].UnitUpdates[u.Type]
@@ -880,6 +968,8 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 						}
 					}
 				} else {
+					// Reached the end of the line so we have to steal
+					// one live and move to the next line (if any)
 					var fpID string
 					for pid, p := range lstate.Players {
 						if p.LineID == lid {
@@ -913,6 +1003,43 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				}
 			}
 		}
+		// Now we need to move the Projectiles and check if they are hitting the target
+		// we'll also check first if the projectile is already hitting the target as it
+		// could happen that the unit move towards the projectile
+		for pid, p := range l.Projectiles {
+			u, ok := l.Units[p.TargetUnitID]
+			if !ok {
+				// If there is no unit for that projectile we just remove it
+				delete(l.Projectiles, pid)
+				continue
+			}
+			if p.IsColliding(u.Object) {
+				ls.attackUnit(lstate, l, p, u, t)
+				delete(l.Projectiles, pid)
+				continue
+			}
+			distance := p.PDistance(u.Object)
+
+			vx := (u.X - p.X)
+			vy := (u.Y - p.Y)
+
+			p.X = 3/distance*vx + p.X
+			p.Y = 3/distance*vy + p.Y
+
+			if p.IsColliding(u.Object) {
+				ls.attackUnit(lstate, l, p, u, t)
+				delete(l.Projectiles, pid)
+				continue
+			}
+
+			p.CalculateImageKey(vx, vy)
+		}
+
+		//if !ls.store.isOnServer {
+		//// If we are on the client we do not calculate any of those things
+		//continue
+		//}
+
 		// Now that the unit has moved we'll calculate if any
 		// tower can attack any Unit in their new positions
 		for _, tw := range l.Towers {
@@ -929,12 +1056,13 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				minCostCam     int = 0
 				minCostCamUnit *Unit
 
-				targetUnit *Unit
+				//targetUnit *Unit
 			)
 			if tw.TargetUnitID != "" {
 				if u, ok := l.Units[tw.TargetUnitID]; ok {
 					if tw.CanAttackUnit(u) {
-						targetUnit = u
+						minCostUnit = u
+						//targetUnit = u
 					} else {
 						tw.TargetUnitID = ""
 					}
@@ -942,27 +1070,37 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 					tw.TargetUnitID = ""
 				}
 			}
-			for _, u := range l.Units {
-				if !tw.CanAttackUnit(u) {
-					continue
-				}
-				// Target is based on the unit with the greatest cost
-				up := lstate.Players[u.PlayerID]
-				ug := up.UnitUpdates[u.Type].Current.Gold
-				if u.HasAbility(ability.Camouflage) {
-					if minCostCam == 0 {
-						minCostCam = ug
-						minCostCamUnit = u
+			if minCostUnit == nil {
+				for _, u := range l.Units {
+					if !tw.CanAttackUnit(u) {
+						continue
 					}
-					if ug > minCostCam {
-						minCostCam = ug
-						minCostCamUnit = u
-					}
-				} else {
-					if u.HasAbility(ability.Attack) {
-						if !isAttacker {
-							minCost = ug
-							minCostUnit = u
+					// Target is based on the unit with the greatest cost
+					up := lstate.Players[u.PlayerID]
+					ug := up.UnitUpdates[u.Type].Current.Gold
+					if u.HasAbility(ability.Camouflage) {
+						if minCostCam == 0 {
+							minCostCam = ug
+							minCostCamUnit = u
+						}
+						if ug > minCostCam {
+							minCostCam = ug
+							minCostCamUnit = u
+						}
+					} else {
+						if u.HasAbility(ability.Attack) {
+							if !isAttacker {
+								minCost = ug
+								minCostUnit = u
+							} else {
+								if minCost == 0 {
+									minCost = ug
+								}
+								if ug >= minCost {
+									minCost = ug
+									minCostUnit = u
+								}
+							}
 						} else {
 							if minCost == 0 {
 								minCost = ug
@@ -972,14 +1110,6 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 								minCostUnit = u
 							}
 						}
-					} else {
-						if minCost == 0 {
-							minCost = ug
-						}
-						if ug >= minCost {
-							minCost = ug
-							minCostUnit = u
-						}
 					}
 				}
 			}
@@ -987,44 +1117,73 @@ func (ls *Lines) moveLineUnitsTo(lstate LinesState, lid int, t time.Time) {
 				minCostUnit = minCostCamUnit
 			}
 			if minCostUnit != nil {
+				// TODO: Should we change the current target if a priority target comes to range?
 				// We replace the minCostUnit calculated with the targetUnit only if the minCostUnit has 'Attack' (top priority)
 				// and if the targetUnit has 'Camouflage' (no priority)
-				if !minCostUnit.HasAbility(ability.Attack) && targetUnit != nil && !targetUnit.HasAbility(ability.Camouflage) {
-					minCostUnit = targetUnit
+				//if !minCostUnit.HasAbility(ability.Attack) && targetUnit != nil && !targetUnit.HasAbility(ability.Camouflage) {
+				//minCostUnit = targetUnit
+				//}
+				ot := tower.Towers[tw.Type]
+				pid := uuid.Must(uuid.NewV4()).String()
+				p := &Projectile{
+					// The Projectile starts at the middle of the tower
+					Object: utils.Object{
+						X: tw.X + 16,
+						Y: tw.Y + 16,
+						W: 13, H: 5,
+					},
+					TargetUnitID: minCostUnit.ID,
+					Damage:       ot.Damage,
+					AoE:          ot.AoE,
+					AoEDamage:    ot.AoEDamage,
+					PlayerID:     tw.PlayerID,
+					Type:         projectileCannonball,
 				}
-				// Tower Attack
-				minCostUnit.TakeDamage(tower.Towers[tw.Type].Damage)
+
+				if ot.ShootsArrows() {
+					p.Type = projectileArrow
+
+					vx := (minCostUnit.X - p.X)
+					vy := (minCostUnit.Y - p.Y)
+
+					p.CalculateImageKey(vx, vy)
+				}
+
+				l.Projectiles[pid] = p
 				// The attack was done so we register it
 				tw.LastAttack = t
 				tw.TargetUnitID = minCostUnit.ID
-
-				ls.checkAfterDamage(lstate, l, tw, minCostUnit, t)
-				// If the Tower does AoE Damage we need to check again all the units
-				// except the current and damage them
-				if tower.Towers[tw.Type].AoE != 0 {
-					centerUnit := utils.Object{X: minCostUnit.X + 8, Y: minCostUnit.Y + 8}
-					for _, u := range l.Units {
-						if u.ID == minCostUnit.ID {
-							continue
-						}
-						if !u.CanBeAttacked(t) {
-							continue
-						}
-						bt := tower.Towers[tw.Type]
-						if !u.IsCollidingCircle(centerUnit, float64(bt.AoE)*16) {
-							continue
-						}
-						u.TakeDamage(tower.Towers[tw.Type].AoEDamage)
-						ls.checkAfterDamage(lstate, l, tw, u, t)
-					}
-				}
 			}
 		}
 	}
 	l.UpdatedAt = t
 }
 
-func (ls Lines) checkAfterDamage(lstate LinesState, l *Line, tw *Tower, u *Unit, t time.Time) {
+func (ls Lines) attackUnit(lstate LinesState, l *Line, p *Projectile, tu *Unit, t time.Time) {
+	// Tower Attack
+	tu.TakeDamage(p.Damage)
+	ls.checkAfterDamage(lstate, l, p, tu, t)
+	// If the Tower does AoE Damage we need to check again all the units
+	// except the current and damage them
+	if p.AoE != 0 {
+		centerUnit := utils.Object{X: tu.X + 8, Y: tu.Y + 8}
+		for _, u := range l.Units {
+			if u.ID == tu.ID {
+				continue
+			}
+			if !u.CanBeAttacked(t) {
+				continue
+			}
+			if !u.IsCollidingCircle(centerUnit, float64(p.AoE)*16) {
+				continue
+			}
+			u.TakeDamage(p.AoEDamage)
+			ls.checkAfterDamage(lstate, l, p, u, t)
+		}
+	}
+}
+
+func (ls Lines) checkAfterDamage(lstate LinesState, l *Line, p *Projectile, u *Unit, t time.Time) {
 	if u.Health <= u.MaxHealth/2 && u.HasAbility(ability.Burrow) && !u.WasBurrowed() {
 		if u.Abilities == nil {
 			u.Abilities = make(map[string]interface{})
@@ -1044,7 +1203,7 @@ func (ls Lines) checkAfterDamage(lstate LinesState, l *Line, tw *Tower, u *Unit,
 						u.Health = 0
 
 						// Unit Killed by player so we give gold to the player
-						cp := lstate.Players[tw.PlayerID]
+						cp := lstate.Players[p.PlayerID]
 						cp.Gold += u.Bounty
 
 						// Delete Unit as we know this is the last one of the split left
@@ -1114,7 +1273,7 @@ func (ls Lines) checkAfterDamage(lstate LinesState, l *Line, tw *Tower, u *Unit,
 			u.Health = 0
 
 			// Unit Killed by player so we give gold to the player
-			cp := lstate.Players[tw.PlayerID]
+			cp := lstate.Players[p.PlayerID]
 			cp.Gold += u.Bounty
 		}
 
@@ -1132,10 +1291,11 @@ func (ls *Lines) newLine(lid int) *Line {
 		panic(err)
 	}
 	return &Line{
-		ID:     lid,
-		Towers: make(map[string]*Tower),
-		Units:  make(map[string]*Unit),
-		Graph:  g,
+		ID:          lid,
+		Towers:      make(map[string]*Tower),
+		Units:       make(map[string]*Unit),
+		Projectiles: make(map[string]*Projectile),
+		Graph:       g,
 	}
 }
 
@@ -1199,7 +1359,7 @@ func (ls *Lines) changeUnitLine(lstate LinesState, u *Unit, nlid int) {
 	u.X = float64(n.X)
 	u.Y = float64(n.Y)
 
-	u.Path, u.TargetTowerID = nl.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale)
+	u.Path, u.TargetTowerID = nl.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale, useCache)
 	u.HashPath = graph.HashSteps(u.Path)
 
 	u.CreatedAt = time.Now()
@@ -1306,11 +1466,14 @@ func (ls *Lines) syncState(lstate *LinesState, ss action.SyncStatePayload) {
 		atws := make(map[string]struct{})
 		for id, t := range l.Towers {
 			at := t
+			nt := Tower(*at)
+
 			if _, ok := tids[id]; !ok {
 				atws[id] = struct{}{}
 			}
+
 			delete(tids, id)
-			nt := Tower(*at)
+			// So this way we have the projectiles on the Client
 			cl.Towers[id] = &nt
 		}
 		for id := range tids {
@@ -1320,6 +1483,32 @@ func (ls *Lines) syncState(lstate *LinesState, ss action.SyncStatePayload) {
 		for id := range atws {
 			t := cl.Towers[id]
 			cl.Graph.AddTower(id, int(t.X), int(t.Y), t.W, t.H)
+		}
+
+		//if !ls.store.isOnServer {
+		//// If we are on the client we do not calculate any of those things
+		//continue
+		//}
+
+		// NOTE: This is so the Client is creating the projectiles and keeping
+		// track of them, if we only serve from the server as it returns every
+		// 1/4s looks weird
+		cl.Projectiles = make(map[string]*Projectile)
+		pids := make(map[string]struct{})
+		for id := range cl.Projectiles {
+			pids[id] = struct{}{}
+		}
+		for id, p := range l.Projectiles {
+			ap := p
+			if _, ok := pids[id]; ok {
+				continue
+			}
+			delete(pids, id)
+			np := Projectile(*ap)
+			cl.Projectiles[id] = &np
+		}
+		for id := range pids {
+			delete(cl.Projectiles, id)
 		}
 	}
 
@@ -1333,10 +1522,12 @@ func (ls *Lines) syncState(lstate *LinesState, ss action.SyncStatePayload) {
 		np := Player{
 			ID:          p.ID,
 			Name:        p.Name,
+			ImageKey:    p.ImageKey,
 			Lives:       p.Lives,
 			LineID:      p.LineID,
 			Income:      p.Income,
 			Gold:        p.Gold,
+			IsBot:       p.IsBot,
 			Current:     p.Current,
 			Winner:      p.Winner,
 			Capacity:    p.Capacity,
@@ -1352,4 +1543,24 @@ func (ls *Lines) syncState(lstate *LinesState, ss action.SyncStatePayload) {
 	}
 	lstate.IncomeTimer = ss.Players.IncomeTimer
 	lstate.StartedAt = ss.StartedAt
+}
+
+// CalculateUnitUpdate will return the UnitUpdate of t
+func CalculateUnitUpdate(t string, buu UnitUpdate, lvl int) UnitUpdate {
+	u := unit.Units[t]
+	if lvl == 1 {
+		return UnitUpdate{
+			Current:    u.Stats,
+			Level:      lvl,
+			UpdateCost: updateCostFactor * u.Gold,
+			Next:       unitUpdate(lvl+1, t, u.Stats),
+		}
+	}
+	uu := UnitUpdate{
+		Current:    buu.Next,
+		Level:      buu.Level + 1,
+		UpdateCost: updateCostFactor * buu.Next.Gold,
+		Next:       unitUpdate(buu.Level+2, u.Type.String(), u.Stats),
+	}
+	return uu
 }

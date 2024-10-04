@@ -52,37 +52,58 @@ func (b *Bot) Stop() {
 
 func (b *Bot) Node() bht.Node {
 	return bht.New(
-		bht.Shuffle(bht.Selector, nil),
-		//Units
+		bht.Sequence,
+		// Will check if it can stop execution
+		bht.New(b.checkWinLoseCondition()),
 		bht.New(
 			bht.Shuffle(bht.Selector, nil),
-			// Update
-			bht.New(
-				bht.Selector,
-				b.updateUnits()...,
-			),
-			// Summon
+			//Units
 			bht.New(
 				bht.Shuffle(bht.Selector, nil),
-				b.summonUnits()...,
+				// Update
+				bht.New(
+					bht.Selector,
+					b.updateUnits()...,
+				),
+				// Summon
+				bht.New(
+					bht.Shuffle(bht.Selector, nil),
+					b.summonUnits()...,
+				),
 			),
-		),
-		// Towers
-		bht.New(
-			bht.Shuffle(bht.Selector, nil),
-			// Update
-			bht.New(
-				bht.Sequence,
-				bht.New(b.findTowerToUpdate()),
-				bht.New(b.updateTower()),
-			),
-			// Place
+			// Towers
 			bht.New(
 				bht.Shuffle(bht.Selector, nil),
-				b.placeTowers()...,
+				// Update
+				bht.New(
+					bht.Sequence,
+					bht.New(b.findTowerToUpdate()),
+					bht.New(b.updateTower()),
+				),
+				// Place
+				bht.New(
+					bht.Shuffle(bht.Selector, nil),
+					b.placeTowers()...,
+				),
 			),
 		),
 	)
+}
+
+func (b *Bot) checkWinLoseCondition() func(children []bht.Node) (bht.Status, error) {
+	return func(children []bht.Node) (bht.Status, error) {
+		var thereAreHumans bool
+		for _, p := range b.store.Lines.ListPlayers() {
+			if !p.IsBot && p.Lives > 0 && !p.Winner {
+				thereAreHumans = true
+			}
+		}
+		bhts := bht.Failure
+		if thereAreHumans {
+			bhts = bht.Success
+		}
+		return bhts, nil
+	}
 }
 
 func (b *Bot) updateUnits() []bht.Node {

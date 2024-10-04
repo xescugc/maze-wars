@@ -112,6 +112,20 @@ const (
 	PlayerIconKey        = "player-icon"
 
 	ToolTipBGKey = "tooltip-bg"
+
+	ArrowRightKey     = "arrow-right"
+	ArrowDownRightKey = "arrow-down-right"
+	ArrowDownKey      = "arrow-down"
+	ArrowDownLeftKey  = "arrow-down-left"
+	ArrowLeftKey      = "arrow-left"
+	ArrowUpLeftKey    = "arrow-up-left"
+	ArrowUpKey        = "arrow-up"
+	ArrowUpRightKey   = "arrow-up-right"
+
+	CannonballKey = "cannonball"
+
+	EditIconKey      = "edit-icon"
+	HomeWidgetsBGKey = "home-widgets-bg"
 )
 
 // ImagesCache is a simple cache for all the images, so instead
@@ -188,6 +202,26 @@ func init() {
 		panic(err)
 	}
 	Images.images[HeartIconKey] = ebiten.NewImageFromImage(ebiten.NewImageFromImage(hearts).SubImage(image.Rect(4*16, 0, 4*16+16, 16)))
+
+	arrowKeys := []string{
+		ArrowRightKey,
+		ArrowDownRightKey,
+		ArrowDownKey,
+		ArrowDownLeftKey,
+		ArrowLeftKey,
+		ArrowUpLeftKey,
+		ArrowUpKey,
+		ArrowUpRightKey,
+	}
+
+	ari, _, err := image.Decode(bytes.NewReader(assets.Arrow_png))
+	if err != nil {
+		panic(err)
+	}
+	arrow := ebiten.NewImageFromImage(ari)
+	for i, k := range arrowKeys {
+		Images.images[k] = ebiten.NewImageFromImage(arrow.SubImage(image.Rect(i*13, 0, i*13+13, 13)))
+	}
 
 	var keyImage = map[string][]byte{
 		BuffResurrectingKey:          assets.SkeletonDemonDead_png,
@@ -266,6 +300,11 @@ func init() {
 		MovementSpeedIconKey: assets.MovementSpeedIcon_png,
 
 		ToolTipBGKey: assets.ToolTipBG_png,
+
+		CannonballKey: assets.Cannonball_png,
+
+		EditIconKey:      assets.EditIcon_png,
+		HomeWidgetsBGKey: assets.HomeWidgetsBG_png,
 	}
 
 	for k, b := range keyImage {

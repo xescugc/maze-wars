@@ -16,12 +16,15 @@ type Store struct {
 
 	dispatcher *flux.Dispatcher
 	logger     *slog.Logger
+
+	isOnServer bool
 }
 
-func NewStore(d *flux.Dispatcher, l *slog.Logger) *Store {
+func NewStore(d *flux.Dispatcher, l *slog.Logger, server bool) *Store {
 	s := &Store{
 		dispatcher: d,
 		logger:     l,
+		isOnServer: server,
 	}
 	s.Map = NewMap(d, s)
 	s.Lines = NewLines(d, s)
