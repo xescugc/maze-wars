@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+#loading {
+  margin-top: 240px;
+  color: #fff;
+}
+    </style>
+  </head>
+  <body>
+    <center>
+      <p id="loading">LOADING GAME ...</p>
+    </center>
+  </body>
+</html>
+<script src="wasm_exec.js"></script>
+<script>
+  // Polyfill
+  if (!WebAssembly.instantiateStreaming) {
+    WebAssembly.instantiateStreaming = async (resp, importObject) => {
+      const source = await (await resp).arrayBuffer();
+      return await WebAssembly.instantiate(source, importObject);
+    };
+  }
+
+  const go = new Go();
+  WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then(result => {
+    var loading = document.getElementById("loading")
+    go.run(result.instance);
+    loading.remove()
+
+    // Origin includes the schema
+    const err = new_client();
+    if (err != null) {
+      console.log("error",err)
+    }
+  });
+</script>

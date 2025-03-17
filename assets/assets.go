@@ -335,3 +335,33 @@ var EditIcon_png []byte
 
 //go:embed home_widgets_bg.png
 var HomeWidgetsBG_png []byte
+
+//go:embed mw-unit-ninja.gif
+var MWUnitNinja_GIF []byte
+
+//go:embed mw-unit-blend-master.gif
+var MWUnitBlendMaster_GIF []byte
+
+//go:embed mw-unit-hunter.gif
+var MWUnitHunter_GIF []byte
+
+//go:embed mw-unit-mole.gif
+var MWUnitMole_GIF []byte
+
+//go:embed mw-unit-monkey-boxer.gif
+var MWUnitMonkeyBoxer_GIF []byte
+
+//go:embed mw-unit-robot.gif
+var MWUnitRobot_GIF []byte
+
+//go:embed mw-unit-skeleton-demon.gif
+var MWUnitSkeletonDemon_GIF []byte
+
+//go:embed mw-unit-slime.gif
+var MWUnitSlime_GIF []byte
+
+//go:embed mw-unit-statue.gif
+var MWUnitStatue_GIF []byte
+
+//go:embed mw-unit-butterfly.gif
+var MWUnitButterfly_GIF []byte
