@@ -167,6 +167,7 @@ func (g *Graph) GetRandomSpawnNode() *Node {
 	x := p % g.W
 	y := p % g.SpawnZoneH
 	return g.GetNode(g.OffsetX+(x*g.Scale), g.OffsetY+(y*g.Scale))
+	//return g.GetNode(g.OffsetX, g.OffsetY)
 }
 
 // AddTower adds a tower to the desired X,Y location
