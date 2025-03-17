@@ -1470,6 +1470,7 @@ func (hs *HUDStore) displayTargetUI() *widget.Container {
 		),
 	)
 	imageG := widget.NewGraphic(
+		widget.GraphicOpts.Image(ebiten.NewImage(99, 99)),
 		// TODO: Image 99x99 the image
 		widget.GraphicOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
