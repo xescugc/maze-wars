@@ -8,13 +8,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/coder/websocket"
+	"github.com/getsentry/sentry-go"
 	"github.com/gofrs/uuid"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server/bot"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/unit"
-	"nhooyr.io/websocket"
 )
 
 type RoomsStore struct {
@@ -453,11 +454,37 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 				if r.Game == nil {
 					return rstate
 				}
-				go r.Game.Dispatch(act)
+				go func() {
+					localHub := sentry.CurrentHub().Clone()
+					defer func() {
+						err := recover()
+
+						if err != nil {
+							localHub.Recover(err)
+							localHub.Flush(time.Second * 5)
+							panic(err)
+						}
+					}()
+
+					r.Game.Dispatch(act)
+				}()
 			}
 		} else {
 			if r, ok := rstate.Rooms[act.Room]; ok {
-				go r.Game.Dispatch(act)
+				go func() {
+					localHub := sentry.CurrentHub().Clone()
+					defer func() {
+						err := recover()
+
+						if err != nil {
+							localHub.Recover(err)
+							localHub.Flush(time.Second * 5)
+							panic(err)
+						}
+					}()
+
+					r.Game.Dispatch(act)
+				}()
 			}
 		}
 	}

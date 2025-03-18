@@ -3,12 +3,12 @@ package server_test
 import (
 	"testing"
 
+	"github.com/coder/websocket"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server"
 	"github.com/xescugc/maze-wars/server/mock"
-	"nhooyr.io/websocket"
 )
 
 func TestRoom_List(t *testing.T) {

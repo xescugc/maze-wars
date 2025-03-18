@@ -7,6 +7,8 @@
   color: #fff;
 }
     </style>
+		<script src="https://js.sentry-cdn.com/edc30a104710c7ccd2c6225ccb0c8fd9.min.js" crossorigin="anonymous"></script>
+		<script src="https://browser.sentry-cdn.com/9.8.0/bundle.tracing.min.js" integrity="sha384-k44lY8uqQEhMd4ooGw0nmkdA2/fFjyDaW5GQr2tt40u3FSyP6nnMO/W1VlxG5DYN" crossorigin="anonymous"></script>
   </head>
   <body>
     <center>
@@ -16,6 +18,36 @@
 </html>
 <script src="wasm_exec.js"></script>
 <script>
+	if (typeof Sentry != 'undefined') {
+		Sentry.init({
+			dsn: "https://edc30a104710c7ccd2c6225ccb0c8fd9@o4509005974667264.ingest.de.sentry.io/4509018857144400",
+
+			// Alternatively, use `process.env.npm_package_version` for a dynamic release version
+			// if your build tool supports it.
+			//release: "my-project-name@2.3.12",
+			integrations: [
+				Sentry.browserTracingIntegration(),
+				Sentry.replayIntegration(),
+			],
+
+			// Set tracesSampleRate to 1.0 to capture 100%
+			// of transactions for tracing.
+			// We recommend adjusting this value in production
+			// Learn more at
+			// https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
+			tracesSampleRate: 1.0,
+
+			// Set `tracePropagationTargets` to control for which URLs trace propagation should be enabled
+			//tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+
+			// Capture Replay for 10% of all sessions,
+			// plus for 100% of sessions with an error
+			// Learn more at
+			// https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration
+			replaysSessionSampleRate: 0.1,
+			replaysOnErrorSampleRate: 1.0,
+		});
+	}
   // Polyfill
   if (!WebAssembly.instantiateStreaming) {
     WebAssembly.instantiateStreaming = async (resp, importObject) => {

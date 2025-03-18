@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
+	websocket "github.com/coder/websocket"
 	gomock "github.com/golang/mock/gomock"
-	websocket "nhooyr.io/websocket"
 )
 
 // MockWSConnector is a mock of WSConnector interface.

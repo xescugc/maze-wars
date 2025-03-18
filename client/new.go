@@ -7,10 +7,10 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/maze-wars/action"
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
 )
 
 var (

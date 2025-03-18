@@ -1220,8 +1220,8 @@ func (hs *HUDStore) displayDefaultUI() *widget.Container {
 					widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
 					//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
 					//They will default to what you see below if you do not provide them
-					widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
-					widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.AnchorOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+					widget.ToolTipOpts.AnchorOriginVertical(widget.TOOLTIP_ANCHOR_END),
 					widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
 					widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
 				)),
@@ -3500,8 +3500,8 @@ func (hs *HUDStore) towerToolTip(t *tower.Tower, kb ebiten.Key) (*widget.ToolTip
 		widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
 		//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
 		//They will default to what you see below if you do not provide them
-		widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
-		widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+		widget.ToolTipOpts.AnchorOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+		widget.ToolTipOpts.AnchorOriginVertical(widget.TOOLTIP_ANCHOR_END),
 		widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
 		widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
 	), ttTitleTxt, ttGoldTxtW, ttDamageTxtW, ttRangeTxtW, ttHealthTxtW, ttDescriptionContentTxt
@@ -3541,8 +3541,8 @@ func (hs *HUDStore) simpleTooltip(title, description string) (*widget.ToolTip, *
 		widget.ToolTipOpts.Position(widget.TOOLTIP_POS_WIDGET),
 		//When the Position is set to TOOLTIP_POS_WIDGET, you can configure where it opens with the optional parameters below
 		//They will default to what you see below if you do not provide them
-		widget.ToolTipOpts.WidgetOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
-		widget.ToolTipOpts.WidgetOriginVertical(widget.TOOLTIP_ANCHOR_END),
+		widget.ToolTipOpts.AnchorOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
+		widget.ToolTipOpts.AnchorOriginVertical(widget.TOOLTIP_ANCHOR_END),
 		widget.ToolTipOpts.ContentOriginHorizontal(widget.TOOLTIP_ANCHOR_END),
 		widget.ToolTipOpts.ContentOriginVertical(widget.TOOLTIP_ANCHOR_START),
 	), ttTitleTxt, ttDescriptionContentTxt

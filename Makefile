@@ -36,7 +36,7 @@ client: ## Runs a client
 
 .PHONY: wa-build
 wa-build: ## Build the wasm Game
-	@env GOOS=js GOARCH=wasm go build -ldflags "-X github.com/xescugc/maze-wars/client.Version=$(shell cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;') -X github.com/xescugc/maze-wars/client.Host=https://maze-wars.yawpgames.com" -o ./wasm/main.wasm ./client/wasm
+	@env GOOS=js GOARCH=wasm go build -ldflags "-X github.com/xescugc/maze-wars/client.Version=$(shell cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;' | cut -d= -f2) -X github.com/xescugc/maze-wars/client.Host=https://maze-wars.yawpgames.com" -o ./wasm/main.wasm ./client/wasm
 
 .PHONY: wa-copy
 wa-copy: ## Copy the 'wasm_exec.js' to execute WebAssembly binary
@@ -45,15 +45,17 @@ wa-copy: ## Copy the 'wasm_exec.js' to execute WebAssembly binary
 .PHONY: wasm
 wasm: wa-copy wa-build ## Runs all the WASM related commands to have the code ready to run
 
-.PHONY: local-goreleaser
-local-goreleaser: ## Generates a local release without publishing it
+.PHONY: local-releaser
+local-releaser: ## Generates a local release without publishing it
 	@./bins/goreleaser release --snapshot --clean
 	@cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;' > ./docker/.env
+	@$(MAKE) wa-zip
 
 .PHONY: release
 release: ## Makes a full release to GitHub
 	@./bins/goreleaser release --clean
 	@cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;' > ./docker/.env
+	@$(MAKE) wa-zip
 
 .PHONY: wa-zip
 wa-zip: wasm ## Zips the content of the wasm/ into a dist/isoterra-wasm.zip

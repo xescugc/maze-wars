@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 )
 
 //go:generate mockgen -destination=./mock/websocket.go -package mock github.com/xescugc/maze-wars/server WSConnector

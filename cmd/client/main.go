@@ -28,8 +28,7 @@ type config struct {
 }
 
 var (
-	defaultHost = "http://localhost:5555"
-	logFile     = path.Join(xdg.CacheHome, "maze-wars", "client.log")
+	logFile = path.Join(xdg.CacheHome, "maze-wars", "client.log")
 
 	hostURL string
 	screenW int
@@ -41,10 +40,10 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 			opt := client.Options{
-				HostURL: hostURL,
 				ScreenW: screenW,
 				ScreenH: screenH,
-				Version: version,
+				Version: client.Version,
+				HostURL: client.Host,
 			}
 
 			configFilePath, err := xdg.ConfigFile("maze-wars/user.json")
@@ -123,7 +122,7 @@ var (
 )
 
 func init() {
-	clientCmd.Flags().StringVar(&hostURL, "host", defaultHost, "The URL of the server")
+	clientCmd.Flags().StringVar(&hostURL, "host", client.Host, "The URL of the server")
 	clientCmd.Flags().IntVar(&screenW, "screenw", 550, "The default width of the screen when not full screen")
 	clientCmd.Flags().IntVar(&screenH, "screenh", 500, "The default height of the screen when not full screen")
 	clientCmd.Flags().BoolVar(&verbose, "verbose", false, fmt.Sprintf("If all the logs are gonna be printed to %s", logFile))
@@ -134,18 +133,26 @@ func init() {
 func main() {
 	err := sentry.Init(sentry.ClientOptions{
 		// Either set your DSN here or set the SENTRY_DSN environment variable.
-		Dsn: "https://23c84ec9b6be647cd894cef01d883bb2@o4507290827751424.ingest.de.sentry.io/4507293420617808",
+		Dsn: "https://a2778d36fdcdf66eea5ca37b403ddc5f@o4509005974667264.ingest.de.sentry.io/4509018830864464",
 		// Enable printing of SDK debug messages.
 		// Useful when getting started or trying to figure something out.
-		EnableTracing: true,
-		Release:       version,
+		EnableTracing:    true,
+		Release:          client.Version,
+		AttachStacktrace: true,
 	})
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
 	}
 	// Flush buffered events before the program terminates.
 	// Set the timeout to the maximum duration the program can afford to wait.
-	defer sentry.Flush(2 * time.Second)
+	defer func() {
+		err := recover()
+
+		if err != nil {
+			sentry.CurrentHub().Recover(err)
+			sentry.Flush(time.Second * 5)
+		}
+	}()
 
 	if err := clientCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

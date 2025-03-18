@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coder/websocket"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server"
 	"github.com/xescugc/maze-wars/server/mock"
-	"nhooyr.io/websocket"
 )
 
 var (

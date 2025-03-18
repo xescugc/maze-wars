@@ -1,7 +1,7 @@
 package client
 
 var (
-	Host    string = "localhost:5555"
+	Host    string = "http://localhost:5555"
 	Version string = "dev"
 )
 
