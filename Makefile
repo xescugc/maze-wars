@@ -27,7 +27,7 @@ dc-serve: ## Starts the server using docker-compose
 	@docker-compose -f docker/docker-compose.yml -f docker/develop.yml up --build --no-deps maze-wars
 
 .PHONY: serve
-serve: wasm ## Starts the server
+serve: ## Starts the server
 	@go run ./cmd/server
 
 .PHONY: client

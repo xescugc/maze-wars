@@ -1,9 +1,11 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	stdimage "image"
 	"image/color"
+	"image/gif"
 	"log/slog"
 	"math"
 	"sort"
@@ -16,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
+	"github.com/xescugc/maze-wars/assets"
 	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/unit"
@@ -102,6 +105,36 @@ type waitingRoom struct {
 	Ranked       bool
 	Players      []action.SyncWaitingRoomPlayersPayload
 	WaitingSince time.Time
+}
+
+var (
+	unitTypeGifB = map[unit.Type][]byte{
+		unit.Ninja:         assets.MWUnitNinja_GIF,
+		unit.Statue:        assets.MWUnitStatue_GIF,
+		unit.Hunter:        assets.MWUnitHunter_GIF,
+		unit.Slime:         assets.MWUnitSlime_GIF,
+		unit.Mole:          assets.MWUnitMole_GIF,
+		unit.SkeletonDemon: assets.MWUnitSkeletonDemon_GIF,
+		unit.Butterfly:     assets.MWUnitButterfly_GIF,
+		unit.BlendMaster:   assets.MWUnitBlendMaster_GIF,
+		unit.Robot:         assets.MWUnitRobot_GIF,
+		unit.MonkeyBoxer:   assets.MWUnitMonkeyBoxer_GIF,
+	}
+
+	unitTypeGif = make(map[unit.Type]*gif.GIF)
+)
+
+func init() {
+	if !cutils.IsWASM() {
+		for t, b := range unitTypeGifB {
+			g, err := gif.DecodeAll(bytes.NewReader(b))
+			if err != nil {
+				panic(err)
+			}
+			unitTypeGif[t] = g
+		}
+	}
+
 }
 
 func NewRootStore(d *flux.Dispatcher, s *Store, l *slog.Logger) (*RootStore, error) {
@@ -837,6 +870,8 @@ func (rs *RootStore) setupGameModal() {
 		cutils.BigButtonOptsCursorExitText,
 		cutils.BigButtonOptsStatedChangeText,
 	)
+	rankedLeft.GetWidget().Disabled = true
+
 	rankedRight := widget.NewButton(
 
 		// specify the images to sue
@@ -1196,6 +1231,11 @@ func (rs *RootStore) homeUI() *widget.Container {
 	warningC := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.ToolTipBGKey, 8, 8, !isPressed)),
+		widget.ContainerOpts.WidgetOpts(
+			func(w *widget.Widget) {
+				w.Visibility = widget.Visibility_Hide_Blocking
+			},
+		),
 	)
 	warnigTxtW := widget.NewText(
 		widget.TextOpts.Text("The server will be in maintenance for 10'", cutils.NormalFont, cutils.TextColor),
@@ -1229,7 +1269,15 @@ func (rs *RootStore) homeUI() *widget.Container {
 		//Set the initial text for the textarea
 		//It will automatically line wrap and process newlines characters
 		//If ProcessBBCode is true it will parse out bbcode
-		widget.TextAreaOpts.Text("[Thanks text to play Maze Wars Alpha]"),
+		widget.TextAreaOpts.Text(`Thank you very much for playing the Maze Wars Alpha!
+
+This is the first game I created and is yet not finished (I have a lot of ideas to add too it) so any recommendations/bugs are more than welcome
+
+Maze Wars will always be a free and OSS.
+
+GitHub: github.com/xescugc/maze-wars
+Discord: discord.gg/t2BBFGwj5U
+`),
 		//Tell the TextArea to show the vertical scrollbar
 		//widget.TextAreaOpts.ShowVerticalScrollbar(),
 		//Set padding between edge of the widget and where the text is drawn
@@ -1278,7 +1326,13 @@ func (rs *RootStore) homeUI() *widget.Container {
 		//Set the initial text for the textarea
 		//It will automatically line wrap and process newlines characters
 		//If ProcessBBCode is true it will parse out bbcode
-		widget.TextAreaOpts.Text("[Release notes for the current version]"),
+		widget.TextAreaOpts.Text(`Release notes for v1.3.0:
+
+Added:
+
+* New UX/UI
+* Created Itchio page
+`),
 		//Tell the TextArea to show the vertical scrollbar
 		//widget.TextAreaOpts.ShowVerticalScrollbar(),
 		//Set padding between edge of the widget and where the text is drawn
@@ -3195,6 +3249,19 @@ the players on the current game.
 			widget.TextOpts.Text("Abilities:", cutils.NormalFont, cutils.White),
 		)
 
+		unitGIFC := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			)),
+		)
+
+		if g, ok := unitTypeGif[u.Type]; ok {
+			unitGIFG := widget.NewGraphic(
+				widget.GraphicOpts.GIF(g),
+			)
+			unitGIFC.AddChild(unitGIFG)
+		}
+
 		unitInfoC.AddChild(
 			ttTitleTxt,
 			unitInfoDetailsC,
@@ -3207,6 +3274,9 @@ the players on the current game.
 				widget.TextOpts.Text(fmt.Sprintf("%s: %s", ability.Name(a), ability.Description(a)), cutils.NormalFont, cutils.White),
 			))
 		}
+		unitInfoC.AddChild(
+			unitGIFC,
+		)
 
 		unitsDescription[aux] = unitInfoC
 	}
