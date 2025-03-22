@@ -77,18 +77,25 @@ func init() {
 func main() {
 	err := sentry.Init(sentry.ClientOptions{
 		// Either set your DSN here or set the SENTRY_DSN environment variable.
-		Dsn: "https://23c84ec9b6be647cd894cef01d883bb2@o4507290827751424.ingest.de.sentry.io/4507293420617808",
+		Dsn: "https://e3d184a556b90e462a15294b172a336e@o4509005974667264.ingest.de.sentry.io/4509006005338192",
 		// Enable printing of SDK debug messages.
 		// Useful when getting started or trying to figure something out.
-		EnableTracing: true,
-		Release:       version,
+		EnableTracing:    true,
+		Release:          version,
+		AttachStacktrace: true,
 	})
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
 	}
-	// Flush buffered events before the program terminates.
-	// Set the timeout to the maximum duration the program can afford to wait.
-	defer sentry.Flush(2 * time.Second)
+
+	defer func() {
+		err := recover()
+
+		if err != nil {
+			sentry.CurrentHub().Recover(err)
+			sentry.Flush(time.Second * 5)
+		}
+	}()
 
 	if err := serverCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -7,11 +7,11 @@ import (
 	"sort"
 	"time"
 
+	"github.com/coder/websocket"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
-	"nhooyr.io/websocket"
 )
 
 // ActionDispatcher is in charge of dispatching actions to the

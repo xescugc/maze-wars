@@ -17,8 +17,7 @@ rancher-machine scp -r docker/data/ maze-wars:/home/maze-wars
 # It'll deploy all the services passed as parameter, if none
 # is passed no deploy of services will be done
 if (( $# != 0 )); then
-    docker-compose -f docker/docker-compose.yml -f docker/production.yml build $@
-      docker-compose -f docker/docker-compose.yml -f docker/production.yml up --remove-orphans --no-deps -d $@
+    docker-compose -f docker/docker-compose.yml -f docker/production.yml up --build --force-recreate --remove-orphans --no-deps -d $@
 fi
 
 # Remove old images so we do not keep them if they are not needed

@@ -1,28 +1,30 @@
-version: "3"
 services:
   nginx-proxy:
-    image: nginxproxy/nginx-proxy:0.9.1
+    image: nginxproxy/nginx-proxy:1.7.0
     container_name: nginx-proxy
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      - conf:/etc/nginx/conf.d
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - dhparam:/etc/nginx/dhparam
+      - certs:/etc/nginx/certs:ro
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - letsencrypt-certs:/etc/nginx/certs
-      - letsencrypt-vhost-d:/etc/nginx/vhost.d
-      - letsencrypt-html:/usr/share/nginx/html
     networks:
       maze-wars:
     restart: always
 
-  letsencrypt-proxy:
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    container_name: letsencrypt-proxy
+  acme-companion:
+    image: nginxproxy/acme-companion:2.5.2
+    container_name: nginx-proxy-acme
+    volumes_from:
+      - nginx-proxy
     volumes:
+      - certs:/etc/nginx/certs:rw
+      - acme:/etc/acme.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - letsencrypt-certs:/etc/nginx/certs
-      - letsencrypt-vhost-d:/etc/nginx/vhost.d
-      - letsencrypt-html:/usr/share/nginx/html
     environment:
       - NGINX_PROXY_CONTAINER=nginx-proxy
     networks:
@@ -39,10 +41,12 @@ services:
       - 3000
     environment:
       - PORT=3000
-      - VIRTUAL_HOST=maze-wars.com,www.maze-wars.com
-      - LETSENCRYPT_HOST=maze-wars.com,www.maze-wars.com
-      - LETSENCRYPT_EMAIL=xescugil@gmail.com
+      - VIRTUAL_HOST=maze-wars.yawpgames.com
+      - LETSENCRYPT_HOST=maze-wars.yawpgames.com
+      - LETSENCRYPT_EMAIL=info@yawpgames.com
     restart: on-failure
+    networks:
+      maze-wars:
 
 
   # Metrics
@@ -63,9 +67,9 @@ services:
     restart: always
     environment:
       - PORT=3000
-      - VIRTUAL_HOST=metrics.maze-wars.com
-      - LETSENCRYPT_HOST=metrics.maze-wars.com
-      - LETSENCRYPT_EMAIL=xescugil@gmail.com
+      - VIRTUAL_HOST=metrics-maze-wars.yawpgames.com
+      - LETSENCRYPT_HOST=metrics-maze-wars.yawpgames.com
+      - LETSENCRYPT_EMAIL=info@yawpgames.com
 
   prometheus:
     image: prom/prometheus:v2.36.2
@@ -120,9 +124,12 @@ services:
     restart: always
 
 volumes:
-  letsencrypt-certs:
-  letsencrypt-vhost-d:
-  letsencrypt-html:
+  conf:
+  vhost:
+  html:
+  dhparam:
+  certs:
+  acme:
   prometheus_data:
   grafana_data:
 

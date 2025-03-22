@@ -1,10 +1,11 @@
 module github.com/xescugc/maze-wars
 
-go 1.21
+go 1.23
 
 require (
 	github.com/adrg/xdg v0.4.0
-	github.com/ebitenui/ebitenui v0.6.0
+	github.com/coder/websocket v1.8.13
+	github.com/ebitenui/ebitenui v0.6.1
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang/mock v1.6.0
@@ -13,12 +14,12 @@ require (
 	github.com/hajimehoshi/ebiten/v2 v2.7.8
 	github.com/joeycumines/go-behaviortree v1.8.0
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/rs/cors v1.11.1
 	github.com/sagikazarmark/slog-shim v0.1.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.1
 	github.com/stretchr/testify v1.9.0
 	github.com/xescugc/go-flux v1.0.3
-	nhooyr.io/websocket v1.8.10
 )
 
 require (
@@ -53,5 +54,3 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/ebitenui/ebitenui v0.6.0 => ../ebitenui

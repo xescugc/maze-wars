@@ -32,7 +32,7 @@ builds:
         goarm: ""
         gomips: ""
         flags:
-          - -go=go-1.21.0
+          - -go=go-1.23.0
           - -out=maze-wars
           - -hooksdir=.xgohooks/
           - -targets=darwin/amd64
@@ -42,7 +42,7 @@ builds:
         goarm: ""
         gomips: ""
         flags:
-          - -go=go-1.21.0
+          - -go=go-1.23.0
           - -out=maze-wars
           - -hooksdir=.xgohooks/
           - -targets=linux/amd64
@@ -52,7 +52,7 @@ builds:
         goarm: ""
         gomips: ""
         flags:
-          - -go=go-1.21.0
+          - -go=go-1.23.0
           - -out=maze-wars
           - -hooksdir=.xgohooks/
           - -targets=windows/amd64

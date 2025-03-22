@@ -12,14 +12,14 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/server/models"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
 )
 
 // ActionDispatcher is in charge of dispatching actions to the

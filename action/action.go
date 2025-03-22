@@ -3,10 +3,10 @@ package action
 import (
 	"time"
 
+	"github.com/coder/websocket"
 	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
 	"github.com/xescugc/maze-wars/utils/graph"
-	"nhooyr.io/websocket"
 )
 
 type Action struct {

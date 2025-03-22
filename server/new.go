@@ -9,10 +9,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
+	"github.com/rs/cors"
 
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server/assets"
@@ -37,18 +38,6 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	actionDispatcher = ad
 
 	go startLoop(ctx, s)
-
-	// To initialize Sentry's handler, you need to initialize Sentry itself beforehand
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn: "https://23c84ec9b6be647cd894cef01d883bb2@o4507290827751424.ingest.de.sentry.io/4507293420617808",
-		// Set TracesSampleRate to 1.0 to capture 100%
-		// of transactions for performance monitoring.
-		// We recommend adjusting this value in production,
-		TracesSampleRate: 1.0,
-		EnableTracing:    true,
-	}); err != nil {
-		return fmt.Errorf("Sentry initialization failed: %v\n", err)
-	}
 
 	r := mux.NewRouter()
 
@@ -75,11 +64,17 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	hmux.Handle("/wasm/", http.FileServer(http.FS(assets.Assets)))
 	hmux.Handle("/images/", http.FileServer(http.FS(assets.Assets)))
 
-	handler := sentryhttp.New(sentryhttp.Options{}).Handle(hmux)
+	handler := sentryhttp.New(sentryhttp.Options{
+		Repanic: true,
+	}).Handle(hmux)
+
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+	})
 
 	svr := &http.Server{
 		Addr:    fmt.Sprintf(":%s", opt.Port),
-		Handler: handlers.LoggingHandler(os.Stdout, handler),
+		Handler: handlers.LoggingHandler(os.Stdout, c.Handler(handler)),
 	}
 
 	log.Printf("Staring server at %s\n", opt.Port)
@@ -230,7 +225,15 @@ func versionHandler(v string) func(http.ResponseWriter, *http.Request) {
 
 func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 	return func(hw http.ResponseWriter, hr *http.Request) {
-		ws, _ := websocket.Accept(hw, hr, nil)
+		ws, err := websocket.Accept(hw, hr, &websocket.AcceptOptions{
+			InsecureSkipVerify: true,
+		})
+		if err != nil {
+			hw.WriteHeader(http.StatusBadRequest)
+
+			json.NewEncoder(hw).Encode(errorResponse{Error: fmt.Sprintf("Failed to accept websocket connection: %w", err)})
+			return
+		}
 		defer ws.CloseNow()
 
 		for {
@@ -268,29 +271,13 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 }
 
 func startLoop(ctx context.Context, s *Store) {
-	// Clone the current hub so that modifications of the scope are visible only
-	// within this function.
-	hub := sentry.CurrentHub().Clone()
-
-	// See https://golang.org/ref/spec#Handling_panics.
-	// This will recover from runtime panics and then panic again after
-	// reporting to Sentry.
 	defer func() {
-		if x := recover(); x != nil {
-			// Create an event and enqueue it for reporting.
-			hub.Recover(x)
-			// Because the goroutine running this code is going to crash the
-			// program, call Flush to send the event to Sentry before it is too
-			// late. Set the timeout to an appropriate value depending on your
-			// program. The value is the maximum time to wait before giving up
-			// and dropping the event.
-			hub.Flush(2 * time.Second)
-			// Note that if multiple goroutines panic, possibly only the first
-			// one to call Flush will succeed in sending the event. If you want
-			// to capture multiple panics and still crash the program
-			// afterwards, you need to coordinate error reporting and
-			// termination differently.
-			panic(x)
+		err := recover()
+
+		if err != nil {
+			sentry.CurrentHub().Recover(err)
+			sentry.Flush(time.Second * 5)
+			panic(err)
 		}
 	}()
 	secondTicker := time.NewTicker(time.Second)
