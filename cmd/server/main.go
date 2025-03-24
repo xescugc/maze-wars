@@ -50,7 +50,7 @@ var (
 			err := server.New(ad, ss, server.Options{
 				Port:    viper.GetString("port"),
 				Verbose: viper.GetBool("verbose"),
-				Version: version,
+				Version: server.Version,
 			})
 			if err != nil {
 				return fmt.Errorf("server error: %w", err)
@@ -81,8 +81,9 @@ func main() {
 		// Enable printing of SDK debug messages.
 		// Useful when getting started or trying to figure something out.
 		EnableTracing:    true,
-		Release:          version,
+		Release:          server.Version,
 		AttachStacktrace: true,
+		Environment:      server.Environment,
 	})
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
@@ -94,6 +95,9 @@ func main() {
 		if err != nil {
 			sentry.CurrentHub().Recover(err)
 			sentry.Flush(time.Second * 5)
+			if server.Environment == "dev" {
+				panic(err)
+			}
 		}
 	}()
 

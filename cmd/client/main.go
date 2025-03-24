@@ -139,6 +139,7 @@ func main() {
 		EnableTracing:    true,
 		Release:          client.Version,
 		AttachStacktrace: true,
+		Environment:      client.Environment,
 	})
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
@@ -151,6 +152,9 @@ func main() {
 		if err != nil {
 			sentry.CurrentHub().Recover(err)
 			sentry.Flush(time.Second * 5)
+			if client.Environment == "dev" {
+				panic(err)
+			}
 		}
 	}()
 

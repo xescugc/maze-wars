@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/xescugc/maze-wars/server"
 )
 
 var (
@@ -15,8 +16,8 @@ var (
 		Use:   "version",
 		Short: "Prints the current build version",
 		Run: func(cmd *cobra.Command, args []string) {
-			if version != "" {
-				fmt.Printf("The current version is: %s\n", version)
+			if server.Version != "" {
+				fmt.Printf("The current version is: %s\n", server.Version)
 			} else {
 				fmt.Printf("No version defined\n")
 			}

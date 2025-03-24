@@ -51,7 +51,7 @@ services:
 
   # Metrics
   grafana:
-    image: grafana/grafana:10.3.0
+    image: grafana/grafana:11.5.2
     user: "472"
     depends_on:
       - prometheus
@@ -72,7 +72,7 @@ services:
       - LETSENCRYPT_EMAIL=info@yawpgames.com
 
   prometheus:
-    image: prom/prometheus:v2.36.2
+    image: prom/prometheus:v3.2.1
     volumes:
       - /home/maze-wars/prometheus/:/etc/prometheus/
       - prometheus_data:/prometheus
@@ -92,7 +92,7 @@ services:
     restart: always
 
   node-exporter:
-    image: quay.io/prometheus/node-exporter:v1.7.0
+    image: quay.io/prometheus/node-exporter:v1.9.0
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -111,7 +111,7 @@ services:
     restart: always
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw

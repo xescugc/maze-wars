@@ -51,3 +51,11 @@ scrape_configs:
   
     static_configs:
       - targets: ['node-exporter:9100']
+
+  - job_name: 'maze-wars'
+
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 5s
+  
+    static_configs:
+      - targets: ['maze-wars:3000']
