@@ -5,6 +5,8 @@ services:
       dockerfile: docker/Dockerfile.maze-wars.dev
       args:
         VERSION: ${VERSION}
+        DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+        DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID}
     ports:
       - '5555:5555'
     environment:

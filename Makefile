@@ -1,3 +1,5 @@
+include ./docker/.env
+
 .PHONY: help
 help: ## Show this help
 	@grep -F -h "##" $(MAKEFILE_LIST) | grep -F -v grep -F | sed -e 's/:.*##/:##/' | column -t -s '##'
@@ -28,7 +30,7 @@ dc-serve: ## Starts the server using docker-compose
 
 .PHONY: serve
 serve: ## Starts the server
-	@go run ./cmd/server
+	@DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN} DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID} go run ./cmd/server
 
 .PHONY: client
 client: ## Runs a client
@@ -48,13 +50,13 @@ wasm: wa-copy wa-build ## Runs all the WASM related commands to have the code re
 .PHONY: local-releaser
 local-releaser: ## Generates a local release without publishing it
 	@./bins/goreleaser release --snapshot --clean
-	@cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;' > ./docker/.env
+	@sed -i 's/VERSION=.*/$(shell cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;')/g' ./docker/.env
 	@$(MAKE) wa-zip
 
 .PHONY: release
 release: ## Makes a full release to GitHub
 	@./bins/goreleaser release --clean
-	@cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;' > ./docker/.env
+	@sed -i 's/VERSION=.*/$(shell cat ./dist/metadata.json | jq .version -r | sed -e 's/^/VERSION=/;')/g' ./docker/.env
 	@$(MAKE) wa-zip
 
 .PHONY: wa-zip

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,10 +24,18 @@ var (
 	serverCmd = &cobra.Command{
 		Use: "server",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opt := server.Options{
+				Port:             viper.GetString("port"),
+				Verbose:          viper.GetBool("verbose"),
+				Version:          server.Version,
+				DiscordBotToken:  viper.GetString("discord-bot-token"),
+				DiscordChannelID: viper.GetString("discord-channel-id"),
+			}
 			d := flux.NewDispatcher()
+
 			out := os.Stdout
 			lvl := slog.LevelInfo
-			if viper.GetBool("verbose") {
+			if opt.Verbose {
 				lvl = slog.LevelDebug
 				err := os.MkdirAll(path.Dir(logFile), 0700)
 				if err != nil {
@@ -43,15 +52,29 @@ var (
 			l := slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{
 				Level: lvl,
 			}))
+
+			var (
+				dgo *discordgo.Session
+				err error
+			)
+			if server.Environment == "prod" {
+				dgo, err := discordgo.New("Bot " + opt.DiscordBotToken)
+				if err != nil {
+					return err
+				}
+
+				err = dgo.Open()
+				if err != nil {
+					return err
+				}
+				defer dgo.Close()
+			}
+
 			ws := server.NewWS()
-			ss := server.NewStore(d, ws, l)
+			ss := server.NewStore(d, ws, dgo, opt, l)
 			ad := server.NewActionDispatcher(d, l, ss, ws)
 
-			err := server.New(ad, ss, server.Options{
-				Port:    viper.GetString("port"),
-				Verbose: viper.GetBool("verbose"),
-				Version: server.Version,
-			})
+			err = server.New(ad, ss, opt)
 			if err != nil {
 				return fmt.Errorf("server error: %w", err)
 			}
@@ -67,6 +90,12 @@ func init() {
 
 	serverCmd.Flags().String("port", "5555", "The port in which the sever is open")
 	viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
+
+	serverCmd.Flags().String("discord-bot-token", "", "The TOKEN to send Discord notifications")
+	viper.BindPFlag("discord-bot-token", serverCmd.Flags().Lookup("discord-bot-token"))
+
+	serverCmd.Flags().String("discord-channel-id", "", "The ID for the Channel to send messages")
+	viper.BindPFlag("discord-channel-id", serverCmd.Flags().Lookup("discord-channel-id"))
 
 	serverCmd.Flags().Bool("verbose", false, fmt.Sprintf("If all the logs are gonna be printed to %s", logFile))
 	viper.BindPFlag("verbose", serverCmd.Flags().Lookup("verbose"))

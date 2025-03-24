@@ -6,7 +6,9 @@ var (
 )
 
 type Options struct {
-	Port    string
-	Verbose bool
-	Version string
+	Port             string
+	Verbose          bool
+	Version          string
+	DiscordBotToken  string
+	DiscordChannelID string
 }

@@ -4,6 +4,7 @@ go 1.23
 
 require (
 	github.com/adrg/xdg v0.4.0
+	github.com/bwmarrin/discordgo v0.28.1
 	github.com/coder/websocket v1.8.13
 	github.com/ebitenui/ebitenui v0.6.1
 	github.com/getsentry/sentry-go v0.27.0
@@ -33,6 +34,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-text/typesetting v0.1.1-0.20240325125605-c7936fe59984 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
@@ -54,6 +56,7 @@ require (
 	github.com/xlab/treeprint v1.1.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
 	golang.org/x/image v0.19.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect

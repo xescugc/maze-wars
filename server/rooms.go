@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/coder/websocket"
 	"github.com/getsentry/sentry-go"
 	"github.com/gofrs/uuid"
@@ -28,6 +29,9 @@ type RoomsStore struct {
 	mxRooms sync.RWMutex
 
 	ws WSConnector
+
+	discord *discordgo.Session
+	options Options
 }
 
 type RoomsState struct {
@@ -82,6 +86,17 @@ type Room struct {
 
 	// StartedAt is the time in which the Game started
 	StartedAt time.Time
+
+	// LFGMessageID is the ID of the message, used so we can delete it if the game starts
+	LFGMessageID string
+}
+
+func (r Room) LFGMessage() string {
+	rk := "Unranked"
+	if r.Ranked {
+		rk = "Ranked"
+	}
+	return fmt.Sprintf("LFG https://yawp-games.itch.io/maze-wars:\n* Size: %d\n* %s\n", r.Size, rk)
 }
 
 type User struct {
@@ -101,11 +116,13 @@ type PlayerConn struct {
 	IsBot bool
 }
 
-func NewRoomsStore(d *flux.Dispatcher, s *Store, ws WSConnector, l *slog.Logger) *RoomsStore {
+func NewRoomsStore(d *flux.Dispatcher, s *Store, ws WSConnector, dgo *discordgo.Session, opt Options, l *slog.Logger) *RoomsStore {
 	rs := &RoomsStore{
-		Store:  s,
-		logger: l,
-		ws:     ws,
+		Store:   s,
+		logger:  l,
+		ws:      ws,
+		discord: dgo,
+		options: opt,
 	}
 
 	rs.ReduceStore = flux.NewReduceStore(d, rs.Reduce, RoomsState{
@@ -262,7 +279,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 
 		u, ok := rstate.Users[act.UserSignOut.Username]
 		if ok && u.CurrentRoomID != "" {
-			removePlayer(&rstate, u.ID, u.CurrentRoomID)
+			rs.removePlayer(&rstate, u.ID, u.CurrentRoomID)
 		}
 
 		delete(rstate.Users, act.UserSignOut.Username)
@@ -295,8 +312,14 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			}
 		}
 	case action.CreateLobby:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
 		rstate.Users[act.CreateLobby.Owner].CurrentLobbyID = act.CreateLobby.LobbyID
 	case action.StartLobby:
+		rs.mxRooms.Lock()
+		defer rs.mxRooms.Unlock()
+
 		l := rs.Store.Lobbies.FindByID(act.StartLobby.LobbyID)
 		r := &Room{
 			Name:        l.ID,
@@ -338,7 +361,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		// If it has the VsBots true it'll never match as we'll never set it
 		// so with VsBots we'll always create a new Room but before setting it
 		// we'll do the logic
-		sID := fmt.Sprintf("vs1=%b-ranked=%bbot=%b", act.FindGame.Vs1, act.FindGame.Ranked, act.FindGame.VsBots)
+		sID := fmt.Sprintf("vs1=%t-ranked=%tbot=%t", act.FindGame.Vs1, act.FindGame.Ranked, act.FindGame.VsBots)
 
 		ty := RoomTypePlayers
 		if act.FindGame.VsBots {
@@ -361,6 +384,15 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 				SearchingSince: time.Now(),
 
 				PlayersAccepted: make(map[string]struct{}),
+			}
+
+			if Environment == "prod" {
+				msg, err := rs.discord.ChannelMessageSend(rs.options.DiscordChannelID, sr.LFGMessage())
+				if err != nil {
+					rs.logger.Error("Failed to send message to Discord", "error", err.Error())
+				} else {
+					sr.LFGMessageID = msg.ID
+				}
 			}
 		}
 
@@ -408,6 +440,12 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 				delete(sr.Connections, us.RemoteAddr)
 				if len(sr.Players) == 0 {
 					delete(rstate.Searching, sID)
+					if Environment == "prod" {
+						err := rs.discord.ChannelMessageDelete(rs.options.DiscordChannelID, sr.LFGMessageID)
+						if err != nil {
+							rs.logger.Error("Failed to delete message from Discord", "error", err.Error())
+						}
+					}
 				}
 			}
 		}
@@ -426,6 +464,12 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 				wr.PlayersAccepted = nil
 
 				delete(rstate.Waiting, wrID)
+				if Environment == "prod" {
+					err := rs.discord.ChannelMessageDelete(rs.options.DiscordChannelID, wr.LFGMessageID)
+					if err != nil {
+						rs.logger.Error("Failed to delete message from Discord", "error", err.Error())
+					}
+				}
 				rs.startRoom(rstate, wrID)
 			}
 		}
@@ -447,6 +491,12 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 					}
 				}
 				delete(rstate.Waiting, wrID)
+				if Environment == "prod" {
+					err := rs.discord.ChannelMessageDelete(rs.options.DiscordChannelID, wr.LFGMessageID)
+					if err != nil {
+						rs.logger.Error("Failed to delete message from Discord", "error", err.Error())
+					}
+				}
 			}
 		}
 
@@ -461,7 +511,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			}
 		}
 
-		removePlayer(&rstate, act.RemovePlayer.ID, act.Room)
+		rs.removePlayer(&rstate, act.RemovePlayer.ID, act.Room)
 	default:
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
@@ -514,7 +564,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 	return rstate
 }
 
-func removePlayer(rstate *RoomsState, pid, room string) {
+func (rs *RoomsStore) removePlayer(rstate *RoomsState, pid, room string) {
 	if room != "" {
 		pc := rstate.Rooms[room].Players[pid]
 		delete(rstate.Rooms[room].Players, pid)
@@ -527,12 +577,20 @@ func removePlayer(rstate *RoomsState, pid, room string) {
 			delete(rstate.Rooms[room].Bots, pid)
 		}
 
-		if len(rstate.Rooms[room].Players) == 0 {
+		r := rstate.Rooms[room]
+		if len(r.Players) == 0 {
 			delete(rstate.Rooms, room)
 			currentNumberOfGames.Dec()
+			if Environment == "prod" {
+				err := rs.discord.ChannelMessageDelete(rs.options.DiscordChannelID, r.LFGMessageID)
+				if err != nil {
+					rs.logger.Error("Failed to delete message from Discord", "error", err.Error())
+				}
+			}
+			return
 		}
 		var humanFound bool
-		for _, pc := range rstate.Rooms[room].Players {
+		for _, pc := range r.Players {
 			if !pc.IsBot {
 				humanFound = true
 				break
@@ -540,11 +598,17 @@ func removePlayer(rstate *RoomsState, pid, room string) {
 		}
 		// If no human was found left alive we just remove the room
 		if !humanFound {
-			for _, b := range rstate.Rooms[room].Bots {
+			for _, b := range r.Bots {
 				b.Stop()
 			}
 			delete(rstate.Rooms, room)
 			currentNumberOfGames.Dec()
+			if Environment == "prod" {
+				err := rs.discord.ChannelMessageDelete(rs.options.DiscordChannelID, r.LFGMessageID)
+				if err != nil {
+					rs.logger.Error("Failed to delete message from Discord", "error", err.Error())
+				}
+			}
 		}
 	} else {
 		// TODO: Fix this
