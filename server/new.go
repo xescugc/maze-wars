@@ -13,6 +13,8 @@ import (
 	"github.com/coder/websocket/wsjson"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
 	"github.com/xescugc/maze-wars/action"
@@ -63,6 +65,7 @@ func New(ad *ActionDispatcher, s *Store, opt Options) error {
 	hmux.Handle("/js/", http.FileServer(http.FS(assets.Assets)))
 	hmux.Handle("/wasm/", http.FileServer(http.FS(assets.Assets)))
 	hmux.Handle("/images/", http.FileServer(http.FS(assets.Assets)))
+	hmux.Handle("/metrics", promhttp.Handler())
 
 	handler := sentryhttp.New(sentryhttp.Options{
 		Repanic: true,
@@ -258,6 +261,7 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 			// action from the handler
 			msg.Room = u.CurrentRoomID
 
+			numberOfActions.With(prometheus.Labels{"type": msg.Type.String()}).Inc()
 			switch msg.Type {
 			case action.UserSignIn:
 				actionDispatcher.UserSignIn(*&msg.UserSignIn.Username, hr.RemoteAddr, ws)
@@ -277,7 +281,9 @@ func startLoop(ctx context.Context, s *Store) {
 		if err != nil {
 			sentry.CurrentHub().Recover(err)
 			sentry.Flush(time.Second * 5)
-			panic(err)
+			if Environment == "dev" {
+				panic(err)
+			}
 		}
 	}()
 	secondTicker := time.NewTicker(time.Second)

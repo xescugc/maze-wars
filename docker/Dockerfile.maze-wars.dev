@@ -10,5 +10,5 @@ RUN go mod download && go mod verify
 COPY . .
 
 ARG VERSION
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$VERSION" -o maze-wars_app ./cmd/server/
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/xescugc/maze-wars/server.Version=$VERSION -X github.com/xescugc/maze-wars/server.Environment=dev" -o maze-wars_app ./cmd/server/
 ENTRYPOINT ["/app/maze-wars_app"]

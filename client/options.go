@@ -1,8 +1,9 @@
 package client
 
 var (
-	Host    string = "http://localhost:5555"
-	Version string = "dev"
+	Host        string = "http://localhost:5555"
+	Version     string = "dev"
+	Environment string = "dev"
 )
 
 type Options struct {

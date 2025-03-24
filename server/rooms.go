@@ -11,6 +11,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/getsentry/sentry-go"
 	"github.com/gofrs/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server/bot"
@@ -45,8 +46,16 @@ type RoomsState struct {
 	Users map[string]*User
 }
 
+const (
+	RoomTypeBots    = "bots"
+	RoomTypeLobbies = "lobbies"
+	RoomTypePlayers = "players"
+)
+
 type Room struct {
 	Name string
+
+	Type string
 
 	Players map[string]PlayerConn
 
@@ -237,6 +246,8 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 			Username: act.UserSignUp.Username,
 			ImageKey: act.UserSignUp.ImageKey,
 		}
+
+		currentNumberOfPlayers.Inc()
 	case action.UserSignIn:
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
@@ -255,6 +266,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		}
 
 		delete(rstate.Users, act.UserSignOut.Username)
+		currentNumberOfPlayers.Dec()
 	case action.JoinLobby:
 		rs.mxRooms.Lock()
 		defer rs.mxRooms.Unlock()
@@ -288,6 +300,7 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		l := rs.Store.Lobbies.FindByID(act.StartLobby.LobbyID)
 		r := &Room{
 			Name:        l.ID,
+			Type:        RoomTypeLobbies,
 			Players:     make(map[string]PlayerConn),
 			Connections: make(map[string]string),
 			Bots:        make(map[string]*bot.Bot),
@@ -327,11 +340,16 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 		// we'll do the logic
 		sID := fmt.Sprintf("vs1=%b-ranked=%bbot=%b", act.FindGame.Vs1, act.FindGame.Ranked, act.FindGame.VsBots)
 
+		ty := RoomTypePlayers
+		if act.FindGame.VsBots {
+			ty = RoomTypeBots
+		}
 		sr, ok := rstate.Searching[sID]
 		if !ok {
 			rid := uuid.Must(uuid.NewV4())
 			sr = &Room{
 				Name:        rid.String(),
+				Type:        ty,
 				Players:     make(map[string]PlayerConn),
 				Connections: make(map[string]string),
 				Bots:        make(map[string]*bot.Bot),
@@ -462,7 +480,9 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 						if err != nil {
 							localHub.Recover(err)
 							localHub.Flush(time.Second * 5)
-							panic(err)
+							if Environment == "dev" {
+								panic(err)
+							}
 						}
 					}()
 
@@ -479,7 +499,9 @@ func (rs *RoomsStore) Reduce(state, a interface{}) interface{} {
 						if err != nil {
 							localHub.Recover(err)
 							localHub.Flush(time.Second * 5)
-							panic(err)
+							if Environment == "dev" {
+								panic(err)
+							}
 						}
 					}()
 
@@ -507,11 +529,11 @@ func removePlayer(rstate *RoomsState, pid, room string) {
 
 		if len(rstate.Rooms[room].Players) == 0 {
 			delete(rstate.Rooms, room)
+			currentNumberOfGames.Dec()
 		}
 		var humanFound bool
 		for _, pc := range rstate.Rooms[room].Players {
 			if !pc.IsBot {
-				fmt.Println("IN")
 				humanFound = true
 				break
 			}
@@ -521,8 +543,8 @@ func removePlayer(rstate *RoomsState, pid, room string) {
 			for _, b := range rstate.Rooms[room].Bots {
 				b.Stop()
 			}
-			fmt.Println("Deleting")
 			delete(rstate.Rooms, room)
+			currentNumberOfGames.Dec()
 		}
 	} else {
 		// TODO: Fix this
@@ -578,7 +600,8 @@ func (rs RoomsStore) startRoom(rstate RoomsState, rid string) {
 			}
 		}
 	}
-
+	currentNumberOfGames.Inc()
+	numberOfGames.With(prometheus.Labels{"type": cr.Type}).Inc()
 }
 
 func (rs RoomsStore) SyncState(r *Room, pid string) action.SyncStatePayload {

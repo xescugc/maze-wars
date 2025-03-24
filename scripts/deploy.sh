@@ -12,7 +12,9 @@ eval $(rancher-machine env maze-wars)
 
 # On the server this is the default folder so this is where it'll land
 # and this is the default one that the docker will try to read the data from.
-rancher-machine scp -r docker/data/ maze-wars:/home/maze-wars
+#rancher-machine scp -r docker/data/ maze-wars:/home/maze-wars
+rancher-machine scp -r docker/data/prometheus maze-wars:/home/maze-wars
+rancher-machine scp -r docker/data/grafana maze-wars:/home/maze-wars
 
 # It'll deploy all the services passed as parameter, if none
 # is passed no deploy of services will be done
