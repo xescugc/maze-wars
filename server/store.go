@@ -3,6 +3,7 @@ package server
 import (
 	"log/slog"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/xescugc/go-flux"
 	"github.com/xescugc/maze-wars/store"
 )
@@ -12,10 +13,10 @@ type Store struct {
 	Lobbies *store.Lobbies
 }
 
-func NewStore(d *flux.Dispatcher, ws WSConnector, l *slog.Logger) *Store {
+func NewStore(d *flux.Dispatcher, ws WSConnector, dgo *discordgo.Session, opt Options, l *slog.Logger) *Store {
 	ss := &Store{}
 
-	rooms := NewRoomsStore(d, ss, ws, l)
+	rooms := NewRoomsStore(d, ss, ws, dgo, opt, l)
 	lobbies := store.NewLobbies(d)
 
 	ss.Rooms = rooms
