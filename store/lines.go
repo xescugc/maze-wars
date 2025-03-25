@@ -462,6 +462,9 @@ func (p Player) CanSummonUnit(ut string) bool {
 func (p Player) CanUpdateUnit(ut string) bool {
 	return (p.Gold - p.UnitUpdates[ut].UpdateCost) >= 0
 }
+func (p Player) CanUpdateTower(tt string) bool {
+	return (p.Gold - tower.Towers[tt].Gold) >= 0
+}
 func (p Player) CanPlaceTower(tt string) bool {
 	return (p.Gold - tower.Towers[tt].Gold) >= 0
 }
@@ -647,7 +650,7 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 			Lives:    20,
 			LineID:   act.AddPlayer.LineID,
 			Income:   25,
-			Gold:     4000,
+			Gold:     40,
 			IsBot:    act.AddPlayer.IsBot,
 
 			UnitUpdates: make(map[string]UnitUpdate),
@@ -711,13 +714,14 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		l := lstate.Lines[p.LineID]
 		t := l.Towers[act.UpdateTower.TowerID]
 
-		if !t.CanUpdateTo(act.UpdateTower.TowerType) {
-			lstate.Error = fmt.Sprintf("Cannot update tower %s", tower.Towers[act.UpdateTower.TowerType].Name())
+		tw := ls.newTower(act.UpdateTower.TowerType, p, t.Object)
+
+		if !t.CanUpdateTo(act.UpdateTower.TowerType) || !p.CanUpdateTower(tw.Type) {
+			lstate.Error = fmt.Sprintf("Cannot update to tower %s", tower.Towers[act.UpdateTower.TowerType].Name())
 			lstate.ErrorAt = time.Now()
 			break
 		}
 
-		tw := ls.newTower(act.UpdateTower.TowerType, p, t.Object)
 		p.Gold -= tower.Towers[tw.Type].Gold
 		tw.ID = t.ID
 		l.Towers[tw.ID] = tw
@@ -826,6 +830,9 @@ func (ls *Lines) Reduce(state, a interface{}) interface{} {
 		}
 
 	case action.UpdateUnit:
+		ls.mxLines.Lock()
+		defer ls.mxLines.Unlock()
+
 		u := unit.Units[act.UpdateUnit.Type]
 		buu := lstate.Players[act.UpdateUnit.PlayerID].UnitUpdates[act.UpdateUnit.Type]
 
