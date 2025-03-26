@@ -224,7 +224,7 @@ func (g *Graph) canAddTower(x, y, w, h int) ([]*Node, error) {
 
 	// In order for it to work we'll momentarily add the
 	// Tower to the graph and remove it afterwards so we
-	// can run AStar
+	// can run Path
 	for _, n := range nodes {
 		n.TowerID = "test"
 	}
@@ -236,7 +236,7 @@ func (g *Graph) canAddTower(x, y, w, h int) ([]*Node, error) {
 
 	// Validates that adding the tower will not block the path
 	// from top to bottom
-	steps, _ := g.AStar(float64(g.OffsetX), float64(g.OffsetY), basicTPS, utils.Down, g.DeathNode.X, g.DeathNode.Y, environment.Terrestrial, !isAttacker, !atScale, !useCache)
+	steps, _ := g.Path(float64(g.OffsetX), float64(g.OffsetY), basicTPS, utils.Down, g.DeathNode.X, g.DeathNode.Y, environment.Terrestrial, !isAttacker, !atScale, !useCache)
 	if len(steps) == 0 {
 		return nil, ErrInvalidBlockingPath
 	}

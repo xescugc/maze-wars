@@ -40,12 +40,12 @@ type queueItem struct {
 	index  int
 }
 
-// AStar calculates the shortest path between between Source(sx,sy)
+// Path calculates the shortest path between between Source(sx,sy)
 // to Target(tx,ty) with the Movement Speed(ms) and starting on the Direction(d)
 // with W,H equal to the Scale in the designed Environment(env).
 // If atScale is true it'll return the 1:1 result, if not it'll return
 // the 1:Scale result
-func (g *Graph) AStar(sx, sy, ms float64, d utils.Direction, tx, ty int, env environment.Environment, isAttacker, atScale, useCache bool) (steps []Step, towerID string) {
+func (g *Graph) Path(sx, sy, ms float64, d utils.Direction, tx, ty int, env environment.Environment, isAttacker, atScale, useCache bool) (steps []Step, towerID string) {
 	nm := stepMap{}
 	nq := &queue{}
 	heap.Init(nq)
