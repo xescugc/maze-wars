@@ -9,9 +9,9 @@ import (
 )
 
 type Step struct {
-	// Node is used to calculate the AStar of the Graph but should
+	// Node is used to calculate the Path of the Graph but should
 	// not be used to get the position of the step (X,Y) as it can
-	// be nil when the AStar has the flag 'AtScale'
+	// be nil when the Path has the flag 'AtScale'
 	Node *Node
 
 	X, Y float64

@@ -786,7 +786,7 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 			u.Hybrid(cp.Income, ls.findPlayerByLineID(act.SummonUnit.CurrentLineID).Income)
 		}
 
-		u.Path, u.TargetTowerID = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, u.HasAbility(ability.Attack), atScale, useCache)
+		u.Path, u.TargetTowerID = l.Graph.Path(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, u.HasAbility(ability.Attack), atScale, useCache)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.TPS:
@@ -871,7 +871,7 @@ func (ls *Lines) recalculateLineUnitSteps(state LinesState, lid int, twID string
 		if u.HasAbility(ability.Attack) && ((twID == "" || u.TargetTowerID != twID) && len(u.Path) == 0) {
 			continue
 		}
-		u.Path, u.TargetTowerID = l.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale, useCache)
+		u.Path, u.TargetTowerID = l.Graph.Path(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale, useCache)
 		u.HashPath = graph.HashSteps(u.Path)
 	}
 }
@@ -1358,7 +1358,7 @@ func (ls *Lines) changeUnitLine(state LinesState, u *Unit, nlid int) {
 	u.X = float64(n.X)
 	u.Y = float64(n.Y)
 
-	u.Path, u.TargetTowerID = nl.Graph.AStar(u.X, u.Y, u.MovementSpeed, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale, useCache)
+	u.Path, u.TargetTowerID = nl.Graph.Path(u.X, u.Y, u.MovementSpeed, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale, useCache)
 	u.HashPath = graph.HashSteps(u.Path)
 
 	u.CreatedAt = time.Now()
