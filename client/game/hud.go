@@ -14,7 +14,7 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
@@ -74,7 +74,7 @@ type towerTooltips struct {
 // HUDStore is in charge of keeping track of all the elements
 // on the player HUD that are static and always seen
 type HUDStore struct {
-	*flux.ReduceStore
+	*flux.ReduceStore[HUDState, *action.Action]
 
 	game *Game
 
@@ -208,7 +208,7 @@ func init() {
 }
 
 // NewHUDStore creates a new HUDStore with the Dispatcher d and the Game g
-func NewHUDStore(d *flux.Dispatcher, g *Game) (*HUDStore, error) {
+func NewHUDStore(d *flux.Dispatcher[*action.Action], g *Game) (*HUDStore, error) {
 	hs := &HUDStore{
 		game:                 g,
 		unitsTooltip:         make(map[string]*unitTooltips),
@@ -252,8 +252,8 @@ func (hs *HUDStore) Update() error {
 
 	hs.ui.Update()
 
-	cs := hs.game.Camera.GetState().(CameraState)
-	hst := hs.GetState().(HUDState)
+	cs := hs.game.Camera.GetState()
+	hst := hs.GetState()
 	x, y := ebiten.CursorPosition()
 	cp := hs.game.Store.Lines.FindCurrentPlayer()
 	if cp.ID == "" {
@@ -428,9 +428,9 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(hs.game.Logger, b, "hud draw")
 
-	hst := hs.GetState().(HUDState)
-	cs := hs.game.Camera.GetState().(CameraState)
-	lstate := hs.game.Store.Lines.GetState().(store.LinesState)
+	hst := hs.GetState()
+	cs := hs.game.Camera.GetState()
+	lstate := hs.game.Store.Lines.GetState()
 	cp := hs.game.Store.Lines.FindCurrentPlayer()
 	cl := hs.game.Store.Lines.FindLineByID(cp.LineID)
 
@@ -620,23 +620,13 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 	}
 }
 
-func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
-	act, ok := a.(*action.Action)
-	if !ok {
-		return state
-	}
-
-	hstate, ok := state.(HUDState)
-	if !ok {
-		return state
-	}
-
+func (hs *HUDStore) Reduce(state HUDState, act *action.Action) HUDState {
 	switch act.Type {
 	case action.SelectTower:
 		cp := hs.game.Store.Lines.FindCurrentPlayer()
-		cs := hs.game.Camera.GetState().(CameraState)
+		cs := hs.game.Camera.GetState()
 		x, y := fixPosition(cs, act.SelectTower.X, act.SelectTower.Y)
-		hstate.SelectedTower = &SelectedTower{
+		state.SelectedTower = &SelectedTower{
 			Tower: store.Tower{
 				Object: utils.Object{
 					// The Buttons have 16*2 so we want to place it on the middle so just 16
@@ -654,45 +644,45 @@ func (hs *HUDStore) Reduce(state, a interface{}) interface{} {
 		nx := act.CursorMove.X
 		ny := act.CursorMove.Y
 
-		hstate.LastCursorPosition.X = float64(nx)
-		hstate.LastCursorPosition.Y = float64(ny)
+		state.LastCursorPosition.X = float64(nx)
+		state.LastCursorPosition.Y = float64(ny)
 
-		if hstate.SelectedTower != nil {
-			cs := hs.game.Camera.GetState().(CameraState)
+		if state.SelectedTower != nil {
+			cs := hs.game.Camera.GetState()
 
-			hstate.SelectedTower.X, hstate.SelectedTower.Y = fixPosition(cs, nx, ny)
+			state.SelectedTower.X, state.SelectedTower.Y = fixPosition(cs, nx, ny)
 		}
 	case action.PlaceTower, action.DeselectTower:
-		hstate.SelectedTower = nil
+		state.SelectedTower = nil
 	case action.SelectedTowerInvalid:
-		if hstate.SelectedTower != nil {
-			hstate.SelectedTower.Invalid = act.SelectedTowerInvalid.Invalid
+		if state.SelectedTower != nil {
+			state.SelectedTower.Invalid = act.SelectedTowerInvalid.Invalid
 		}
 	case action.OpenTowerMenu:
-		hstate.OpenTowerMenu = hs.findTowerByID(act.OpenTowerMenu.TowerID)
-		hstate.OpenUnitMenu = nil
+		state.OpenTowerMenu = hs.findTowerByID(act.OpenTowerMenu.TowerID)
+		state.OpenUnitMenu = nil
 	case action.OpenUnitMenu:
-		hstate.OpenUnitMenu = hs.findUnitByID(act.OpenUnitMenu.UnitID)
-		hstate.OpenTowerMenu = nil
+		state.OpenUnitMenu = hs.findUnitByID(act.OpenUnitMenu.UnitID)
+		state.OpenTowerMenu = nil
 	case action.UpdateTower:
 		hs.GetDispatcher().WaitFor(hs.game.Store.Lines.GetDispatcherToken())
 
 		// As the UpdateTower is done we need to update the OpenTowerMenu
 		// so we can display the new information
-		hstate.OpenTowerMenu = hs.findTowerByID(act.UpdateTower.TowerID)
+		state.OpenTowerMenu = hs.findTowerByID(act.UpdateTower.TowerID)
 	case action.CloseTowerMenu:
-		hstate.OpenTowerMenu = nil
+		state.OpenTowerMenu = nil
 	case action.CloseUnitMenu:
-		hstate.OpenUnitMenu = nil
+		state.OpenUnitMenu = nil
 	case action.ShowScoreboard:
-		hstate.ShowScoreboard = act.ShowScoreboard.Display
+		state.ShowScoreboard = act.ShowScoreboard.Display
 	case action.AddError:
-		hstate.Error = act.AddError.Error
-		hstate.ErrorAt = time.Now()
+		state.Error = act.AddError.Error
+		state.ErrorAt = time.Now()
 	default:
 	}
 
-	return hstate
+	return state
 }
 
 func (hs *HUDStore) findTowerByID(tid string) *store.Tower {
@@ -1362,7 +1352,7 @@ func (hs *HUDStore) displayDefaultUI() *widget.Container {
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(t *tower.Tower) func(args *widget.ButtonClickedEventArgs) {
 				return func(args *widget.ButtonClickedEventArgs) {
-					hst := hs.GetState().(HUDState)
+					hst := hs.GetState()
 					actionDispatcher.SelectTower(t.Type.String(), int(hst.LastCursorPosition.X), int(hst.LastCursorPosition.Y))
 				}
 			}(t)),

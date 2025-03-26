@@ -10,7 +10,8 @@ import (
 	"log/slog"
 	"syscall/js"
 
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
+	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/client"
 	"github.com/xescugc/maze-wars/client/game"
 	"github.com/xescugc/maze-wars/store"
@@ -40,7 +41,7 @@ func NewClient() js.Func {
 
 		l := slog.New(slog.NewTextHandler(ioutil.Discard, nil))
 
-		d := flux.NewDispatcher()
+		d := flux.NewDispatcher[*action.Action]()
 		s := store.NewStore(d, l, !isOnServer)
 
 		ad := client.NewActionDispatcher(d, s, l, opt)

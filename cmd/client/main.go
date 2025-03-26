@@ -13,7 +13,8 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
+	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/client"
 	"github.com/xescugc/maze-wars/client/game"
 	cutils "github.com/xescugc/maze-wars/client/utils"
@@ -58,7 +59,7 @@ var (
 			var cfg cutils.Config
 			err = json.Unmarshal(b, &cfg)
 
-			d := flux.NewDispatcher()
+			d := flux.NewDispatcher[*action.Action]()
 
 			lvl := slog.LevelInfo
 			if verbose {

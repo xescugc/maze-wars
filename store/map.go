@@ -6,7 +6,7 @@ import (
 	"image"
 	"log"
 
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/assets"
 )
@@ -47,7 +47,7 @@ func init() {
 
 // Map is a struct that holds all the information of the current map
 type Map struct {
-	*flux.ReduceStore
+	*flux.ReduceStore[MapState, *action.Action]
 
 	store *Store
 }
@@ -58,7 +58,7 @@ type MapState struct {
 }
 
 // NewMap initializes the map
-func NewMap(d *flux.Dispatcher, s *Store) *Map {
+func NewMap(d *flux.Dispatcher[*action.Action], s *Store) *Map {
 	m := &Map{
 		store: s,
 	}
@@ -71,14 +71,14 @@ func NewMap(d *flux.Dispatcher, s *Store) *Map {
 }
 
 // GetX returns the max X value of the map
-func (m *Map) GetX() int { return m.GetState().(MapState).Image.Bounds().Dx() }
+func (m *Map) GetX() int { return m.GetState().Image.Bounds().Dx() }
 
 // GetY returns the max Y value of the map
-func (m *Map) GetY() int { return m.GetState().(MapState).Image.Bounds().Dy() }
+func (m *Map) GetY() int { return m.GetState().Image.Bounds().Dy() }
 
 // GetY returns the max Y value of the map
 func (m *Map) GetImageKey() string {
-	pc := m.GetState().(MapState).Players
+	pc := m.GetState().Players
 	return fmt.Sprintf(MapImageKeyFmt, pc)
 }
 
@@ -87,7 +87,7 @@ func (m *Map) GetImageKey() string {
 // then starts again
 func (m *Map) GetNextLineID(clid int) int {
 	clid += 1
-	if clid > (m.GetState().(MapState).Players - 1) {
+	if clid > (m.GetState().Players - 1) {
 		clid = 0
 	}
 	return clid
@@ -97,27 +97,18 @@ func (m *Map) GetHomeCoordinates(lid int) (int, int) {
 	return lid*16*(16+1+10+1) + (43 * 16), (43 * 16)
 }
 
-func (m *Map) Reduce(state, a interface{}) interface{} {
-	act, ok := a.(*action.Action)
-	if !ok {
-		return state
-	}
-
-	mstate, ok := state.(MapState)
-	if !ok {
-		return state
-	}
-
+func (m *Map) Reduce(state MapState, act *action.Action) MapState {
 	switch act.Type {
 	case action.StartGame:
 		m.GetDispatcher().WaitFor(m.store.Lines.GetDispatcherToken())
 
-		mstate.Players = len(m.store.Lines.ListPlayers())
-		mstate.Image, ok = MapImages[mstate.Players]
+		var ok bool
+		state.Players = len(m.store.Lines.ListPlayers())
+		state.Image, ok = MapImages[state.Players]
 		if !ok {
-			log.Fatalf("The map for the number of players %d is not available", mstate.Players)
+			log.Fatalf("The map for the number of players %d is not available", state.Players)
 		}
 	}
 
-	return mstate
+	return state
 }

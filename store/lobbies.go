@@ -3,12 +3,12 @@ package store
 import (
 	"sync"
 
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 )
 
 type Lobbies struct {
-	*flux.ReduceStore
+	*flux.ReduceStore[LobbiesState, *action.Action]
 
 	mxLobbies sync.RWMutex
 }
@@ -34,7 +34,7 @@ type Lobby struct {
 	Current bool
 }
 
-func NewLobbies(d *flux.Dispatcher) *Lobbies {
+func NewLobbies(d *flux.Dispatcher[*action.Action]) *Lobbies {
 	l := &Lobbies{}
 	l.ReduceStore = flux.NewReduceStore(d, l.Reduce, LobbiesState{
 		Lobbies: make(map[string]*Lobby),
@@ -47,9 +47,9 @@ func (ls *Lobbies) List() []*Lobby {
 	ls.mxLobbies.RLock()
 	defer ls.mxLobbies.RUnlock()
 
-	slobbies := ls.GetState().(LobbiesState)
-	lobbies := make([]*Lobby, 0, len(slobbies.Lobbies))
-	for _, l := range slobbies.Lobbies {
+	state := ls.GetState()
+	lobbies := make([]*Lobby, 0, len(state.Lobbies))
+	for _, l := range state.Lobbies {
 		lobbies = append(lobbies, l)
 	}
 	return lobbies
@@ -59,16 +59,16 @@ func (ls *Lobbies) Seen() bool {
 	ls.mxLobbies.RLock()
 	defer ls.mxLobbies.RUnlock()
 
-	slobbies := ls.GetState().(LobbiesState)
-	return slobbies.Seen
+	state := ls.GetState()
+	return state.Seen
 }
 
 func (ls *Lobbies) FindCurrent() *Lobby {
 	ls.mxLobbies.RLock()
 	defer ls.mxLobbies.RUnlock()
 
-	slobbies := ls.GetState().(LobbiesState)
-	for _, l := range slobbies.Lobbies {
+	state := ls.GetState()
+	for _, l := range state.Lobbies {
 		if l.Current {
 			return l
 		}
@@ -80,28 +80,18 @@ func (ls *Lobbies) FindByID(id string) *Lobby {
 	ls.mxLobbies.RLock()
 	defer ls.mxLobbies.RUnlock()
 
-	slobbies := ls.GetState().(LobbiesState)
-	l, _ := slobbies.Lobbies[id]
+	state := ls.GetState()
+	l, _ := state.Lobbies[id]
 	return l
 }
 
-func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
-	act, ok := a.(*action.Action)
-	if !ok {
-		return state
-	}
-
-	lstate, ok := state.(LobbiesState)
-	if !ok {
-		return state
-	}
-
+func (ls *Lobbies) Reduce(state LobbiesState, act *action.Action) LobbiesState {
 	switch act.Type {
 	case action.CreateLobby:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		lstate.Lobbies[act.CreateLobby.LobbyID] = &Lobby{
+		state.Lobbies[act.CreateLobby.LobbyID] = &Lobby{
 			ID:         act.CreateLobby.LobbyID,
 			Name:       act.CreateLobby.LobbyName,
 			MaxPlayers: act.CreateLobby.LobbyMaxPlayers,
@@ -112,23 +102,23 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		delete(lstate.Lobbies, act.DeleteLobby.LobbyID)
+		delete(state.Lobbies, act.DeleteLobby.LobbyID)
 	case action.JoinLobby:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		lstate.Lobbies[act.JoinLobby.LobbyID].Players[act.JoinLobby.Username] = act.JoinLobby.IsBot
+		state.Lobbies[act.JoinLobby.LobbyID].Players[act.JoinLobby.Username] = act.JoinLobby.IsBot
 	case action.LeaveLobby:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		delete(lstate.Lobbies[act.LeaveLobby.LobbyID].Players, act.LeaveLobby.Username)
+		delete(state.Lobbies[act.LeaveLobby.LobbyID].Players, act.LeaveLobby.Username)
 	case action.AddLobbies:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
 		clbs := make(map[string]struct{})
-		for id := range lstate.Lobbies {
+		for id := range state.Lobbies {
 			clbs[id] = struct{}{}
 		}
 		for _, al := range act.AddLobbies.Lobbies {
@@ -140,30 +130,30 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 				Players:    al.Players,
 			}
 
-			lstate.Lobbies[l.ID] = l
+			state.Lobbies[l.ID] = l
 			delete(clbs, al.ID)
 		}
 		for id := range clbs {
-			delete(lstate.Lobbies, id)
+			delete(state.Lobbies, id)
 		}
-		lstate.Seen = false
+		state.Seen = false
 	case action.SeenLobbies:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		lstate.Seen = true
+		state.Seen = true
 	case action.SelectLobby:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		lstate.Lobbies[act.SelectLobby.LobbyID].Current = true
+		state.Lobbies[act.SelectLobby.LobbyID].Current = true
 	case action.UpdateLobby:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
 		ulp := act.UpdateLobby.Lobby
 
-		l := lstate.Lobbies[ulp.ID]
+		l := state.Lobbies[ulp.ID]
 
 		ul := &Lobby{
 			ID:         ulp.ID,
@@ -173,19 +163,19 @@ func (ls *Lobbies) Reduce(state, a interface{}) interface{} {
 			Owner:      ulp.Owner,
 			Current:    l.Current,
 		}
-		lstate.Lobbies[ul.ID] = ul
+		state.Lobbies[ul.ID] = ul
 	case action.UserSignOut:
 		ls.mxLobbies.Lock()
 		defer ls.mxLobbies.Unlock()
 
-		for _, l := range lstate.Lobbies {
+		for _, l := range state.Lobbies {
 			if l.Owner == act.UserSignOut.Username {
-				delete(lstate.Lobbies, l.ID)
+				delete(state.Lobbies, l.ID)
 			} else {
 				delete(l.Players, act.UserSignOut.Username)
 			}
 		}
 	}
 
-	return lstate
+	return state
 }

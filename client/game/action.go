@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
@@ -13,7 +13,7 @@ import (
 // ActionDispatcher is in charge of dispatching actions to the
 // application dispatcher
 type ActionDispatcher struct {
-	dispatcher *flux.Dispatcher
+	dispatcher *flux.Dispatcher[*action.Action]
 	store      *store.Store
 	logger     *slog.Logger
 
@@ -22,7 +22,7 @@ type ActionDispatcher struct {
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
-func NewActionDispatcher(d *flux.Dispatcher, s *store.Store, wsSendFn func(a *action.Action), l *slog.Logger) *ActionDispatcher {
+func NewActionDispatcher(d *flux.Dispatcher[*action.Action], s *store.Store, wsSendFn func(a *action.Action), l *slog.Logger) *ActionDispatcher {
 	return &ActionDispatcher{
 		dispatcher: d,
 		store:      s,

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/unit"
 	"github.com/xescugc/maze-wars/utils"
@@ -17,7 +17,7 @@ import (
 // ActionDispatcher is in charge of dispatching actions to the
 // application dispatcher
 type ActionDispatcher struct {
-	dispatcher *flux.Dispatcher
+	dispatcher *flux.Dispatcher[*action.Action]
 	store      *Store
 	logger     *slog.Logger
 	ws         WSConnector
@@ -33,7 +33,7 @@ const (
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
-func NewActionDispatcher(d *flux.Dispatcher, l *slog.Logger, s *Store, ws WSConnector) *ActionDispatcher {
+func NewActionDispatcher(d *flux.Dispatcher[*action.Action], l *slog.Logger, s *Store, ws WSConnector) *ActionDispatcher {
 	return &ActionDispatcher{
 		dispatcher: d,
 		store:      s,
@@ -126,15 +126,15 @@ func (ac *ActionDispatcher) startGame(vs, roid string) {
 		rid = r.Name
 	}
 
-	rstate := ac.store.Rooms.GetState().(RoomsState)
-	r := rstate.Rooms[rid]
+	state := ac.store.Rooms.GetState()
+	r := state.Rooms[rid]
 
 	ac.SyncState(ac.store.Rooms)
 
 	for pid, p := range r.Players {
 		// We do not need to communicate with the bots
 		if p.IsBot {
-			rstate.Rooms[rid].Bots[pid].Start()
+			state.Rooms[rid].Bots[pid].Start()
 			continue
 		}
 		sga := action.NewStartGame(ac.store.Rooms.SyncState(r, pid))

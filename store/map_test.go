@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/assets"
 	"github.com/xescugc/maze-wars/store"
 )
 
 func TestNewMap(t *testing.T) {
-	d := flux.NewDispatcher()
+	d := flux.NewDispatcher[*action.Action]()
 	st := store.NewStore(d, newEmptyLogger())
 	ms := store.NewMap(d, st)
 	mstate := ms.GetState().(store.MapState)

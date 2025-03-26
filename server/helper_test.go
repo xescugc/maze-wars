@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/sagikazarmark/slog-shim"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/server"
 )
 
