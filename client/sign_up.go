@@ -9,7 +9,7 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/store"
@@ -18,7 +18,7 @@ import (
 )
 
 type SignUpStore struct {
-	*flux.ReduceStore
+	*flux.ReduceStore[SignUpState, *action.Action]
 
 	Store  *store.Store
 	Logger *slog.Logger
@@ -39,7 +39,7 @@ type SignUpState struct {
 	Username string
 }
 
-func NewSignUpStore(d *flux.Dispatcher, s *store.Store, un, ik string, l *slog.Logger) (*SignUpStore, error) {
+func NewSignUpStore(d *flux.Dispatcher[*action.Action], s *store.Store, un, ik string, l *slog.Logger) (*SignUpStore, error) {
 	su := &SignUpStore{
 		Store:  s,
 		Logger: l,
@@ -69,7 +69,7 @@ func (su *SignUpStore) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(su.Logger, b, "sign_up draw")
 
-	sutate := su.GetState().(SignUpState)
+	sutate := su.GetState()
 	su.textErrorW.GetWidget().Visibility = widget.Visibility_Hide
 	if sutate.Error != "" {
 		su.textErrorW.GetWidget().Visibility = widget.Visibility_Show
@@ -85,27 +85,17 @@ func (su *SignUpStore) Draw(screen *ebiten.Image) {
 	su.ui.Draw(screen)
 }
 
-func (su *SignUpStore) Reduce(state, a interface{}) interface{} {
-	act, ok := a.(*action.Action)
-	if !ok {
-		return state
-	}
-
-	sutate, ok := state.(SignUpState)
-	if !ok {
-		return state
-	}
-
+func (su *SignUpStore) Reduce(state SignUpState, act *action.Action) SignUpState {
 	switch act.Type {
 	case action.SignUpError:
-		sutate.Error = act.SignUpError.Error
+		state.Error = act.SignUpError.Error
 	case action.UserSignUpChangeImage:
-		sutate.ImageKey = act.UserSignUpChangeImage.ImageKey
+		state.ImageKey = act.UserSignUpChangeImage.ImageKey
 	case action.VersionError:
-		sutate.VersionError = act.VersionError.Error
+		state.VersionError = act.VersionError.Error
 	}
 
-	return sutate
+	return state
 }
 
 func (su *SignUpStore) buildUI() {
@@ -199,7 +189,7 @@ func (su *SignUpStore) topbarUI() *widget.Container {
 }
 
 func (su *SignUpStore) signUpFormUI() *widget.Container {
-	ss := su.GetState().(SignUpState)
+	ss := su.GetState()
 	signUpFormC := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
@@ -399,7 +389,7 @@ func (su *SignUpStore) signUpFormUI() *widget.Container {
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			ss := su.GetState().(SignUpState)
+			ss := su.GetState()
 			actionDispatcher.SignUpSubmit(nameInputW.GetText(), ss.ImageKey)
 		}),
 

@@ -3,7 +3,8 @@ package server
 import (
 	"log/slog"
 
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
+	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 )
 
@@ -13,7 +14,7 @@ type Game struct {
 	*store.Store
 }
 
-func NewGame(d *flux.Dispatcher, l *slog.Logger) *Game {
+func NewGame(d *flux.Dispatcher[*action.Action], l *slog.Logger) *Game {
 	g := &Game{
 		Store: store.NewStore(d, l, isOnServer),
 	}

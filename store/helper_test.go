@@ -8,7 +8,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/sagikazarmark/slog-shim"
 	"github.com/stretchr/testify/require"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"

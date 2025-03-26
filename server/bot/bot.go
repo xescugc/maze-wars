@@ -7,7 +7,7 @@ import (
 	"time"
 
 	bht "github.com/joeycumines/go-behaviortree"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/tower"
@@ -17,7 +17,7 @@ import (
 type Bot struct {
 	Ticker bht.Ticker
 
-	dispatcher *flux.Dispatcher
+	dispatcher *flux.Dispatcher[*action.Action]
 	store      *store.Store
 	playerID   string
 
@@ -28,7 +28,7 @@ type Bot struct {
 	towerTypeToUpdate string
 }
 
-func New(ctx context.Context, d *flux.Dispatcher, s *store.Store, pid string) *Bot {
+func New(ctx context.Context, d *flux.Dispatcher[*action.Action], s *store.Store, pid string) *Bot {
 	b := &Bot{
 		dispatcher: d,
 		store:      s,

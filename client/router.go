@@ -6,14 +6,13 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
-	"github.com/xescugc/maze-wars/client/game"
 	"github.com/xescugc/maze-wars/utils"
 )
 
 type RouterStore struct {
-	*flux.ReduceStore
+	*flux.ReduceStore[RouterState, *action.Action]
 
 	game   *Game
 	root   *RootStore
@@ -26,7 +25,7 @@ type RouterState struct {
 	Route string
 }
 
-func NewRouterStore(d *flux.Dispatcher, su *SignUpStore, ros *RootStore, g *Game, l *slog.Logger) *RouterStore {
+func NewRouterStore(d *flux.Dispatcher[*action.Action], su *SignUpStore, ros *RootStore, g *Game, l *slog.Logger) *RouterStore {
 	rs := &RouterStore{
 		game:   g,
 		root:   ros,
@@ -62,8 +61,8 @@ func (rs *RouterStore) Update() error {
 		}
 	}()
 
-	rstate := rs.GetState().(RouterState)
-	switch rstate.Route {
+	state := rs.GetState()
+	switch state.Route {
 	case utils.SignUpRoute:
 		rs.signUp.Update()
 	case utils.RootRoute, utils.LobbiesRoute, utils.LearnRoute, utils.HomeRoute, utils.NewLobbyRoute, utils.ShowLobbyRoute:
@@ -94,8 +93,8 @@ func (rs *RouterStore) Draw(screen *ebiten.Image) {
 		}
 	}()
 
-	rstate := rs.GetState().(RouterState)
-	switch rstate.Route {
+	state := rs.GetState()
+	switch state.Route {
 	case utils.SignUpRoute:
 		rs.signUp.Draw(screen)
 	case utils.RootRoute, utils.LobbiesRoute, utils.LearnRoute, utils.HomeRoute, utils.NewLobbyRoute, utils.ShowLobbyRoute:
@@ -106,30 +105,20 @@ func (rs *RouterStore) Draw(screen *ebiten.Image) {
 }
 
 func (rs *RouterStore) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	cs := rs.game.Game.Camera.GetState().(game.CameraState)
+	cs := rs.game.Game.Camera.GetState()
 	if cs.W != outsideWidth || cs.H != outsideHeight {
 		actionDispatcher.WindowResizing(outsideWidth, outsideHeight)
 	}
 	return outsideWidth, outsideHeight
 }
 
-func (rs *RouterStore) Reduce(state, a interface{}) interface{} {
-	act, ok := a.(*action.Action)
-	if !ok {
-		return state
-	}
-
-	rstate, ok := state.(RouterState)
-	if !ok {
-		return state
-	}
-
+func (rs *RouterStore) Reduce(state RouterState, act *action.Action) RouterState {
 	switch act.Type {
 	case action.NavigateTo:
-		rstate.Route = act.NavigateTo.Route
+		state.Route = act.NavigateTo.Route
 	case action.StartGame:
-		rstate.Route = utils.GameRoute
+		state.Route = utils.GameRoute
 	}
 
-	return rstate
+	return state
 }

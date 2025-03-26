@@ -56,7 +56,7 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(ls.game.Logger, b, "lines draw")
 
-	hst := ls.game.HUD.GetState().(HUDState)
+	hst := ls.game.HUD.GetState()
 	for _, l := range ls.game.Store.Lines.ListLines() {
 		for _, t := range l.Towers {
 			ls.DrawTower(screen, ls.game.Camera, t)
@@ -89,7 +89,7 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 }
 
 func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
-	cs := c.GetState().(CameraState)
+	cs := c.GetState()
 	if !t.IsColliding(cs.Object) {
 		return
 	}
@@ -112,7 +112,7 @@ func (ls *Lines) DrawTower(screen *ebiten.Image, c *CameraStore, t *store.Tower)
 }
 
 func (ls *Lines) DrawTowerHelath(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
-	cs := c.GetState().(CameraState)
+	cs := c.GetState()
 	if !t.IsColliding(cs.Object) {
 		return
 	}
@@ -133,7 +133,7 @@ func (ls *Lines) DrawTowerHelath(screen *ebiten.Image, c *CameraStore, t *store.
 }
 
 func (ls *Lines) DrawTowerSelected(screen *ebiten.Image, c *CameraStore, t *store.Tower) {
-	cs := c.GetState().(CameraState)
+	cs := c.GetState()
 	if !t.IsColliding(cs.Object) {
 		return
 	}
@@ -146,7 +146,7 @@ func (ls *Lines) DrawTowerSelected(screen *ebiten.Image, c *CameraStore, t *stor
 }
 
 func (ls *Lines) DrawUnitSelected(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
-	cs := c.GetState().(CameraState)
+	cs := c.GetState()
 	if !u.IsColliding(cs.Object) {
 		return
 	}
@@ -157,7 +157,7 @@ func (ls *Lines) DrawUnitSelected(screen *ebiten.Image, c *CameraStore, u *store
 }
 
 func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
-	cs := c.GetState().(CameraState)
+	cs := c.GetState()
 	// This is to display the full unit calculated path as a line
 	// used for testing visually the path
 	//for _, s := range u.Path {
@@ -227,7 +227,7 @@ func (ls *Lines) DrawUnit(screen *ebiten.Image, c *CameraStore, u *store.Unit) {
 }
 
 func (ls *Lines) DrawProjectile(screen *ebiten.Image, c *CameraStore, p *store.Projectile) {
-	cs := c.GetState().(CameraState)
+	cs := c.GetState()
 	if !p.IsColliding(cs.Object) {
 		return
 	}

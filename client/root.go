@@ -16,7 +16,7 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/gofrs/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/assets"
 	cutils "github.com/xescugc/maze-wars/client/utils"
@@ -41,7 +41,7 @@ var (
 )
 
 type RootStore struct {
-	*flux.ReduceStore
+	*flux.ReduceStore[RootState, *action.Action]
 
 	Store  *Store
 	Logger *slog.Logger
@@ -137,7 +137,7 @@ func init() {
 
 }
 
-func NewRootStore(d *flux.Dispatcher, s *Store, l *slog.Logger) (*RootStore, error) {
+func NewRootStore(d *flux.Dispatcher[*action.Action], s *Store, l *slog.Logger) (*RootStore, error) {
 	rs := &RootStore{
 		Store:  s,
 		Logger: l,
@@ -163,7 +163,7 @@ func (rs *RootStore) Draw(screen *ebiten.Image) {
 	b := time.Now()
 	defer utils.LogTime(rs.Logger, b, "root draw")
 
-	rss := rs.GetState().(RootState)
+	rss := rs.GetState()
 	rs.usernameTextW.Label = rs.Store.Users.Username()
 	rs.userImageGW.Image = cutils.Images.Get(unit.Units[rs.Store.Users.ImageKey()].FacesetKey())
 	if rss.SetupGame {
@@ -333,52 +333,42 @@ func fmtVsRankedBots(vs int, ranked, vsBots bool) string {
 	return fmt.Sprintf("Vs %d / %s", vs, rk)
 }
 
-func (rs *RootStore) Reduce(state, a interface{}) interface{} {
-	act, ok := a.(*action.Action)
-	if !ok {
-		return state
-	}
-
-	rstate, ok := state.(RootState)
-	if !ok {
-		return state
-	}
-
+func (rs *RootStore) Reduce(state RootState, act *action.Action) RootState {
 	switch act.Type {
 	case action.SetupGame:
-		rstate.SetupGame = act.SetupGame.Display
+		state.SetupGame = act.SetupGame.Display
 	case action.FindGame:
 		var s = 1
 		if !act.FindGame.Vs1 {
 			s = 6
 		}
-		rstate.FindGame = &findGame{
+		state.FindGame = &findGame{
 			Size:           s,
 			Ranked:         act.FindGame.Ranked,
 			VsBots:         act.FindGame.VsBots,
 			SearchingSince: time.Now(),
 		}
 	case action.ExitSearchingGame:
-		rstate.FindGame = nil
+		state.FindGame = nil
 	case action.SyncWaitingRoom:
-		rstate.FindGame = nil
-		rstate.WaitingRoom = &waitingRoom{
+		state.FindGame = nil
+		state.WaitingRoom = &waitingRoom{
 			Size:         act.SyncWaitingRoom.Size,
 			Ranked:       act.SyncWaitingRoom.Ranked,
 			Players:      act.SyncWaitingRoom.Players,
 			WaitingSince: act.SyncWaitingRoom.WaitingSince,
 		}
 	case action.CancelWaitingGame, action.StartGame:
-		rstate.WaitingRoom = nil
-		rstate.SetupGame = false
+		state.WaitingRoom = nil
+		state.SetupGame = false
 	case action.NavigateTo:
 		switch act.NavigateTo.Route {
 		case utils.HomeRoute, utils.LobbiesRoute, utils.LearnRoute, utils.NewLobbyRoute, utils.ShowLobbyRoute:
-			rstate.Route = act.NavigateTo.Route
+			state.Route = act.NavigateTo.Route
 		}
 	}
 
-	return rstate
+	return state
 }
 
 func (rs *RootStore) buildUI() {
@@ -471,7 +461,7 @@ func (rs *RootStore) playUI() *widget.Container {
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			rss := rs.GetState().(RootState)
+			rss := rs.GetState()
 			if rss.FindGame == nil {
 				// if it's not searching for a game then we start
 				// the Setup

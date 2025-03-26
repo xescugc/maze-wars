@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/store"
 	"github.com/xescugc/maze-wars/utils"
@@ -15,7 +15,7 @@ import (
 // on the screen, it also tracks the position
 // of the cursor and the wheel scroll
 type CameraStore struct {
-	*flux.ReduceStore
+	*flux.ReduceStore[CameraState, *action.Action]
 
 	Store *store.Store
 
@@ -41,7 +41,7 @@ const (
 // NewCameraStore creates a new CameraState linked to the Dispatcher d
 // with the Game g and with width w and height h which is the size of
 // the viewport
-func NewCameraStore(d *flux.Dispatcher, s *store.Store, l *slog.Logger, w, h int) *CameraStore {
+func NewCameraStore(d *flux.Dispatcher[*action.Action], s *store.Store, l *slog.Logger, w, h int) *CameraStore {
 	cs := &CameraStore{
 		Store:       s,
 		logger:      l,
@@ -80,63 +80,53 @@ func (cs *CameraStore) Draw(screen *ebiten.Image) {
 	defer utils.LogTime(cs.logger, b, "camera draw")
 }
 
-func (cs *CameraStore) Reduce(state, a interface{}) interface{} {
-	act, ok := a.(*action.Action)
-	if !ok {
-		return state
-	}
-
-	cstate, ok := state.(CameraState)
-	if !ok {
-		return state
-	}
-
+func (cs *CameraStore) Reduce(state CameraState, act *action.Action) CameraState {
 	switch act.Type {
 	case action.CursorMove:
 		// We update the last seen cursor position to not resend unnecessary events
-		cstate.LastCursorPosition.X = float64(act.CursorMove.X)
-		cstate.LastCursorPosition.Y = float64(act.CursorMove.Y)
+		state.LastCursorPosition.X = float64(act.CursorMove.X)
+		state.LastCursorPosition.Y = float64(act.CursorMove.Y)
 	case action.TPS:
 		// If the X or Y exceed the current Height or Width then
 		// it means the cursor is moving out of boundaries so we
 		// increase the camera X/Y at a ratio of the cameraSpeed
 		// so we move it around on the map
-		if int(cstate.LastCursorPosition.Y) >= (cstate.H - leeway) {
-			cstate.Y += float64(cs.cameraSpeed)
-		} else if cstate.LastCursorPosition.Y <= (0 + leeway) {
-			cstate.Y -= float64(cs.cameraSpeed)
+		if int(state.LastCursorPosition.Y) >= (state.H - leeway) {
+			state.Y += float64(cs.cameraSpeed)
+		} else if state.LastCursorPosition.Y <= (0 + leeway) {
+			state.Y -= float64(cs.cameraSpeed)
 		}
 
-		if int(cstate.LastCursorPosition.X) >= (cstate.W - leeway) {
-			cstate.X += float64(cs.cameraSpeed)
-		} else if int(cstate.LastCursorPosition.X) <= (0 + leeway) {
-			cstate.X -= float64(cs.cameraSpeed)
+		if int(state.LastCursorPosition.X) >= (state.W - leeway) {
+			state.X += float64(cs.cameraSpeed)
+		} else if int(state.LastCursorPosition.X) <= (0 + leeway) {
+			state.X -= float64(cs.cameraSpeed)
 		}
 
 		// If any of the X or Y values exceeds the boundaries
 		// of the actual map we set it to the maximum possible
 		// values as we cannot go out of the map
-		if cstate.X <= 0 {
-			cstate.X = 0
-		} else if int(cstate.X) >= cs.Store.Map.GetX() {
-			cstate.X = float64(cs.Store.Map.GetX())
+		if state.X <= 0 {
+			state.X = 0
+		} else if int(state.X) >= cs.Store.Map.GetX() {
+			state.X = float64(cs.Store.Map.GetX())
 		}
-		if cstate.Y <= 0 {
-			cstate.Y = 0
-		} else if int(cstate.Y) >= cs.Store.Map.GetY() {
-			cstate.Y = float64(cs.Store.Map.GetY())
+		if state.Y <= 0 {
+			state.Y = 0
+		} else if int(state.Y) >= cs.Store.Map.GetY() {
+			state.Y = float64(cs.Store.Map.GetY())
 		}
 	//case action.CameraZoom:
-	//cstate.Zoom += act.CameraZoom.Direction * zoomScale
+	//state.Zoom += act.CameraZoom.Direction * zoomScale
 	case action.WindowResizing:
-		cstate.W = act.WindowResizing.Width
-		cstate.H = act.WindowResizing.Height
+		state.W = act.WindowResizing.Width
+		state.H = act.WindowResizing.Height
 	case action.GoHome:
 		cp := cs.Store.Lines.FindCurrentPlayer()
 		x, y := cs.Store.Map.GetHomeCoordinates(cp.LineID)
-		x -= (cstate.W / 2) - ((18 * 16) / 2)
-		cstate.X, cstate.Y = float64(x), float64(y)
+		x -= (state.W / 2) - ((18 * 16) / 2)
+		state.X, state.Y = float64(x), float64(y)
 	}
 
-	return cstate
+	return state
 }

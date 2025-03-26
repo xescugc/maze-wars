@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/sagikazarmark/slog-shim"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/utils"
 )
@@ -14,13 +14,13 @@ type Store struct {
 	Map     *Map
 	Lobbies *Lobbies
 
-	dispatcher *flux.Dispatcher
+	dispatcher *flux.Dispatcher[*action.Action]
 	logger     *slog.Logger
 
 	isOnServer bool
 }
 
-func NewStore(d *flux.Dispatcher, l *slog.Logger, server bool) *Store {
+func NewStore(d *flux.Dispatcher[*action.Action], l *slog.Logger, server bool) *Store {
 	s := &Store{
 		dispatcher: d,
 		logger:     l,

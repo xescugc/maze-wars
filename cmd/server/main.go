@@ -14,7 +14,8 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
+	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/server"
 )
 
@@ -31,7 +32,7 @@ var (
 				DiscordBotToken:  viper.GetString("discord-bot-token"),
 				DiscordChannelID: viper.GetString("discord-channel-id"),
 			}
-			d := flux.NewDispatcher()
+			d := flux.NewDispatcher[*action.Action]()
 
 			out := os.Stdout
 			lvl := slog.LevelInfo

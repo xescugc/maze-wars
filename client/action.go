@@ -14,7 +14,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
-	"github.com/xescugc/go-flux"
+	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	cutils "github.com/xescugc/maze-wars/client/utils"
 	"github.com/xescugc/maze-wars/server/models"
@@ -25,7 +25,7 @@ import (
 // ActionDispatcher is in charge of dispatching actions to the
 // application dispatcher
 type ActionDispatcher struct {
-	dispatcher *flux.Dispatcher
+	dispatcher *flux.Dispatcher[*action.Action]
 	opt        Options
 	store      *store.Store
 	logger     *slog.Logger
@@ -33,7 +33,7 @@ type ActionDispatcher struct {
 
 // NewActionDispatcher initializes the action dispatcher
 // with the give dispatcher
-func NewActionDispatcher(d *flux.Dispatcher, s *store.Store, l *slog.Logger, opt Options) *ActionDispatcher {
+func NewActionDispatcher(d *flux.Dispatcher[*action.Action], s *store.Store, l *slog.Logger, opt Options) *ActionDispatcher {
 	return &ActionDispatcher{
 		dispatcher: d,
 		opt:        opt,
