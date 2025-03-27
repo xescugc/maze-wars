@@ -63,16 +63,18 @@ type Action struct {
 }
 
 type CursorMovePayload struct {
-	X int `json:"x"`
-	Y int `json:"y"`
+	X               int
+	Y               int
+	IsMiddlePressed bool
 }
 
-func NewCursorMove(x, y int) *Action {
+func NewCursorMove(x, y int, imp bool) *Action {
 	return &Action{
 		Type: CursorMove,
 		CursorMove: &CursorMovePayload{
-			X: x,
-			Y: y,
+			X:               x,
+			Y:               y,
+			IsMiddlePressed: imp,
 		},
 	}
 }
