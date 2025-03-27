@@ -100,10 +100,10 @@ func (m *Map) GetHomeCoordinates(lid int) (int, int) {
 func (m *Map) Reduce(state MapState, act *action.Action) MapState {
 	switch act.Type {
 	case action.StartGame:
-		m.GetDispatcher().WaitFor(m.store.Lines.GetDispatcherToken())
+		m.GetDispatcher().WaitFor(m.store.Game.GetDispatcherToken())
 
 		var ok bool
-		state.Players = len(m.store.Lines.ListPlayers())
+		state.Players = len(m.store.Game.ListPlayers())
 		state.Image, ok = MapImages[state.Players]
 		if !ok {
 			log.Fatalf("The map for the number of players %d is not available", state.Players)

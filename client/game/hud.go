@@ -255,12 +255,12 @@ func (hs *HUDStore) Update() error {
 	cs := hs.game.Camera.GetState()
 	hst := hs.GetState()
 	x, y := ebiten.CursorPosition()
-	cp := hs.game.Store.Lines.FindCurrentPlayer()
+	cp := hs.game.Store.Game.FindCurrentPlayer()
 	if cp.ID == "" {
 		// This means the player is no longer there and left
 		return nil
 	}
-	cl := hs.game.Store.Lines.FindLineByID(cp.LineID)
+	cl := hs.game.Store.Game.FindLineByID(cp.LineID)
 	tws := cl.Towers
 	uts := cl.Units
 	// Only send a CursorMove when the curso has actually moved
@@ -430,9 +430,9 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 
 	hst := hs.GetState()
 	cs := hs.game.Camera.GetState()
-	lstate := hs.game.Store.Lines.GetState()
-	cp := hs.game.Store.Lines.FindCurrentPlayer()
-	cl := hs.game.Store.Lines.FindLineByID(cp.LineID)
+	lstate := hs.game.Store.Game.GetState()
+	cp := hs.game.Store.Game.FindCurrentPlayer()
+	cl := hs.game.Store.Game.FindLineByID(cp.LineID)
 
 	hs.validateOpenTower(hst.OpenTowerMenu, cl.Towers)
 	hs.validateOpenUnit(hst.OpenUnitMenu, cl.Units)
@@ -453,9 +453,9 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		hs.textErrorW.Label = lstate.Error
 	}
 
-	psit := hs.game.Store.Lines.GetIncomeTimer()
+	psit := hs.game.Store.Game.GetIncomeTimer()
 
-	hs.infoTimerTxt.Label = cutils.FmtDuration(time.Now().Sub(hs.game.Store.Lines.GetStartedAt()))
+	hs.infoTimerTxt.Label = cutils.FmtDuration(time.Now().Sub(hs.game.Store.Game.GetStartedAt()))
 	hs.infoGoldTxt.Label = strconv.Itoa(cp.Gold)
 	hs.infoCapTxt.Label = fmt.Sprintf("%d/%d", cp.Capacity, utils.MaxCapacity)
 	hs.infoLivesTxt.Label = strconv.Itoa(cp.Lives)
@@ -590,7 +590,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 		hs.displayTargetUnitNameTxtW.Label = fmt.Sprintf("%s (lvl %d)", ou.Name(), cou.Level)
 		hs.displayTargetUnitMovementSpeedTxtW.Label = fmt.Sprint(cou.MovementSpeed)
 		hs.displayTargetUnitBountyTxtW.Label = fmt.Sprint(cou.Bounty)
-		ucp := hs.game.Store.Lines.FindPlayerByID(cou.PlayerID)
+		ucp := hs.game.Store.Game.FindPlayerByID(cou.PlayerID)
 		hs.displayTargetUnitPlayerTxtW.Label = ucp.Name
 		hs.displayTargetUnitAbilityImage1.Image = cutils.Images.Get(ability.Key(ou.Abilities[0].String()))
 		hs.displayTargetUnitAbilityTitle.Label = ability.Name(ou.Abilities[0])
@@ -623,7 +623,7 @@ func (hs *HUDStore) Draw(screen *ebiten.Image) {
 func (hs *HUDStore) Reduce(state HUDState, act *action.Action) HUDState {
 	switch act.Type {
 	case action.SelectTower:
-		cp := hs.game.Store.Lines.FindCurrentPlayer()
+		cp := hs.game.Store.Game.FindCurrentPlayer()
 		cs := hs.game.Camera.GetState()
 		x, y := fixPosition(cs, act.SelectTower.X, act.SelectTower.Y)
 		state.SelectedTower = &SelectedTower{
@@ -665,7 +665,7 @@ func (hs *HUDStore) Reduce(state HUDState, act *action.Action) HUDState {
 		state.OpenUnitMenu = hs.findUnitByID(act.OpenUnitMenu.UnitID)
 		state.OpenTowerMenu = nil
 	case action.UpdateTower:
-		hs.GetDispatcher().WaitFor(hs.game.Store.Lines.GetDispatcherToken())
+		hs.GetDispatcher().WaitFor(hs.game.Store.Game.GetDispatcherToken())
 
 		// As the UpdateTower is done we need to update the OpenTowerMenu
 		// so we can display the new information
@@ -686,7 +686,7 @@ func (hs *HUDStore) Reduce(state HUDState, act *action.Action) HUDState {
 }
 
 func (hs *HUDStore) findTowerByID(tid string) *store.Tower {
-	for _, l := range hs.game.Store.Lines.ListLines() {
+	for _, l := range hs.game.Store.Game.ListLines() {
 		if t, ok := l.Towers[tid]; ok {
 			return t
 		}
@@ -695,7 +695,7 @@ func (hs *HUDStore) findTowerByID(tid string) *store.Tower {
 }
 
 func (hs *HUDStore) findUnitByID(uid string) *store.Unit {
-	for _, l := range hs.game.Store.Lines.ListLines() {
+	for _, l := range hs.game.Store.Game.ListLines() {
 		if u, ok := l.Units[uid]; ok {
 			return u
 		}
@@ -908,7 +908,7 @@ func (hs *HUDStore) displayDefaultUI() *widget.Container {
 		widget.ContainerOpts.BackgroundImage(cutils.LoadImageNineSlice(cutils.DisplayDefaultTowersBGKey, 1, 1, !isPressed)),
 	)
 
-	cp := hs.game.Store.Lines.FindCurrentPlayer()
+	cp := hs.game.Store.Game.FindCurrentPlayer()
 
 	for _, u := range sortedUnits() {
 		uu := cp.UnitUpdates[u.Type.String()]
@@ -1223,7 +1223,7 @@ func (hs *HUDStore) displayDefaultUI() *widget.Container {
 			// add a handler that reacts to clicking the button
 			widget.ButtonOpts.ClickedHandler(func(u *unit.Unit) func(args *widget.ButtonClickedEventArgs) {
 				return func(args *widget.ButtonClickedEventArgs) {
-					cp := hs.game.Store.Lines.FindCurrentPlayer()
+					cp := hs.game.Store.Game.FindCurrentPlayer()
 					if ebiten.IsKeyPressed(ebiten.KeyShift) {
 						actionDispatcher.UpdateUnit(cp.ID, u.Type.String())
 					} else {
@@ -2447,7 +2447,7 @@ func (hs *HUDStore) buildScoreboard() {
 	livesMin := 0
 	incomeMax := 0
 	incomeMin := 0
-	for _, p := range hs.game.Store.Lines.ListPlayers() {
+	for _, p := range hs.game.Store.Game.ListPlayers() {
 		if p.Lives > livesMax {
 			livesMax = p.Lives
 		}
@@ -2984,7 +2984,7 @@ func (hs *HUDStore) menuModal() {
 
 		// add a handler that reacts to clicking the button
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			u := hs.game.Store.Lines.FindCurrentPlayer()
+			u := hs.game.Store.Game.FindCurrentPlayer()
 			actionDispatcher.RemovePlayer(u.ID)
 			hs.closeModal(hs.menuW)
 		}),

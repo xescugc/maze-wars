@@ -177,7 +177,7 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 			}
 			// Players
 			players := make(map[string]*action.SyncStatePlayerPayload)
-			lplayers := r.Game.Store.Lines.ListPlayers()
+			lplayers := r.Game.Store.Game.ListPlayers()
 			for _, p := range lplayers {
 				ap := p
 				uspp := action.SyncStatePlayerPayload{
@@ -206,7 +206,7 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 
 			// Lines
 			lines := make(map[int]*action.SyncStateLinePayload)
-			llines := r.Game.Store.Lines.ListLines()
+			llines := r.Game.Store.Game.ListLines()
 			for _, l := range llines {
 				al := l
 				// Towers
@@ -244,7 +244,7 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 			aus := action.NewSyncState(
 				&action.SyncStatePlayersPayload{
 					Players:     players,
-					IncomeTimer: r.Game.Store.Lines.GetIncomeTimer(),
+					IncomeTimer: r.Game.Store.Game.GetIncomeTimer(),
 				},
 				&action.SyncStateLinesPayload{
 					Lines: lines,

@@ -44,7 +44,7 @@ func (m *Map) Draw(screen *ebiten.Image) {
 	screen.DrawImage(cutils.Images.Get(m.game.Store.Map.GetImageKey()).SubImage(image.Rect(int(s.X), int(s.Y), int(float64((int(s.X)+s.W))*inverseZoom), int(float64((int(s.Y)+s.H))*inverseZoom))).(*ebiten.Image), op)
 
 	cs := m.game.Camera.GetState()
-	cp := m.game.Store.Lines.FindCurrentPlayer()
+	cp := m.game.Store.Game.FindCurrentPlayer()
 	x, y := m.game.Store.Map.GetHomeCoordinates(cp.LineID)
 	csX := int(cs.X)
 	csY := int(cs.Y)
