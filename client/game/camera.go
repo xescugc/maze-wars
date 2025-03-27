@@ -27,8 +27,10 @@ type CameraStore struct {
 // CameraState is the store data on the Camera
 type CameraState struct {
 	utils.Object
-	Zoom               float64
-	LastCursorPosition utils.Object
+	Zoom                     float64
+	LastCursorPosition       utils.Object
+	LastCursorPositionDiff   utils.Object
+	MouseButtonMiddlePressed bool
 }
 
 const (
@@ -84,23 +86,31 @@ func (cs *CameraStore) Reduce(state CameraState, act *action.Action) CameraState
 	switch act.Type {
 	case action.CursorMove:
 		// We update the last seen cursor position to not resend unnecessary events
+		state.LastCursorPositionDiff.X = state.LastCursorPosition.X - float64(act.CursorMove.X)
+		state.LastCursorPositionDiff.Y = state.LastCursorPosition.Y - float64(act.CursorMove.Y)
 		state.LastCursorPosition.X = float64(act.CursorMove.X)
 		state.LastCursorPosition.Y = float64(act.CursorMove.Y)
+		state.MouseButtonMiddlePressed = act.CursorMove.IsMiddlePressed
 	case action.TPS:
 		// If the X or Y exceed the current Height or Width then
 		// it means the cursor is moving out of boundaries so we
 		// increase the camera X/Y at a ratio of the cameraSpeed
 		// so we move it around on the map
-		if int(state.LastCursorPosition.Y) >= (state.H - leeway) {
-			state.Y += float64(cs.cameraSpeed)
-		} else if state.LastCursorPosition.Y <= (0 + leeway) {
-			state.Y -= float64(cs.cameraSpeed)
-		}
+		if state.MouseButtonMiddlePressed {
+			state.X += state.LastCursorPositionDiff.X
+			state.Y += state.LastCursorPositionDiff.Y
+		} else {
+			if int(state.LastCursorPosition.Y) >= (state.H - leeway) {
+				state.Y += float64(cs.cameraSpeed)
+			} else if state.LastCursorPosition.Y <= (0 + leeway) {
+				state.Y -= float64(cs.cameraSpeed)
+			}
 
-		if int(state.LastCursorPosition.X) >= (state.W - leeway) {
-			state.X += float64(cs.cameraSpeed)
-		} else if int(state.LastCursorPosition.X) <= (0 + leeway) {
-			state.X -= float64(cs.cameraSpeed)
+			if int(state.LastCursorPosition.X) >= (state.W - leeway) {
+				state.X += float64(cs.cameraSpeed)
+			} else if int(state.LastCursorPosition.X) <= (0 + leeway) {
+				state.X -= float64(cs.cameraSpeed)
+			}
 		}
 
 		// If any of the X or Y values exceeds the boundaries

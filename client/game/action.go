@@ -42,8 +42,8 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 
 // CursorMove dispatches an action of moving the Cursor
 // to the new x,y coordinates
-func (ac *ActionDispatcher) CursorMove(x, y int) {
-	cma := action.NewCursorMove(x, y)
+func (ac *ActionDispatcher) CursorMove(x, y int, imp bool) {
+	cma := action.NewCursorMove(x, y, imp)
 	ac.Dispatch(cma)
 }
 

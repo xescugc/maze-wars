@@ -264,8 +264,8 @@ func (hs *HUDStore) Update() error {
 	tws := cl.Towers
 	uts := cl.Units
 	// Only send a CursorMove when the curso has actually moved
-	if int(hst.LastCursorPosition.X) != x || int(hst.LastCursorPosition.Y) != y {
-		actionDispatcher.CursorMove(x, y)
+	if int(cs.LastCursorPosition.X) != x || int(cs.LastCursorPosition.Y) != y || cs.MouseButtonMiddlePressed {
+		actionDispatcher.CursorMove(x, y, ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle))
 	}
 
 	// As the current opened tower
