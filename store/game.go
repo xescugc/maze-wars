@@ -43,15 +43,15 @@ var (
 	tpsMS = (time.Second / 60).Milliseconds()
 )
 
-type Lines struct {
-	*flux.ReduceStore[LinesState, *action.Action]
+type Game struct {
+	*flux.ReduceStore[GameState, *action.Action]
 
 	store *Store
 
 	mxLines sync.RWMutex
 }
 
-type LinesState struct {
+type GameState struct {
 	Lines   map[int]*Line
 	Players map[string]*Player
 
@@ -469,12 +469,12 @@ func (p Player) CanPlaceTower(tt string) bool {
 	return (p.Gold - tower.Towers[tt].Gold) >= 0
 }
 
-func NewLines(d *flux.Dispatcher[*action.Action], s *Store) *Lines {
-	l := &Lines{
+func NewGame(d *flux.Dispatcher[*action.Action], s *Store) *Game {
+	l := &Game{
 		store: s,
 	}
 
-	l.ReduceStore = flux.NewReduceStore(d, l.Reduce, LinesState{
+	l.ReduceStore = flux.NewReduceStore(d, l.Reduce, GameState{
 		Lines:       make(map[int]*Line),
 		Players:     make(map[string]*Player),
 		IncomeTimer: incomeTimer,
@@ -484,11 +484,11 @@ func NewLines(d *flux.Dispatcher[*action.Action], s *Store) *Lines {
 	return l
 }
 
-func (ls *Lines) ListLines() []*Line {
-	ls.mxLines.RLock()
-	defer ls.mxLines.RUnlock()
+func (g *Game) ListLines() []*Line {
+	g.mxLines.RLock()
+	defer g.mxLines.RUnlock()
 
-	state := ls.GetState()
+	state := g.GetState()
 	lines := make([]*Line, 0, len(state.Lines))
 	for _, l := range state.Lines {
 		us := make(map[string]*Unit)
@@ -512,11 +512,11 @@ func (ls *Lines) ListLines() []*Line {
 	return lines
 }
 
-func (ls *Lines) FindLineByID(id int) *Line {
-	ls.mxLines.RLock()
-	defer ls.mxLines.RUnlock()
+func (g *Game) FindLineByID(id int) *Line {
+	g.mxLines.RLock()
+	defer g.mxLines.RUnlock()
 
-	l := ls.GetState().Lines[id]
+	l := g.GetState().Lines[id]
 
 	us := make(map[string]*Unit)
 	ts := make(map[string]*Tower)
@@ -539,11 +539,11 @@ func (ls *Lines) FindLineByID(id int) *Line {
 }
 
 // ListPlayers returns the players list and it's meant for reading only purposes
-func (ls *Lines) ListPlayers() []*Player {
-	ls.mxLines.RLock()
-	defer ls.mxLines.RUnlock()
+func (g *Game) ListPlayers() []*Player {
+	g.mxLines.RLock()
+	defer g.mxLines.RUnlock()
 
-	state := ls.GetState()
+	state := g.GetState()
 	players := make([]*Player, 0, len(state.Players))
 	for _, p := range state.Players {
 		players = append(players, p)
@@ -551,11 +551,11 @@ func (ls *Lines) ListPlayers() []*Player {
 	return players
 }
 
-func (ls *Lines) FindCurrentPlayer() Player {
-	ls.mxLines.RLock()
-	defer ls.mxLines.RUnlock()
+func (g *Game) FindCurrentPlayer() Player {
+	g.mxLines.RLock()
+	defer g.mxLines.RUnlock()
 
-	for _, p := range ls.GetState().Players {
+	for _, p := range g.GetState().Players {
 		if p.Current {
 			return *p
 		}
@@ -563,26 +563,26 @@ func (ls *Lines) FindCurrentPlayer() Player {
 	return Player{}
 }
 
-func (ls *Lines) FindPlayerByID(id string) Player {
-	ls.mxLines.RLock()
-	defer ls.mxLines.RUnlock()
+func (g *Game) FindPlayerByID(id string) Player {
+	g.mxLines.RLock()
+	defer g.mxLines.RUnlock()
 
-	p, ok := ls.GetState().Players[id]
+	p, ok := g.GetState().Players[id]
 	if !ok {
 		return Player{}
 	}
 	return *p
 }
 
-func (ls *Lines) FindPlayerByLineID(lid int) Player {
-	ls.mxLines.RLock()
-	defer ls.mxLines.RUnlock()
+func (g *Game) FindPlayerByLineID(lid int) Player {
+	g.mxLines.RLock()
+	defer g.mxLines.RUnlock()
 
-	return ls.findPlayerByLineID(lid)
+	return g.findPlayerByLineID(lid)
 }
 
-func (ls *Lines) findPlayerByLineID(lid int) Player {
-	for _, p := range ls.GetState().Players {
+func (g *Game) findPlayerByLineID(lid int) Player {
+	for _, p := range g.GetState().Players {
 		if p.LineID == lid {
 			return *p
 		}
@@ -590,27 +590,27 @@ func (ls *Lines) findPlayerByLineID(lid int) Player {
 	return Player{}
 }
 
-func (ls *Lines) GetIncomeTimer() int {
-	ls.mxLines.RLock()
-	defer ls.mxLines.RUnlock()
+func (g *Game) GetIncomeTimer() int {
+	g.mxLines.RLock()
+	defer g.mxLines.RUnlock()
 
-	state := ls.GetState()
+	state := g.GetState()
 	return state.IncomeTimer
 }
 
-func (ls *Lines) GetStartedAt() time.Time {
-	ls.mxLines.RLock()
-	defer ls.mxLines.RUnlock()
+func (g *Game) GetStartedAt() time.Time {
+	g.mxLines.RLock()
+	defer g.mxLines.RUnlock()
 
-	state := ls.GetState()
+	state := g.GetState()
 	return state.StartedAt
 }
 
-func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
+func (g *Game) Reduce(state GameState, act *action.Action) GameState {
 	switch act.Type {
 	case action.IncomeTick:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		state.IncomeTimer -= 1
 		if state.IncomeTimer == 0 {
@@ -620,8 +620,8 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 			}
 		}
 	case action.AddPlayer:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		var found bool
 		for _, p := range state.Players {
@@ -659,16 +659,16 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 
 		state.Players[act.AddPlayer.ID] = p
 	case action.StartGame:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		for _, p := range state.Players {
-			state.Lines[p.LineID] = ls.newLine(p.LineID)
+			state.Lines[p.LineID] = g.newLine(p.LineID)
 		}
-		ls.syncState(&state, act.StartGame.State)
+		g.syncState(&state, act.StartGame.State)
 	case action.PlaceTower:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		p := state.Players[act.PlaceTower.PlayerID]
 
@@ -680,7 +680,7 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 
 		var w, h int = 16 * 2, 16 * 2
 		tid := uuid.Must(uuid.NewV4())
-		tw := ls.newTower(act.PlaceTower.Type, p, utils.Object{
+		tw := g.newTower(act.PlaceTower.Type, p, utils.Object{
 			X: float64(act.PlaceTower.X), Y: float64(act.PlaceTower.Y),
 			W: w, H: h,
 		})
@@ -697,16 +697,16 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 		p.Gold -= tower.Towers[act.PlaceTower.Type].Gold
 		l.Towers[tw.ID] = tw
 
-		ls.recalculateLineUnitStepsAndMove(state, p.LineID, noTowerID)
+		g.recalculateLineUnitStepsAndMove(state, p.LineID, noTowerID)
 	case action.UpdateTower:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		p := state.Players[act.UpdateTower.PlayerID]
 		l := state.Lines[p.LineID]
 		t := l.Towers[act.UpdateTower.TowerID]
 
-		tw := ls.newTower(act.UpdateTower.TowerType, p, t.Object)
+		tw := g.newTower(act.UpdateTower.TowerType, p, t.Object)
 
 		if !t.CanUpdateTo(act.UpdateTower.TowerType) || !p.CanUpdateTower(tw.Type) {
 			state.Error = fmt.Sprintf("Cannot update to tower %s", tower.Towers[act.UpdateTower.TowerType].Name())
@@ -719,8 +719,8 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 		l.Towers[tw.ID] = tw
 
 	case action.RemoveTower:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		p := state.Players[act.RemoveTower.PlayerID]
 		l := state.Lines[p.LineID]
@@ -732,12 +732,12 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 		for lid, l := range state.Lines {
 			if ok := l.Graph.RemoveTower(act.RemoveTower.TowerID); ok {
 				delete(l.Towers, act.RemoveTower.TowerID)
-				ls.recalculateLineUnitStepsAndMove(state, lid, act.RemoveTower.TowerID)
+				g.recalculateLineUnitStepsAndMove(state, lid, act.RemoveTower.TowerID)
 			}
 		}
 	case action.SummonUnit:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		cp := state.Players[act.SummonUnit.PlayerID]
 		if !cp.CanSummonUnit(act.SummonUnit.Type) {
@@ -783,22 +783,22 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 		}
 
 		if u.HasAbility(ability.Hybrid) {
-			u.Hybrid(cp.Income, ls.findPlayerByLineID(act.SummonUnit.CurrentLineID).Income)
+			u.Hybrid(cp.Income, g.findPlayerByLineID(act.SummonUnit.CurrentLineID).Income)
 		}
 
 		u.Path, u.TargetTowerID = l.Graph.Path(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, u.HasAbility(ability.Attack), atScale, useCache)
 		u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.TPS:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		for lid := range state.Lines {
-			ls.moveLineUnitsTo(state, lid, act.TPS.Time)
+			g.moveLineUnitsTo(state, lid, act.TPS.Time)
 		}
 	case action.RemovePlayer:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		p := state.Players[act.RemovePlayer.ID]
 
@@ -822,8 +822,8 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 		}
 
 	case action.UpdateUnit:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
 		u := unit.Units[act.UpdateUnit.Type]
 		buu := state.Players[act.UpdateUnit.PlayerID].UnitUpdates[act.UpdateUnit.Type]
@@ -843,10 +843,10 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 		}
 
 	case action.SyncState:
-		ls.mxLines.Lock()
-		defer ls.mxLines.Unlock()
+		g.mxLines.Lock()
+		defer g.mxLines.Unlock()
 
-		ls.syncState(&state, *act.SyncState)
+		g.syncState(&state, *act.SyncState)
 
 	}
 	return state
@@ -855,16 +855,16 @@ func (ls *Lines) Reduce(state LinesState, act *action.Action) LinesState {
 // recalculateLineUnitStepsAndMove  will recalculate the paths on lid. The twID is if
 // a tower, the one with the ID, was removed to the Attackers should move
 // It also moves the units
-func (ls *Lines) recalculateLineUnitStepsAndMove(state LinesState, lid int, twID string) {
+func (g *Game) recalculateLineUnitStepsAndMove(state GameState, lid int, twID string) {
 	t := time.Now()
-	ls.moveLineUnitsTo(state, lid, t)
+	g.moveLineUnitsTo(state, lid, t)
 
-	ls.recalculateLineUnitSteps(state, lid, twID)
+	g.recalculateLineUnitSteps(state, lid, twID)
 }
 
 // recalculateLineUnitSteps will recalculate the paths on lid. The twID is if
 // a tower, the one with the ID, was removed to the Attackers should move
-func (ls *Lines) recalculateLineUnitSteps(state LinesState, lid int, twID string) {
+func (g *Game) recalculateLineUnitSteps(state GameState, lid int, twID string) {
 	l := state.Lines[lid]
 	for _, u := range l.Units {
 		// This means the unit is attacking the tower so no need to recalculate any path
@@ -882,7 +882,7 @@ func (ls *Lines) recalculateLineUnitSteps(state LinesState, lid int, twID string
 // * If towers can attack
 // * If units can use abilities
 // * If units are dead, reached end or can go to the next line
-func (ls *Lines) moveLineUnitsTo(state LinesState, lid int, t time.Time) {
+func (g *Game) moveLineUnitsTo(state GameState, lid int, t time.Time) {
 	l := state.Lines[lid]
 	lmoves := 1
 	if !t.IsZero() && !l.UpdatedAt.IsZero() {
@@ -961,7 +961,7 @@ func (ls *Lines) moveLineUnitsTo(state LinesState, lid int, t time.Time) {
 								tw.Health = 0
 								if ok := l.Graph.RemoveTower(tw.ID); ok {
 									delete(l.Towers, tw.ID)
-									ls.recalculateLineUnitSteps(state, lid, tw.ID)
+									g.recalculateLineUnitSteps(state, lid, tw.ID)
 								}
 							}
 						}
@@ -977,8 +977,8 @@ func (ls *Lines) moveLineUnitsTo(state LinesState, lid int, t time.Time) {
 						}
 					}
 					// We steal a Live
-					ls.stealLive(state, fpID, u.PlayerID)
-					nlid := ls.store.Map.GetNextLineID(u.CurrentLineID)
+					g.stealLive(state, fpID, u.PlayerID)
+					nlid := g.store.Map.GetNextLineID(u.CurrentLineID)
 					// If the next line is the owner of the Unit we remove it
 					// If not then we change the unit to the next line
 					if nlid == u.PlayerLineID {
@@ -997,7 +997,7 @@ func (ls *Lines) moveLineUnitsTo(state LinesState, lid int, t time.Time) {
 						}
 						delete(state.Lines[lid].Units, u.ID)
 					} else {
-						ls.changeUnitLine(state, u, nlid)
+						g.changeUnitLine(state, u, nlid)
 					}
 				}
 			}
@@ -1013,7 +1013,7 @@ func (ls *Lines) moveLineUnitsTo(state LinesState, lid int, t time.Time) {
 				continue
 			}
 			if p.IsColliding(u.Object) {
-				ls.attackUnit(state, l, p, u, t)
+				g.attackUnit(state, l, p, u, t)
 				delete(l.Projectiles, pid)
 				continue
 			}
@@ -1026,7 +1026,7 @@ func (ls *Lines) moveLineUnitsTo(state LinesState, lid int, t time.Time) {
 			p.Y = 3/distance*vy + p.Y
 
 			if p.IsColliding(u.Object) {
-				ls.attackUnit(state, l, p, u, t)
+				g.attackUnit(state, l, p, u, t)
 				delete(l.Projectiles, pid)
 				continue
 			}
@@ -1034,7 +1034,7 @@ func (ls *Lines) moveLineUnitsTo(state LinesState, lid int, t time.Time) {
 			p.CalculateImageKey(vx, vy)
 		}
 
-		//if !ls.store.isOnServer {
+		//if !g.store.isOnServer {
 		//// If we are on the client we do not calculate any of those things
 		//continue
 		//}
@@ -1158,10 +1158,10 @@ func (ls *Lines) moveLineUnitsTo(state LinesState, lid int, t time.Time) {
 	l.UpdatedAt = t
 }
 
-func (ls Lines) attackUnit(state LinesState, l *Line, p *Projectile, tu *Unit, t time.Time) {
+func (g *Game) attackUnit(state GameState, l *Line, p *Projectile, tu *Unit, t time.Time) {
 	// Tower Attack
 	tu.TakeDamage(p.Damage)
-	ls.checkAfterDamage(state, l, p, tu, t)
+	g.checkAfterDamage(state, l, p, tu, t)
 	// If the Tower does AoE Damage we need to check again all the units
 	// except the current and damage them
 	if p.AoE != 0 {
@@ -1177,12 +1177,12 @@ func (ls Lines) attackUnit(state LinesState, l *Line, p *Projectile, tu *Unit, t
 				continue
 			}
 			u.TakeDamage(p.AoEDamage)
-			ls.checkAfterDamage(state, l, p, u, t)
+			g.checkAfterDamage(state, l, p, u, t)
 		}
 	}
 }
 
-func (ls Lines) checkAfterDamage(state LinesState, l *Line, p *Projectile, u *Unit, t time.Time) {
+func (g *Game) checkAfterDamage(state GameState, l *Line, p *Projectile, u *Unit, t time.Time) {
 	if u.Health <= u.MaxHealth/2 && u.HasAbility(ability.Burrow) && !u.WasBurrowed() {
 		if u.Abilities == nil {
 			u.Abilities = make(map[string]interface{})
@@ -1283,9 +1283,9 @@ func (ls Lines) checkAfterDamage(state LinesState, l *Line, p *Projectile, u *Un
 	}
 }
 
-func (ls *Lines) newLine(lid int) *Line {
-	x, y := ls.store.Map.GetHomeCoordinates(lid)
-	g, err := graph.New(x+16, y+16, 16, 84, 16, 7, 74, 3)
+func (g *Game) newLine(lid int) *Line {
+	x, y := g.store.Map.GetHomeCoordinates(lid)
+	gph, err := graph.New(x+16, y+16, 16, 84, 16, 7, 74, 3)
 	if err != nil {
 		panic(err)
 	}
@@ -1294,7 +1294,7 @@ func (ls *Lines) newLine(lid int) *Line {
 		Towers:      make(map[string]*Tower),
 		Units:       make(map[string]*Unit),
 		Projectiles: make(map[string]*Projectile),
-		Graph:       g,
+		Graph:       gph,
 	}
 }
 
@@ -1318,7 +1318,7 @@ func levelToValue(lvl, base int) int {
 	return int(math.Round(fb))
 }
 
-func (ls *Lines) stealLive(state LinesState, fpID, tpID string) {
+func (g *Game) stealLive(state GameState, fpID, tpID string) {
 	fp := state.Players[fpID]
 	tp := state.Players[tpID]
 
@@ -1344,7 +1344,7 @@ func (ls *Lines) stealLive(state LinesState, fpID, tpID string) {
 	}
 }
 
-func (ls *Lines) changeUnitLine(state LinesState, u *Unit, nlid int) {
+func (g *Game) changeUnitLine(state GameState, u *Unit, nlid int) {
 	cl := state.Lines[u.CurrentLineID]
 	// As we are gonna move it to another line
 	// we remove it
@@ -1363,12 +1363,12 @@ func (ls *Lines) changeUnitLine(state LinesState, u *Unit, nlid int) {
 
 	u.CreatedAt = time.Now()
 	if u.HasAbility(ability.Hybrid) {
-		u.Hybrid(state.Players[u.PlayerID].Income, ls.findPlayerByLineID(nlid).Income)
+		u.Hybrid(state.Players[u.PlayerID].Income, g.findPlayerByLineID(nlid).Income)
 	}
 	nl.Units[u.ID] = u
 }
 
-func (ls *Lines) newTower(tt string, p *Player, o utils.Object) *Tower {
+func (g *Game) newTower(tt string, p *Player, o utils.Object) *Tower {
 	ot := tower.Towers[tt]
 	return &Tower{
 		Object:     o,
@@ -1380,11 +1380,11 @@ func (ls *Lines) newTower(tt string, p *Player, o utils.Object) *Tower {
 	}
 }
 
-func (ls *Lines) syncState(state *LinesState, ss action.SyncStatePayload) {
+func (g *Game) syncState(state *GameState, ss action.SyncStatePayload) {
 	for lid, l := range ss.Lines.Lines {
 		cl, ok := state.Lines[lid]
 		if !ok {
-			cl = ls.newLine(lid)
+			cl = g.newLine(lid)
 			state.Lines[lid] = cl
 		}
 
@@ -1484,7 +1484,7 @@ func (ls *Lines) syncState(state *LinesState, ss action.SyncStatePayload) {
 			cl.Graph.AddTower(id, int(t.X), int(t.Y), t.W, t.H)
 		}
 
-		//if !ls.store.isOnServer {
+		//if !g.store.isOnServer {
 		//// If we are on the client we do not calculate any of those things
 		//continue
 		//}

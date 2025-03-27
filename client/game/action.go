@@ -76,8 +76,8 @@ func (ac *ActionDispatcher) CameraZoom(d int) {
 // PlaceTower places the tower 't' on the position X and Y of the player pid
 func (ac *ActionDispatcher) PlaceTower(t, pid string, x, y int) {
 	// TODO: Add the LineID in the action
-	p := ac.store.Lines.FindPlayerByID(pid)
-	if l := ac.store.Lines.FindLineByID(p.LineID); l != nil && l.Graph.CanAddTower(x, y, 32, 32) {
+	p := ac.store.Game.FindPlayerByID(pid)
+	if l := ac.store.Game.FindLineByID(p.LineID); l != nil && l.Graph.CanAddTower(x, y, 32, 32) {
 		pta := action.NewPlaceTower(t, pid, x, y)
 		ac.wsSend(pta)
 	}

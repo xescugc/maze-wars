@@ -93,7 +93,7 @@ func (b *Bot) Node() bht.Node {
 func (b *Bot) checkWinLoseCondition() func(children []bht.Node) (bht.Status, error) {
 	return func(children []bht.Node) (bht.Status, error) {
 		var thereAreHumans bool
-		for _, p := range b.store.Lines.ListPlayers() {
+		for _, p := range b.store.Game.ListPlayers() {
 			if !p.IsBot && p.Lives > 0 && !p.Winner {
 				thereAreHumans = true
 			}
@@ -125,7 +125,7 @@ func (b *Bot) updateUnits() []bht.Node {
 
 func (b *Bot) canUpdateUnit(ut string) func(children []bht.Node) (bht.Status, error) {
 	return func(children []bht.Node) (bht.Status, error) {
-		cp := b.store.Lines.FindPlayerByID(b.playerID)
+		cp := b.store.Game.FindPlayerByID(b.playerID)
 		if cp.CanUpdateUnit(ut) {
 			return bht.Success, nil
 		} else {
@@ -155,7 +155,7 @@ func (b *Bot) summonUnits() []bht.Node {
 
 func (b *Bot) canSummonUnit(ut string) func(children []bht.Node) (bht.Status, error) {
 	return func(children []bht.Node) (bht.Status, error) {
-		cp := b.store.Lines.FindPlayerByID(b.playerID)
+		cp := b.store.Game.FindPlayerByID(b.playerID)
 		if cp.CanSummonUnit(ut) {
 			return bht.Success, nil
 		} else {
@@ -166,7 +166,7 @@ func (b *Bot) canSummonUnit(ut string) func(children []bht.Node) (bht.Status, er
 
 func (b *Bot) summonUnit(ut string) func(children []bht.Node) (bht.Status, error) {
 	return func(children []bht.Node) (bht.Status, error) {
-		cp := b.store.Lines.FindPlayerByID(b.playerID)
+		cp := b.store.Game.FindPlayerByID(b.playerID)
 		nlid := b.store.Map.GetNextLineID(cp.LineID)
 
 		b.dispatcher.Dispatch(action.NewSummonUnit(ut, cp.ID, cp.LineID, nlid))
@@ -177,8 +177,8 @@ func (b *Bot) summonUnit(ut string) func(children []bht.Node) (bht.Status, error
 
 func (b *Bot) findTowerToUpdate() func(children []bht.Node) (bht.Status, error) {
 	return func(children []bht.Node) (bht.Status, error) {
-		cp := b.store.Lines.FindPlayerByID(b.playerID)
-		for _, t := range b.store.Lines.FindLineByID(cp.LineID).Towers {
+		cp := b.store.Game.FindPlayerByID(b.playerID)
+		for _, t := range b.store.Game.FindLineByID(cp.LineID).Towers {
 			tus := tower.Towers[t.Type].Updates
 			if len(tus) == 0 {
 				continue
@@ -218,7 +218,7 @@ func (b *Bot) placeTowers() []bht.Node {
 
 func (b *Bot) canPlaceTower(tt string) func(children []bht.Node) (bht.Status, error) {
 	return func(children []bht.Node) (bht.Status, error) {
-		cp := b.store.Lines.FindPlayerByID(b.playerID)
+		cp := b.store.Game.FindPlayerByID(b.playerID)
 		if cp.CanPlaceTower(tt) {
 			return bht.Success, nil
 		} else {
@@ -229,8 +229,8 @@ func (b *Bot) canPlaceTower(tt string) func(children []bht.Node) (bht.Status, er
 
 func (b *Bot) placeTower(tt string) func(children []bht.Node) (bht.Status, error) {
 	return func(children []bht.Node) (bht.Status, error) {
-		cp := b.store.Lines.FindPlayerByID(b.playerID)
-		cl := b.store.Lines.FindLineByID(cp.LineID)
+		cp := b.store.Game.FindPlayerByID(b.playerID)
+		cl := b.store.Game.FindLineByID(cp.LineID)
 
 		x, y := b.store.Map.GetHomeCoordinates(cp.LineID)
 		x += 16                                                          // Move one tile away so we are inside and not in the border

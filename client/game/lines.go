@@ -57,7 +57,7 @@ func (ls *Lines) Draw(screen *ebiten.Image) {
 	defer utils.LogTime(ls.game.Logger, b, "lines draw")
 
 	hst := ls.game.HUD.GetState()
-	for _, l := range ls.game.Store.Lines.ListLines() {
+	for _, l := range ls.game.Store.Game.ListLines() {
 		for _, t := range l.Towers {
 			ls.DrawTower(screen, ls.game.Camera, t)
 		}

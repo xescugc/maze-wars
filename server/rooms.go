@@ -660,8 +660,8 @@ func (rs RoomsStore) startRoom(state RoomsState, rid string) {
 func (rs RoomsStore) SyncState(r *Room, pid string) action.SyncStatePayload {
 	// Players
 	players := make(map[string]*action.SyncStatePlayerPayload)
-	lstate := r.Game.Store.Lines.GetState()
-	lplayers := r.Game.Store.Lines.ListPlayers()
+	lstate := r.Game.Store.Game.GetState()
+	lplayers := r.Game.Store.Game.ListPlayers()
 	for _, p := range lplayers {
 		ap := p
 		uspp := action.SyncStatePlayerPayload{
@@ -688,7 +688,7 @@ func (rs RoomsStore) SyncState(r *Room, pid string) action.SyncStatePayload {
 
 	// Lines
 	lines := make(map[int]*action.SyncStateLinePayload)
-	llines := r.Game.Store.Lines.ListLines()
+	llines := r.Game.Store.Game.ListLines()
 	for _, l := range llines {
 		al := l
 		// Towers
@@ -716,7 +716,7 @@ func (rs RoomsStore) SyncState(r *Room, pid string) action.SyncStatePayload {
 	return action.SyncStatePayload{
 		&action.SyncStatePlayersPayload{
 			Players:     players,
-			IncomeTimer: r.Game.Store.Lines.GetIncomeTimer(),
+			IncomeTimer: r.Game.Store.Game.GetIncomeTimer(),
 		},
 		&action.SyncStateLinesPayload{
 			Lines: lines,
