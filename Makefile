@@ -10,7 +10,7 @@ build:
 
 .PHONY: test
 test: wasm ## Run the tests
-	@xvfb-run go test g/...
+	@go test ./...
 
 .PHONY: generate
 generate: ## Generates code
@@ -18,7 +18,8 @@ generate: ## Generates code
 
 .PHONY: test
 ctest: wasm ## Run the tests
-	@xvfb-run go test ./... -coverprofile=cover.out
+	@go test -coverprofile=cover.out ./... 
+	@cover -func=cover.out | grep total
 
 .PHONY: test
 cover: ## Run the cover tool
