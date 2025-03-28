@@ -15,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: "Update the pkgs"
+      run: sudo apt-get update
+
+      # We install xorg-dev because of https://github.com/go-gl/glfw/issues/129#issuecomment-75928365
+    - name: "Install xorg-dev"
+      run: sudo apt-get install xorg-dev
 
     - name: Set up Go
       uses: actions/setup-go@v4

@@ -1,4 +1,4 @@
-include ./docker/.env
+-include ./docker/.env
 
 .PHONY: help
 help: ## Show this help
