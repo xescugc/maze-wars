@@ -36,8 +36,8 @@ func TestTowerShootsArrows(t *testing.T) {
 }
 
 func TestTowerName(t *testing.T) {
-	tw := tower.Towers[tower.Range1.String()]
-	pt := *tw
+	pt := tower.Towers[tower.Range1.String()]
+	tw := *pt
 	assert.Equal(t, "Range - T1", tw.Name())
 
 	tw.Type = tower.Type(100)
