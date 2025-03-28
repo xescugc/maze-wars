@@ -11,7 +11,7 @@ import (
 
 func TestNewStore(t *testing.T) {
 	d := flux.NewDispatcher[*action.Action]()
-	s := store.NewStore(d, newEmptyLogger())
+	s := store.NewStore(d, newEmptyLogger(), isSerer)
 
 	assert.NotNil(t, s)
 }

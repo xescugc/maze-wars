@@ -234,7 +234,7 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 		if err != nil {
 			hw.WriteHeader(http.StatusBadRequest)
 
-			json.NewEncoder(hw).Encode(errorResponse{Error: fmt.Sprintf("Failed to accept websocket connection: %w", err)})
+			json.NewEncoder(hw).Encode(errorResponse{Error: fmt.Errorf("Failed to accept websocket connection: %w", err).Error()})
 			return
 		}
 		defer ws.CloseNow()

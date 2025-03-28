@@ -13,6 +13,7 @@ import (
 const (
 	atScale    = true
 	isAttacker = true
+	useCache   = true
 )
 
 func TestGraph_Path(t *testing.T) {
@@ -48,7 +49,7 @@ func TestGraph_Path(t *testing.T) {
 			for _, s := range esteps {
 				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
-			steps, twid := g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
+			steps, twid := g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale, useCache)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -66,7 +67,7 @@ func TestGraph_Path(t *testing.T) {
 
 			// There is no way for me to know if the NextStep logic is used
 			// so I'm gonna force another Path so it uses it
-			steps, twid = g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
+			steps, twid = g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale, useCache)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -96,7 +97,7 @@ func TestGraph_Path(t *testing.T) {
 			for _, s := range esteps {
 				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
-			steps, twid := g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, isAttacker, !atScale)
+			steps, twid := g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, isAttacker, !atScale, useCache)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -146,7 +147,7 @@ func TestGraph_Path(t *testing.T) {
 					Facing: utils.Left,
 				},
 			}
-			steps, twid := g.Path(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, atScale)
+			steps, twid := g.Path(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, atScale, useCache)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -155,7 +156,7 @@ func TestGraph_Path(t *testing.T) {
 
 			// There is no way for me to know if the NextStep logic is used
 			// so I'm gonna force another Path so it uses it
-			steps, twid = g.Path(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, atScale)
+			steps, twid = g.Path(0, 0, 30, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, atScale, useCache)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -185,7 +186,7 @@ func TestGraph_Path(t *testing.T) {
 			for _, s := range esteps {
 				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
-			steps, twid := g.Path(0, 0, 60, utils.Down, 0, 2, environment.Aerial, !isAttacker, !atScale)
+			steps, twid := g.Path(0, 0, 60, utils.Down, 0, 2, environment.Aerial, !isAttacker, !atScale, useCache)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -243,7 +244,7 @@ func TestGraph_Path(t *testing.T) {
 					Facing: utils.Left,
 				},
 			}
-			steps, twid := g.Path(10, 10, 60, utils.Down, 10, 14, environment.Terrestrial, !isAttacker, atScale)
+			steps, twid := g.Path(10, 10, 60, utils.Down, 10, 14, environment.Terrestrial, !isAttacker, atScale, useCache)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -293,7 +294,7 @@ func TestGraph_Path(t *testing.T) {
 					Facing: utils.Left,
 				},
 			}
-			steps, twid := g.Path(11, 10, 60, utils.Down, 10, 14, environment.Terrestrial, !isAttacker, atScale)
+			steps, twid := g.Path(11, 10, 60, utils.Down, 10, 14, environment.Terrestrial, !isAttacker, atScale, useCache)
 			require.NotNil(t, steps)
 			require.NotEmpty(t, steps)
 			require.Len(t, steps, len(esteps))
@@ -304,7 +305,7 @@ func TestGraph_Path(t *testing.T) {
 			g, err := graph.New(0, 0, 3, 3, 1, 1, 1, 1)
 			require.NoError(t, err)
 
-			_, _ = g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
+			_, _ = g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale, useCache)
 			g.AddTower("id", 0, 1, 1, 1)
 			for _, yn := range g.Nodes {
 				for _, n := range yn {
@@ -317,7 +318,7 @@ func TestGraph_Path(t *testing.T) {
 			require.NoError(t, err)
 
 			g.AddTower("id", 0, 1, 1, 1)
-			_, _ = g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
+			_, _ = g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale, useCache)
 			g.RemoveTower("id")
 			for _, yn := range g.Nodes {
 				for _, n := range yn {
@@ -357,7 +358,7 @@ func TestGraph_Path(t *testing.T) {
 				enodes = append(enodes, g.GetNode(int(s.X), int(s.Y)))
 			}
 
-			steps, twid := g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale)
+			steps, twid := g.Path(0, 0, 60, utils.Down, 0, 2, environment.Terrestrial, !isAttacker, !atScale, useCache)
 			g.RemoveTower("not-found")
 
 			require.NotNil(t, steps)
