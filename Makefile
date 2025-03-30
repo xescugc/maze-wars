@@ -64,10 +64,18 @@ release: ## Makes a full release to GitHub
 wa-zip: wasm ## Zips the content of the wasm/ into a dist/isoterra-wasm.zip
 	@zip -r ./dist/maze-wars-wasm.zip wasm
 
-.PHONY: profile
-profile:
+.PHONY: cprofile
+cprofile: ## Execute the CLIENT pprof for the profile
+	@go tool pprof --http=:8081 http://localhost:6061/debug/pprof/profile?=seconds=10
+
+.PHONY: cheap
+cheap: ## Execute the CLIENT pprof for the heap
+	@go tool pprof --http=:8081 http://localhost:6061/debug/pprof/heap?=seconds=10
+
+.PHONY: sprofile
+sprofile: ## Execute the SERVER pprof for the profile
 	@go tool pprof --http=:8081 http://localhost:6060/debug/pprof/profile?=seconds=10
 
-.PHONY: heap
-heap:
+.PHONY: sheap
+sheap: ## Execute the SERVER pprof for the heap
 	@go tool pprof --http=:8081 http://localhost:6060/debug/pprof/heap?=seconds=10

@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"path"
 	"time"
+
+	_ "net/http/pprof"
 
 	"github.com/adrg/xdg"
 	"github.com/getsentry/sentry-go"
@@ -39,6 +42,9 @@ var (
 	clientCmd = &cobra.Command{
 		Use: "client",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			go func() {
+				log.Println(http.ListenAndServe("localhost:6061", nil))
+			}()
 			var err error
 			opt := client.Options{
 				ScreenW: screenW,

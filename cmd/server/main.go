@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/adrg/xdg"
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
@@ -25,6 +28,11 @@ var (
 	serverCmd = &cobra.Command{
 		Use: "server",
 		RunE: func(cmd *cobra.Command, args []string) error {
+
+			go func() {
+				log.Println(http.ListenAndServe("localhost:6060", nil))
+			}()
+
 			opt := server.Options{
 				Port:             viper.GetString("port"),
 				Verbose:          viper.GetBool("verbose"),

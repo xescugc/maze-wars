@@ -1,8 +1,6 @@
 package graph
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"fmt"
 
 	"github.com/xescugc/maze-wars/utils"
@@ -27,10 +25,10 @@ func (s Step) String() string {
 	return fmt.Sprintf("X:%.2f, Y:%.2f, F:%s", s.X, s.Y, s.Facing.String())
 }
 
-func HashSteps(ss []Step) string {
-	var buffer bytes.Buffer
-	for _, s := range ss {
-		buffer.WriteString(s.String())
-	}
-	return fmt.Sprintf("%x", (sha256.Sum256([]byte(buffer.String()))))
-}
+//func HashSteps(ss []Step) string {
+//var buffer bytes.Buffer
+//for _, s := range ss {
+//buffer.WriteString(s.String())
+//}
+//return fmt.Sprintf("%x", (sha256.Sum256([]byte(buffer.String()))))
+//}

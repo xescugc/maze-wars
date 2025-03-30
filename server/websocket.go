@@ -10,6 +10,7 @@ import (
 //go:generate mockgen -destination=./mock/websocket.go -package mock github.com/xescugc/maze-wars/server WSConnector
 type WSConnector interface {
 	Write(context.Context, *websocket.Conn, interface{}) error
+	WriteB(context.Context, *websocket.Conn, []byte) error
 	Read(context.Context, *websocket.Conn, interface{}) error
 }
 
@@ -19,6 +20,10 @@ func NewWS() *WS { return &WS{} }
 
 func (ws *WS) Write(ctx context.Context, conn *websocket.Conn, d interface{}) error {
 	return wsjson.Write(ctx, conn, d)
+}
+
+func (ws *WS) WriteB(ctx context.Context, conn *websocket.Conn, b []byte) error {
+	return conn.Write(ctx, websocket.MessageText, b)
 }
 
 func (ws *WS) Read(ctx context.Context, conn *websocket.Conn, d interface{}) error {

@@ -2,12 +2,14 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"log/slog"
 	"sort"
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/unit"
@@ -167,91 +169,112 @@ func (ac *ActionDispatcher) UserSignOut(un string) {
 }
 
 func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
+	b := time.Now()
+	defer utils.LogTime(ac.logger, b, "action dispatch", "action", "SyncState:all")
+
+	tb := time.Now()
 	ac.Dispatch(action.NewTPS(time.Now()))
+	utils.LogTime(ac.logger, tb, "action dispatch", "action", "SyncState:tps")
+
 	rms := rooms.ListRooms()
 	for _, r := range rms {
+		// Players
+		players := make(map[string]*action.SyncStatePlayerPayload)
+		lplayers := r.Game.Store.Game.ListPlayers()
+		for _, p := range lplayers {
+			ap := p
+			uspp := action.SyncStatePlayerPayload{
+				ID:          ap.ID,
+				Name:        ap.Name,
+				ImageKey:    ap.ImageKey,
+				Lives:       ap.Lives,
+				LineID:      ap.LineID,
+				Income:      ap.Income,
+				Gold:        ap.Gold,
+				IsBot:       ap.IsBot,
+				Current:     ap.Current,
+				Winner:      ap.Winner,
+				Capacity:    ap.Capacity,
+				UnitUpdates: make(map[string]action.SyncStatePlayerUnitUpdatePayload),
+			}
+			// TODO: Make it concurrently safe
+			for t, uu := range ap.UnitUpdates {
+				uspp.UnitUpdates[t] = action.SyncStatePlayerUnitUpdatePayload(uu)
+			}
+			players[ap.ID] = &uspp
+		}
+
+		// Lines
+		lines := make(map[int]*action.SyncStateLinePayload)
+		llines := r.Game.Store.Game.ListLines()
+		for _, l := range llines {
+			al := l
+			// Towers
+			towers := make(map[string]*action.SyncStateTowerPayload)
+			for _, t := range al.Towers {
+				at := t
+				payload := action.SyncStateTowerPayload(*at)
+				towers[at.ID] = &payload
+			}
+
+			// Units
+			units := make(map[string]*action.SyncStateUnitPayload)
+			for _, u := range al.Units {
+				au := *u
+				l := 60
+				if len(au.Path) < 60 {
+					l = len(au.Path)
+				}
+				au.Path = au.Path[0:l]
+				payload := action.SyncStateUnitPayload(au)
+				units[au.ID] = &payload
+			}
+
+			// Projectiles
+			projectiles := make(map[string]*action.SyncStateProjectilePayload)
+			for _, p := range al.Projectiles {
+				ap := p
+				payload := action.SyncStateProjectilePayload(*ap)
+				projectiles[ap.ID] = &payload
+			}
+
+			lines[al.ID] = &action.SyncStateLinePayload{
+				ID:          al.ID,
+				Towers:      towers,
+				Units:       units,
+				Projectiles: projectiles,
+			}
+		}
+
+		aus := action.NewSyncState(
+			&action.SyncStatePlayersPayload{
+				Players:     players,
+				IncomeTimer: r.Game.Store.Game.GetIncomeTimer(),
+			},
+			&action.SyncStateLinesPayload{
+				Lines: lines,
+			},
+			r.StartedAt,
+		)
 		for id, pc := range r.Players {
 			// We do not want to communicate state to a bot
 			if pc.IsBot {
 				continue
 			}
-			// Players
-			players := make(map[string]*action.SyncStatePlayerPayload)
-			lplayers := r.Game.Store.Game.ListPlayers()
-			for _, p := range lplayers {
-				ap := p
-				uspp := action.SyncStatePlayerPayload{
-					ID:          ap.ID,
-					Name:        ap.Name,
-					ImageKey:    ap.ImageKey,
-					Lives:       ap.Lives,
-					LineID:      ap.LineID,
-					Income:      ap.Income,
-					Gold:        ap.Gold,
-					IsBot:       ap.IsBot,
-					Current:     ap.Current,
-					Winner:      ap.Winner,
-					Capacity:    ap.Capacity,
-					UnitUpdates: make(map[string]action.SyncStatePlayerUnitUpdatePayload),
-				}
-				// TODO: Make it concurrently safe
-				for t, uu := range ap.UnitUpdates {
-					uspp.UnitUpdates[t] = action.SyncStatePlayerUnitUpdatePayload(uu)
-				}
-				if id == ap.ID {
-					uspp.Current = true
-				}
-				players[ap.ID] = &uspp
+			for _, p := range aus.SyncState.Players.Players {
+				p.Current = id == p.ID
 			}
 
-			// Lines
-			lines := make(map[int]*action.SyncStateLinePayload)
-			llines := r.Game.Store.Game.ListLines()
-			for _, l := range llines {
-				al := l
-				// Towers
-				towers := make(map[string]*action.SyncStateTowerPayload)
-				for _, t := range al.Towers {
-					at := t
-					payload := action.SyncStateTowerPayload(*at)
-					towers[at.ID] = &payload
-				}
-
-				// Units
-				units := make(map[string]*action.SyncStateUnitPayload)
-				for _, u := range al.Units {
-					au := u
-					payload := action.SyncStateUnitPayload(*au)
-					units[au.ID] = &payload
-				}
-
-				// Projectiles
-				projectiles := make(map[string]*action.SyncStateProjectilePayload)
-				for _, p := range al.Projectiles {
-					ap := p
-					payload := action.SyncStateProjectilePayload(*ap)
-					projectiles[ap.ID] = &payload
-				}
-
-				lines[al.ID] = &action.SyncStateLinePayload{
-					ID:          al.ID,
-					Towers:      towers,
-					Units:       units,
-					Projectiles: projectiles,
-				}
+			b, err := json.Marshal(aus)
+			if err != nil {
+				panic(err)
 			}
 
-			aus := action.NewSyncState(
-				&action.SyncStatePlayersPayload{
-					Players:     players,
-					IncomeTimer: r.Game.Store.Game.GetIncomeTimer(),
-				},
-				&action.SyncStateLinesPayload{
-					Lines: lines,
-				},
-				r.StartedAt,
-			)
-			err := ac.ws.Write(context.Background(), pc.User.Conn, aus)
+			spew.Dump(len(b))
+			nb := time.Now()
+			defer utils.LogTime(ac.logger, nb, "action dispatch", "action", "SyncState:write")
+
+			err = ac.ws.WriteB(context.Background(), pc.User.Conn, b)
 			if err != nil {
 				log.Fatal(err)
 			}

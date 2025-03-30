@@ -204,8 +204,8 @@ type Unit struct {
 	// The current level of the unit from the PlayerID
 	Level int
 
-	Path     []graph.Step
-	HashPath string
+	Path []graph.Step
+	//HashPath string
 
 	// CreatedAt has the time of creation so
 	// on the next SyncState will be moved just
@@ -787,7 +787,7 @@ func (g *Game) Reduce(state GameState, act *action.Action) GameState {
 		}
 
 		u.Path, u.TargetTowerID = l.Graph.Path(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, bu.Environment, u.HasAbility(ability.Attack), atScale, useCache)
-		u.HashPath = graph.HashSteps(u.Path)
+		//u.HashPath = graph.HashSteps(u.Path)
 		l.Units[u.ID] = u
 	case action.TPS:
 		g.mxLines.Lock()
@@ -872,7 +872,7 @@ func (g *Game) recalculateLineUnitSteps(state GameState, lid int, twID string) {
 			continue
 		}
 		u.Path, u.TargetTowerID = l.Graph.Path(u.X, u.Y, u.MovementSpeed, u.Facing, l.Graph.DeathNode.X, l.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale, useCache)
-		u.HashPath = graph.HashSteps(u.Path)
+		//u.HashPath = graph.HashSteps(u.Path)
 	}
 }
 
@@ -1359,7 +1359,7 @@ func (g *Game) changeUnitLine(state GameState, u *Unit, nlid int) {
 	u.Y = float64(n.Y)
 
 	u.Path, u.TargetTowerID = nl.Graph.Path(u.X, u.Y, u.MovementSpeed, u.Facing, nl.Graph.DeathNode.X, nl.Graph.DeathNode.Y, unit.Units[u.Type].Environment, u.HasAbility(ability.Attack), atScale, useCache)
-	u.HashPath = graph.HashSteps(u.Path)
+	//u.HashPath = graph.HashSteps(u.Path)
 
 	u.CreatedAt = time.Now()
 	if u.HasAbility(ability.Hybrid) {
@@ -1396,18 +1396,18 @@ func (g *Game) syncState(state *GameState, ss action.SyncStatePayload) {
 		for id, u := range l.Units {
 			delete(uids, id)
 			nu := Unit(*u)
-			ou, ok := cl.Units[id]
+			//ou, ok := cl.Units[id]
 
-			if ok {
-				_ = ou
-				//If the unit already exists and have the same Hash then ignore the server
-				//coordinates and path
-				if ou.HashPath == nu.HashPath {
-					nu.Path = ou.Path
-					nu.X = ou.X
-					nu.Y = ou.Y
-				}
-			}
+			//if ok {
+			//_ = ou
+			//If the unit already exists and have the same Hash then ignore the server
+			//coordinates and path
+			//if ou.HashPath == nu.HashPath {
+			//nu.Path = ou.Path
+			//nu.X = ou.X
+			//nu.Y = ou.Y
+			//}
+			//}
 			if nu.Abilities != nil {
 				for k, v := range nu.Abilities {
 					switch k {
