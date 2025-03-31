@@ -1,18 +1,24 @@
 <p align="center">
-    <img src="server/assets/images/logo.png" width="400">
+    <img src="assets/logo.png" width="200">
 </p>
 
 # Maze Wars
 
 [![](https://dcbadge.vercel.app/api/server/xXcpD3Fjt9)](https://discord.gg/xXcpD3Fjt9)
 
-**Bring your enemies lives to 0 by stealing them with your summoned units passing through their mazes, but be careful, they'll do the same to you!**
+**Build a maze of towers to protect yourself from enemy units and send units to try to pass through the enemy maze and steal their lives, the last one standing wins.**
 
-To **play** the game go to [maze-wars.com/download](https://maze-wars.com/download) and download the version that fits your computer, you can also play from
-the browser at [maze-wars.com/play](https://maze-wars.com/play) but it's still a bit laggy on the client side.
+:warning: The first **prototype** release of the game will be on Itchio but is still not up :warning:
+
+You can follow development at:
+
+* [GitHub Project](https://github.com/users/xescugc/projects/2/views/1?query=sort%3Aupdated-desc+is%3Aopen)
+* [Discord](https://discord.gg/xXcpD3Fjt9)
+* [Bluesky](https://bsky.app/profile/yawpgames.bsky.social)
+* [Twitter](https://x.com/yawpgames)
 
 <p align="center">
-    <img src="server/assets/images/game_sample.png">
+    <img src="docs/game_sample.png">
 </p>
 
 # About the game
