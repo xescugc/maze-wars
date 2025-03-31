@@ -54,6 +54,8 @@ const (
 	AddPlayer
 	RemovePlayer
 	SyncState
+	SyncLobbies
 	SyncSearchingRoom
 	SyncWaitingRoom
+	SyncWaitingRooms
 )

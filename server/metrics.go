@@ -30,10 +30,10 @@ var (
 		},
 	)
 
-	numberOfActions = promauto.NewCounterVec(
-		prometheus.CounterOpts{
+	numberOfActions = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
 			Namespace: "maze_wars",
-			Name:      "number_of_actions_count",
+			Name:      "number_of_actions_ns",
 		},
 		[]string{
 			"type",

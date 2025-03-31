@@ -5,16 +5,26 @@ WORKDIR /app
 COPY go.mod .
 COPY go.sum .
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates
+RUN update-ca-certificates
+
 RUN go mod download && go mod verify
 
 COPY . .
 
 ARG VERSION
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/xescugc/maze-wars/server.Version=$VERSION -X github.com/xescugc/maze-wars/server.Environment=prod" -o maze-wars_app ./cmd/server/
+ARG DISCORD_CHANNEL_ID
+ARG DISCORD_BOT_TOKEN
+ARG ENVIRONMENT
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/xescugc/maze-wars/server.Version=$VERSION -X github.com/xescugc/maze-wars/server.Environment=prod -X github.com/xescugc/maze-wars/server.DiscordBotToken=$DISCORD_BOT_TOKEN -X github.com/xescugc/maze-wars/server.DiscordChannelID=$DISCORD_CHANNEL_ID -X github.com/xescugc/maze-wars/server.Environment=$ENVIRONMENT" -o maze-wars_app ./cmd/server/
 ENTRYPOINT ["/app/maze-wars_app"]
 
 # final stage
 
 FROM scratch
+# Need to install ca-certificates
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app/maze-wars_app /app/
 ENTRYPOINT ["/app/maze-wars_app"]

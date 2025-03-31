@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/xescugc/go-flux/v2"
 	"github.com/xescugc/maze-wars/action"
 	"github.com/xescugc/maze-wars/unit"
@@ -73,9 +74,17 @@ func (ac *ActionDispatcher) Dispatch(a *action.Action) {
 		ac.dispatcher.Dispatch(a)
 		ac.startGame(noVs, a.StartLobby.LobbyID)
 		ac.dispatcher.Dispatch(action.NewDeleteLobby(a.StartLobby.LobbyID))
+	case action.SyncState:
+		ac.syncState()
+	case action.SyncLobbies:
+		ac.syncLobbies()
+	case action.SyncWaitingRooms:
+		ac.syncWaitingRooms()
 	default:
 		ac.dispatcher.Dispatch(a)
 	}
+
+	numberOfActions.With(prometheus.Labels{"type": a.Type.String()}).Observe(float64(time.Now().Sub(b)))
 }
 
 func (ac *ActionDispatcher) notifyPlayersLobbyDeleted(uns map[string]bool) {
@@ -129,7 +138,7 @@ func (ac *ActionDispatcher) startGame(vs, roid string) {
 	state := ac.store.Rooms.GetState()
 	r := state.Rooms[rid]
 
-	ac.SyncState(ac.store.Rooms)
+	ac.syncState()
 
 	for pid, p := range r.Players {
 		// We do not need to communicate with the bots
@@ -145,7 +154,7 @@ func (ac *ActionDispatcher) startGame(vs, roid string) {
 	}
 }
 
-func (ac *ActionDispatcher) IncomeTick(rooms *RoomsStore) {
+func (ac *ActionDispatcher) IncomeTick() {
 	ita := action.NewIncomeTick()
 	ac.Dispatch(ita)
 }
@@ -166,9 +175,9 @@ func (ac *ActionDispatcher) UserSignOut(un string) {
 	ac.Dispatch(action.NewUserSignOut(un))
 }
 
-func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
+func (ac *ActionDispatcher) syncState() {
 	ac.Dispatch(action.NewTPS(time.Now()))
-	rms := rooms.ListRooms()
+	rms := ac.store.Rooms.ListRooms()
 	for _, r := range rms {
 		for id, pc := range r.Players {
 			// We do not want to communicate state to a bot
@@ -259,9 +268,9 @@ func (ac *ActionDispatcher) SyncState(rooms *RoomsStore) {
 	}
 }
 
-// SyncLobbies will just sync the info of each lobby to the players on it
-func (ac *ActionDispatcher) SyncLobbies(s *Store) {
-	lbs := s.Lobbies.List()
+// syncLobbies will just sync the info of each lobby to the players on it
+func (ac *ActionDispatcher) syncLobbies() {
+	lbs := ac.store.Lobbies.List()
 	for _, l := range lbs {
 		al := action.LobbyPayload{
 			ID:         l.ID,
@@ -276,7 +285,7 @@ func (ac *ActionDispatcher) SyncLobbies(s *Store) {
 			if ib {
 				continue
 			}
-			u, ok := s.Rooms.FindUserByUsername(p)
+			u, ok := ac.store.Rooms.FindUserByUsername(p)
 			if ok {
 				err := ac.ws.Write(context.Background(), u.Conn, ula)
 				if err != nil {
@@ -287,12 +296,12 @@ func (ac *ActionDispatcher) SyncLobbies(s *Store) {
 	}
 }
 
-// SyncLobbies will just sync the info of each lobby to the players on it
-func (ac *ActionDispatcher) SyncWaitingRooms(s *Store) {
-	for _, w := range s.Rooms.ListWaitingRooms() {
+// syncWaitingRooms updates the waiting room status
+func (ac *ActionDispatcher) syncWaitingRooms() {
+	for _, w := range ac.store.Rooms.ListWaitingRooms() {
 		var players = make([]action.SyncWaitingRoomPlayersPayload, 0, 0)
 		for pid, p := range w.Players {
-			u, ok := s.Rooms.FindUserByID(pid)
+			u, ok := ac.store.Rooms.FindUserByID(pid)
 			if !ok {
 				if !p.IsBot {
 					continue

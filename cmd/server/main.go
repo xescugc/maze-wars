@@ -92,10 +92,10 @@ func init() {
 	serverCmd.Flags().String("port", "5555", "The port in which the sever is open")
 	viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
 
-	serverCmd.Flags().String("discord-bot-token", "", "The TOKEN to send Discord notifications")
+	serverCmd.Flags().String("discord-bot-token", server.DiscordBotToken, "The TOKEN to send Discord notifications")
 	viper.BindPFlag("discord-bot-token", serverCmd.Flags().Lookup("discord-bot-token"))
 
-	serverCmd.Flags().String("discord-channel-id", "", "The ID for the Channel to send messages")
+	serverCmd.Flags().String("discord-channel-id", server.DiscordChannelID, "The ID for the Channel to send messages")
 	viper.BindPFlag("discord-channel-id", serverCmd.Flags().Lookup("discord-channel-id"))
 
 	serverCmd.Flags().Bool("verbose", false, fmt.Sprintf("If all the logs are gonna be printed to %s", logFile))
