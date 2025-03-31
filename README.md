@@ -17,6 +17,8 @@ You can follow development at:
 * [Bluesky](https://bsky.app/profile/yawpgames.bsky.social)
 * [Twitter](https://x.com/yawpgames)
 
+For more detailed information you can check the actul Docs and XLS I have in [Drive](https://drive.google.com/drive/folders/1EoIuiOiAEkn-ZRVEdMMFGXV8sq885tnu?usp=sharing)
+
 <p align="center">
     <img src="docs/game_sample.png">
 </p>
