@@ -32,6 +32,7 @@ services:
     restart: always
 
   maze-wars:
+    container_name: maze-wars
     build:
       context: ..
       dockerfile: docker/Dockerfile.maze-wars.prod
@@ -39,6 +40,7 @@ services:
         VERSION: ${VERSION}
         DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
         DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID}
+        ENVIRONEMNT: "prod"
     expose:
       - 3000
     environment:

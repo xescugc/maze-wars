@@ -13,7 +13,6 @@ import (
 	"github.com/coder/websocket/wsjson"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
@@ -261,7 +260,6 @@ func wsHandler(s *Store) func(http.ResponseWriter, *http.Request) {
 			// action from the handler
 			msg.Room = u.CurrentRoomID
 
-			numberOfActions.With(prometheus.Labels{"type": msg.Type.String()}).Inc()
 			switch msg.Type {
 			case action.UserSignIn:
 				actionDispatcher.UserSignIn(*&msg.UserSignIn.Username, hr.RemoteAddr, ws)
@@ -290,12 +288,14 @@ func startLoop(ctx context.Context, s *Store) {
 	stateTicker := time.NewTicker(time.Second / 4)
 	for {
 		select {
+		// TODO: All this should be calling actionDispatcher.Dispatch(Action)
+		// so then I funnel all of them always through the dispatcher
 		case <-stateTicker.C:
-			actionDispatcher.SyncState(s.Rooms)
+			actionDispatcher.Dispatch(&action.Action{Type: action.SyncState})
 		case <-secondTicker.C:
-			actionDispatcher.IncomeTick(s.Rooms)
-			actionDispatcher.SyncLobbies(s)
-			actionDispatcher.SyncWaitingRooms(s)
+			actionDispatcher.IncomeTick()
+			actionDispatcher.Dispatch(&action.Action{Type: action.SyncLobbies})
+			actionDispatcher.Dispatch(&action.Action{Type: action.SyncWaitingRooms})
 		case <-ctx.Done():
 			stateTicker.Stop()
 			secondTicker.Stop()

@@ -1,8 +1,10 @@
 package server
 
 var (
-	Version     string = "dev"
-	Environment string = "dev"
+	Version          string = "dev"
+	Environment      string = "dev"
+	DiscordBotToken  string = "non"
+	DiscordChannelID string = "non"
 )
 
 type Options struct {
